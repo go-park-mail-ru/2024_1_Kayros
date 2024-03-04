@@ -1,11 +1,12 @@
 package delivery
 
 import (
-	"2024_1_kayros/internal/entity"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"2024_1_kayros/internal/entity"
 )
 
 var rests = []entity.Restaurant{
@@ -30,6 +31,5 @@ func RestaurantList(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(body)
 	if err != nil {
 		fmt.Printf("Write failed: %v", err)
-		return
 	}
 }
