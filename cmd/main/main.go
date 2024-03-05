@@ -11,13 +11,19 @@ import (
 
 	"2024_1_kayros/internal/delivery/authorization"
 	"2024_1_kayros/internal/delivery/restaurants"
+	"2024_1_kayros/internal/entity"
 	"github.com/gorilla/mux"
 )
 
 func main() {
 	r := mux.NewRouter()
 
+	// мультиплексор авторизации
 	var auth authorization.AuthHandler
+
+	// база данных
+	var db entity.Database
+	db.InitializeDatabase()
 
 	// флаг для установки времени graceful shutdown-а
 	var wait time.Duration

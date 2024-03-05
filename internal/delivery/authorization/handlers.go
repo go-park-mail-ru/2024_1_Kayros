@@ -15,8 +15,6 @@ import (
 )
 
 type AuthHandler struct {
-	sessionTable   map[uuid.UUID]string   // ключ - сессия, значение - идентификатор пользователя
-	users          map[string]entity.User // ключ - почта пользователя, значение - данные пользователя (экземпляр структуры)
 	sessionTableMu sync.RWMutex
 	usersMu        sync.RWMutex
 }

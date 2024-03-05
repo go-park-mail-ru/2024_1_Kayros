@@ -9,18 +9,11 @@ type Database struct {
 	Users        map[string]User      // ключ - почта пользователя, значение - данные пользователя (экземпляр структуры)
 }
 
-func NewDatabase() *Database {
-	db := Database{
-		SessionTable: make(map[uuid.UUID]string),
-		Users:        make(map[string]User),
-	}
-
-	db.initialData()
-
-	return &db
+func (db *Database) InitializeDatabase() {
+	db.setInitialData()
 }
 
-func (db *Database) initialData() {
+func (db *Database) setInitialData() {
 	users := []User{
 		{Id: 1, Name: "Ivan", Email: "ivan@yandex.ru"},
 		{Id: 2, Name: "Sofia", Email: "sofia@yandex.ru"},
