@@ -225,6 +225,16 @@
               }
             }
           },
+          "400": {
+            "description": "Пользователь не может деавторизоваться",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrongUUID"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Неудачная попытка покинуть систему",
             "content": {
@@ -302,6 +312,15 @@
           "detail": {
             "type": "string",
             "example": "Предоставлены неверные учетные данные"
+          }
+        }
+      },
+      "WrongUUID": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Ошибка при получении ключа сессии"
           }
         }
       },

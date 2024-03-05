@@ -108,5 +108,30 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
-	return w
+	// если пришел неавторизованный пользователь, возвращаем 401
+	user := r.Context().Value("user")
+	if user == nil {
+		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
+		return
+	}
+
+	// удаляем запись из таблицы сессий
+	sessionCookie, errNoSessionCookie := r.Cookie("session_id")
+	if errors.Is(errNoSessionCookie, http.ErrNoCookie) {
+		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
+		return
+	}
+	// проверка на корректность UUID
+	sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
+	if errWrongSessionId != nil {
+		http.Error(w, "Ошибка при получении ключа сессии", http.StatusBadRequest)
+		return
+	}
+	state.sessionTableMu.RLock()
+	delete(state.sessionTable, sessionId)
+	state.sessionTableMu.RUnlock()
+
+	// ставим заголовок для удаления сессионной куки в браузере
+	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
+	http.SetCookie(w, sessionCookie)
 }
