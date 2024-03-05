@@ -95,7 +95,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BadCredentionals"
+                  "$ref": "#/components/schemas/BadCredentials"
                 }
               }
             }
@@ -156,7 +156,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BadCredentionals"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BadCredentials"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JsonUnmarshallError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JsonMarshallError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BadResponseBody"
+                    }
+                  ]
                 }
               }
             }
@@ -247,6 +260,33 @@
           }
         }
       },
+      "JsonUnmarshallError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Ошибка при десериализации тела запроса"
+          }
+        }
+      },
+      "JsonMarshallError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Ошибка при сериализации тела ответа"
+          }
+        }
+      },
+      "BadResponseBody": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Ошибка при формировании тела ответа"
+          }
+        }
+      },
       "BadPermission": {
         "type": "object",
         "properties": {
@@ -256,7 +296,7 @@
           }
         }
       },
-      "BadCredentionals": {
+      "BadCredentials": {
         "type": "object",
         "properties": {
           "detail": {
