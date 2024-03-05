@@ -17,20 +17,22 @@ import (
 func main() {
 	r := mux.NewRouter()
 
+	var auth authorization.AuthHandler
+
 	// флаг для установки времени graceful shutdown-а
 	var wait time.Duration
 	flag.DurationVar(&wait, "grtm", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
 	// устанавливаем middleware для аутентификации с помощью сессионной куки
-	r.Use(authorization.SessionAuthentication)
+	r.Use(auth.SessionAuthentication)
 
 	// cаброутинг для блока авторизации
 	subRoutingAuth := r.Methods("POST").Subrouter()
 	// авторизация, регистрация, деавторизация
-	subRoutingAuth.HandleFunc("/signin", authorization.signIn).Name("signin")
-	subRoutingAuth.HandleFunc("/signup", authorization.signUp).Name("signup")
-	subRoutingAuth.HandleFunc("/signout", authorization.signOut).Name("signout")
+	subRoutingAuth.HandleFunc("/signin", auth.SignIn).Name("signin")
+	subRoutingAuth.HandleFunc("/signup", auth.SignUp).Name("signup")
+	subRoutingAuth.HandleFunc("/signout", auth.SignOut).Name("signout")
 
 	// рестораны
 	r.HandleFunc("/restaurants", delivery.RestaurantList).Methods("GET").Name("restaurants")
