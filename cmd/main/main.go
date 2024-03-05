@@ -22,12 +22,15 @@ func main() {
 	flag.DurationVar(&wait, "grtm", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
+	// устанавливаем middleware для аутентификации с помощью сессионной куки
+	r.Use(authorization.SessionAuthentication)
+
 	// cаброутинг для блока авторизации
 	subRoutingAuth := r.Methods("POST").Subrouter()
 	// авторизация, регистрация, деавторизация
-	subRoutingAuth.HandleFunc("/signin", authorization.SignIn).Name("signin")
-	subRoutingAuth.HandleFunc("/signup", authorization.SignUp).Name("signup")
-	subRoutingAuth.HandleFunc("/signout", authorization.SignOut).Name("signout")
+	subRoutingAuth.HandleFunc("/signin", authorization.signIn).Name("signin")
+	subRoutingAuth.HandleFunc("/signup", authorization.signUp).Name("signup")
+	subRoutingAuth.HandleFunc("/signout", authorization.signOut).Name("signout")
 
 	// рестораны
 	r.HandleFunc("/restaurants", delivery.RestaurantList).Methods("GET").Name("restaurants")
@@ -42,7 +45,7 @@ func main() {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Printf("Сервер не может быть запущен. Ошибка:\n%v", err)
+			log.Printf("Сервер не может быть запущен. Ошибка: \n%v", err)
 		} else {
 			log.Println("Сервер запущен на порте 8000")
 		}
