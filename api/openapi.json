@@ -27,13 +27,12 @@
           "restaurants"
         ],
         "summary": "Возвращает список ресторанов",
-        "description": "Список ресторанов с информацией о них",
+        "description": "Список ресторанов с информацией о них. Поиск будет позволять вводить один символ для поиска, поскольку есть рестораны, чье название является аббревиатурой.",
         "parameters": [
           {
             "name": "search",
             "in": "query",
-            "description": "Умный поиск по названию ресторана и его описанию",
-            "required": true,
+            "description": "Поиск по названию ресторана",
             "schema": {
               "type": "string"
             }
@@ -41,11 +40,21 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Список ресторанов найден",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Restaurant"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Произошла неожиданная ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnexpectedServerError"
                 }
               }
             }
@@ -59,7 +68,7 @@
           "user"
         ],
         "summary": "Регистрация",
-        "description": "Регистрация пользователя в системе",
+        "description": "Регистрация пользователя в системе. После регистрации пользователю устанавливается кука session_id, с помощью которой он в дальнейшем получает доступ к ресурсу.",
         "requestBody": {
           "description": "Данные пользователя для регистрации",
           "content": {
@@ -91,12 +100,22 @@
               }
             }
           },
-          "403": {
-            "description": "Недостаточно прав для совершения действия",
+          "401": {
+            "description": "Неудачная попытка зарегистрироваться",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BadPermission"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Произошла неожиданная ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnexpectedServerError"
                 }
               }
             }
@@ -110,7 +129,7 @@
           "user"
         ],
         "summary": "Авторизация",
-        "description": "Авторизация пользователя в системе",
+        "description": "Авторизация пользователя в системе. После авторизации устанавливается кука session_id, с помощью которой он в дальнейшем получает доступ к ресурсу.",
         "requestBody": {
           "description": "Данные пользователя для авторизации",
           "content": {
@@ -142,12 +161,22 @@
               }
             }
           },
-          "403": {
-            "description": "Недостаточно прав для совершения действия",
+          "401": {
+            "description": "Неудачная попытка зарегистрироваться",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BadPermission"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Произошла неожиданная ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnexpectedServerError"
                 }
               }
             }
@@ -161,7 +190,7 @@
           "user"
         ],
         "summary": "Деавторизация",
-        "description": "Выход пользователя из системы. Данные доступны в режиме чтения",
+        "description": "Выход пользователя из системы. Удаляется кука session_id из браузера. Данные доступны пользователю в режиме чтения.",
         "requestBody": {
           "description": "Пустое тело ответа специально, поскольку данные передавать не надо",
           "content": {
@@ -183,12 +212,22 @@
               }
             }
           },
-          "403": {
-            "description": "Недостаточно прав для совершения действия",
+          "401": {
+            "description": "Неудачная попытка покинуть систему",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BadPermission"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Произошла неожиданная ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnexpectedServerError"
                 }
               }
             }
@@ -199,12 +238,21 @@
   },
   "components": {
     "schemas": {
+      "UnexpectedServerError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Внутренняя ошибка сервера"
+          }
+        }
+      },
       "BadPermission": {
         "type": "object",
         "properties": {
           "detail": {
             "type": "string",
-            "example": "Insufficient permissions to perform the action"
+            "example": "Не хватает действительных учётных данных для целевого ресурса"
           }
         }
       },
@@ -213,7 +261,7 @@
         "properties": {
           "detail": {
             "type": "string",
-            "example": "Bad credentials provided"
+            "example": "Предоставлены неверные учетные данные"
           }
         }
       },
@@ -239,7 +287,7 @@
         "properties": {
           "detail": {
             "type": "string",
-            "example": "User successfully logged out"
+            "example": "Пользователь успешно завершил сессию"
           }
         }
       },
