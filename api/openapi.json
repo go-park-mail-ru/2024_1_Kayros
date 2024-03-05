@@ -95,7 +95,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BadCredentials"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RegistrationData"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JsonUnmarshallError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JsonMarshallError"
+                    }
+                  ]
                 }
               }
             }

@@ -14,8 +14,8 @@ type User struct {
 	Password string `json:"password"`
 }
 
-// hashData хэширует данные с помощью хэш-функции sha256
-func (u *User) hashData(data string) string {
+// HashData хэширует данные с помощью хэш-функции sha256
+func HashData(data string) string {
 	hashedPassword := sha256.New()
 	hashedPassword.Write([]byte(data))
 	return hex.EncodeToString(hashedPassword.Sum(nil))
@@ -23,12 +23,12 @@ func (u *User) hashData(data string) string {
 
 // SetPassword устанавливает пароль пользователя
 func (u *User) SetPassword(password string) {
-	u.Password = u.hashData(password) // возвращает строку
+	u.Password = HashData(password) // возвращает строку
 }
 
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
 func (u *User) CheckPassword(password string) bool {
-	hashPassword := u.hashData(password)
+	hashPassword := HashData(password)
 	return u.Password == hashPassword
 }
 

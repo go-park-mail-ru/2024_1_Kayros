@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"regexp"
 	"sync"
 	"time"
 
@@ -104,7 +105,63 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
-	return w
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+		return
+	}
+
+	// добавить валидацию на имя и пароль
+	email := r.Form["email"][0]
+	name := r.Form["name"][0]
+	password := r.Form["password"][0]
+
+	regexPassword := regexp.MustCompile(`^[a-zA-Z0-9]{8}$`)
+	if !regexPassword.MatchString(password) {
+		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+		return
+	}
+
+	regexName := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]{1,19}$`)
+	if !regexName.MatchString(name) {
+		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+		return
+	}
+
+	regexEmail := regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`)
+	if regexEmail.MatchString(email) {
+		state.users[email] = entity.User{Id: len(state.users), Email: email, Password: entity.HashData(password), Name: name}
+	} else {
+		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+		return
+	}
+
+	sessionId := uuid.NewV4()
+	state.sessionTable[sessionId] = email
+
+	// собираем Cookie
+	expiration := time.Now().Add(14 * 24 * time.Hour)
+	cookie := http.Cookie{
+		Name:     "session_id",
+		Value:    sessionId.String(),
+		Expires:  expiration,
+		HttpOnly: false,
+	}
+	http.SetCookie(w, &cookie)
+
+	body, err := json.Marshal(state.users[email])
+	if err != nil {
+		http.Error(w, "Ошибка при сериализации тела ответа", http.StatusBadRequest)
+		return
+	}
+
+	_, err = w.Write(body)
+
+	if err != nil {
+		http.Error(w, "Ошибка при формировании тела ответа", http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
