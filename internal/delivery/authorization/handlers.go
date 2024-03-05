@@ -10,16 +10,39 @@ import (
 	"sync"
 	"time"
 
-	"2024_1_kayros/internal/entity"
 	"github.com/satori/uuid"
+
+	"2024_1_kayros/internal/entity"
 )
 
-type AuthHandler struct {
-	sessionTableMu sync.RWMutex
-	usersMu        sync.RWMutex
+type AuthStore struct {
+	SessionTable   map[uuid.UUID]string    // ключ - сессия, значение - идентификатор пользователя
+	Users          map[string]*entity.User // ключ - почта пользователя, значение - данные пользователя (экземпляр структуры)
+	SessionTableMu sync.RWMutex
+	UsersMu        sync.RWMutex
 }
 
-func (state *AuthHandler) SessionAuthentication(handler http.Handler) http.Handler {
+func NewAuthStore() *AuthStore {
+	users := []*entity.User{
+		{Id: 1, Name: "Ivan", Email: "ivan@yandex.ru"},
+		{Id: 2, Name: "Sofia", Email: "sofia@yandex.ru"},
+		{Id: 3, Name: "Bogdan", Email: "bogdan@yandex.ru"},
+		{Id: 4, Name: "Pasha", Email: "pasha@yandex.ru"},
+		{Id: 5, Name: "Ilya", Email: "ilya@yandex.ru"},
+	}
+	tmpUsers := map[string]*entity.User{}
+	for _, user := range users {
+		tmpUsers[user.Email] = user
+	}
+	return &AuthStore{
+		SessionTable:   map[uuid.UUID]string{},
+		Users:          tmpUsers,
+		SessionTableMu: sync.RWMutex{},
+		UsersMu:        sync.RWMutex{},
+	}
+}
+
+func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
 		if loggedIn := !errors.Is(errNoSessionCookie, http.ErrNoCookie); loggedIn {
@@ -27,14 +50,14 @@ func (state *AuthHandler) SessionAuthentication(handler http.Handler) http.Handl
 			sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
 			if errWrongSessionId == nil {
 				// проверка на наличие UUID в таблице сессий
-				state.sessionTableMu.RLock()
-				userEmail, sessionExist := state.sessionTable[sessionId]
-				state.sessionTableMu.RUnlock()
+				state.SessionTableMu.RLock()
+				userEmail, sessionExist := state.SessionTable[sessionId]
+				state.SessionTableMu.RUnlock()
 
 				if sessionExist {
-					state.usersMu.RLock()
-					user := state.users[userEmail]
-					state.usersMu.RUnlock()
+					state.UsersMu.RLock()
+					user := state.Users[userEmail]
+					state.UsersMu.RUnlock()
 
 					var ctx context.Context
 					ctx = context.WithValue(r.Context(), "user", user)
@@ -46,7 +69,7 @@ func (state *AuthHandler) SessionAuthentication(handler http.Handler) http.Handl
 	})
 }
 
-func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
+func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user != nil {
@@ -67,7 +90,7 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if currentUser, userExist := state.users[bodyData.Email]; userExist && currentUser.CheckPassword(bodyData.Password) {
+	if currentUser, userExist := state.Users[bodyData.Email]; userExist && currentUser.CheckPassword(bodyData.Password) {
 		sessionId := uuid.NewV4()
 		// собираем Cookie
 		expiration := time.Now().Add(14 * 24 * time.Hour)
@@ -78,9 +101,9 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 			HttpOnly: false,
 		}
 		http.SetCookie(w, &cookie)
-		state.sessionTableMu.RLock()
-		state.sessionTable[sessionId] = currentUser.Email
-		state.sessionTableMu.RUnlock()
+		state.SessionTableMu.RLock()
+		state.SessionTable[sessionId] = currentUser.Email
+		state.SessionTableMu.RUnlock()
 
 		// Собираем ответ
 		w.Header().Set("Content-Type", "application/json")
@@ -102,7 +125,7 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
+func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
@@ -128,14 +151,14 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	regexEmail := regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`)
 	if regexEmail.MatchString(email) {
-		state.users[email] = entity.User{Id: len(state.users), Email: email, Password: entity.HashData(password), Name: name}
+		state.Users[email] = &entity.User{Id: len(state.Users), Email: email, Password: entity.HashData(password), Name: name}
 	} else {
 		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
 		return
 	}
 
 	sessionId := uuid.NewV4()
-	state.sessionTable[sessionId] = email
+	state.SessionTable[sessionId] = email
 
 	// собираем Cookie
 	expiration := time.Now().Add(14 * 24 * time.Hour)
@@ -147,7 +170,7 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 
-	body, err := json.Marshal(state.users[email])
+	body, err := json.Marshal(state.Users[email])
 	if err != nil {
 		http.Error(w, "Ошибка при сериализации тела ответа", http.StatusBadRequest)
 		return
@@ -162,7 +185,7 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
+func (state *AuthStore) SignOut(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user == nil {
@@ -182,9 +205,9 @@ func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка при получении ключа сессии", http.StatusBadRequest)
 		return
 	}
-	state.sessionTableMu.RLock()
-	delete(state.sessionTable, sessionId)
-	state.sessionTableMu.RUnlock()
+	state.SessionTableMu.RLock()
+	delete(state.SessionTable, sessionId)
+	state.SessionTableMu.RUnlock()
 
 	// ставим заголовок для удаления сессионной куки в браузере
 	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
