@@ -30,19 +30,17 @@ func main() {
 	// устанавливаем middleware для CORS
 	r.Use(authorization.CorsMiddleware)
 
-	// cаброутинг для блока авторизации
-	subRoutingAuth := r.Methods("POST").Subrouter()
 	// авторизация, регистрация, деавторизация
-	subRoutingAuth.HandleFunc("/signin", auth.SignIn).Name("signin")
-	subRoutingAuth.HandleFunc("/signup", auth.SignUp).Name("signup")
-	subRoutingAuth.HandleFunc("/signout", auth.SignOut).Name("signout")
+	r.HandleFunc("/signin", auth.SignIn).Methods("POST", "OPTIONS").Name("signin")
+	r.HandleFunc("/signup", auth.SignUp).Methods("POST", "OPTIONS").Name("signup")
+	r.HandleFunc("/signout", auth.SignOut).Methods("POST", "OPTIONS").Name("signout")
 
 	// рестораны
 	r.HandleFunc("/restaurants", restaurants.RestaurantList).Methods("GET").Name("restaurants")
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         "127.0.0.1:8000",
+		Addr:         ":8000",
 		WriteTimeout: 10 * time.Second, // таймаут на запись данных в ответ на запрос
 		ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
 		IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
