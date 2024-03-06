@@ -54,6 +54,7 @@ func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
 		if loggedIn := !errors.Is(errNoSessionCookie, http.ErrNoCookie); loggedIn {
+			fmt.Printf("ok")
 			// проверка на корректность UUID
 			sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
 			if errWrongSessionId == nil {
@@ -70,6 +71,7 @@ func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler
 					var ctx context.Context
 					ctx = context.WithValue(r.Context(), "user", user)
 					r.WithContext(ctx)
+					fmt.Printf("context %s", ctx.Value("user"))
 				}
 			}
 		}
@@ -206,6 +208,7 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 
 func (state *AuthStore) SignOut(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
+	fmt.Printf("context %s", r.Context().Value("user"))
 	user := r.Context().Value("user")
 	if user == nil {
 		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
