@@ -50,12 +50,12 @@ func NewAuthStore() *AuthStore {
 }
 
 func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler {
-	fmt.Printf("middl users %v, sessions %v", state.Users, state.SessionTable)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
 		if loggedIn := !errors.Is(errNoSessionCookie, http.ErrNoCookie); loggedIn {
 			// проверка на корректность UUID
 			sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
+			fmt.Printf(sessionId.String())
 			if errWrongSessionId == nil {
 				// проверка на наличие UUID в таблице сессий
 				state.SessionTableMu.RLock()
@@ -69,7 +69,7 @@ func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler
 
 					var ctx context.Context
 					ctx = context.WithValue(r.Context(), "user", user)
-					r.WithContext(ctx)
+					r = r.WithContext(ctx)
 				}
 			}
 		}
@@ -79,7 +79,6 @@ func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler
 
 func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
-	fmt.Printf("users %v, sessions %v", state.Users, state.SessionTable)
 	user := r.Context().Value("user")
 	if user != nil {
 		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
