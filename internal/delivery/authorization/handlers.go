@@ -111,8 +111,7 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 
 		// Собираем ответ
 		w.Header().Set("Content-Type", "application/json")
-		responseBody := map[string]string{"detail": "Пользователь успешно авторизован"}
-		jsonResponse, err := json.Marshal(responseBody)
+		jsonResponse, err := json.Marshal(currentUser)
 		if err != nil {
 			http.Error(w, "Ошибка при сериализации тела ответа", http.StatusBadRequest)
 			return
