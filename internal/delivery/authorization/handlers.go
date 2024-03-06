@@ -148,7 +148,7 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	regexPassword := regexp.MustCompile(`^[a-zA-Z0-9]{8}$`)
+	regexPassword := regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
 	if !regexPassword.MatchString(bodyData.Password) {
 		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
 		return
