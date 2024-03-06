@@ -56,7 +56,7 @@ func CorsMiddleware(handler http.Handler) http.Handler {
 
 func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		const allowedOrigin = "http://localhost:3000"
+		const allowedOrigin = "http://localhost"
 		w.Header().Add("Access-Control-Allow-Origin", allowedOrigin)
 		if r.Method == http.MethodOptions {
 			w.Header().Add("Access-Control-Allow-Credentials", "true")
