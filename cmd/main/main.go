@@ -24,7 +24,7 @@ func main() {
 	flag.DurationVar(&wait, "grtm", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
-	// устанавливаем middleware для аутентификации с помощью сессионной куки
+	// устанавливаем middlewares для аутентификации с помощью сессионной куки
 	r.Use(auth.SessionAuthentication)
 
 	// cаброутинг для блока авторизации
@@ -42,7 +42,7 @@ func main() {
 		Addr:         "127.0.0.1:8000",
 		WriteTimeout: 10 * time.Second, // таймаут на запись данных в ответ на запрос
 		ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
-		//IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
+		IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
 	}
 	log.Fatal(srv.ListenAndServe())
 	//

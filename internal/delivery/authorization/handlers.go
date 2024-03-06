@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -55,7 +54,6 @@ func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler
 		if loggedIn := !errors.Is(errNoSessionCookie, http.ErrNoCookie); loggedIn {
 			// проверка на корректность UUID
 			sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
-			fmt.Printf(sessionId.String())
 			if errWrongSessionId == nil {
 				// проверка на наличие UUID в таблице сессий
 				state.SessionTableMu.RLock()
@@ -110,6 +108,7 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 			HttpOnly: false,
 		}
 		http.SetCookie(w, &cookie)
+
 		state.SessionTableMu.RLock()
 		state.SessionTable[sessionId] = currentUser.Email
 		state.SessionTableMu.RUnlock()
@@ -135,12 +134,6 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
-		return
-	}
-
 	requestBody, errWrongData := io.ReadAll(r.Body)
 	if errWrongData != nil {
 		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
@@ -161,7 +154,7 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	regexName := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]{1,19}$`)
+	regexName := regexp.MustCompile(`^[a-zA-Zа-яА-Я][a-zA-Zа-яА-Я0-9]{1,19}$`)
 	if !regexName.MatchString(bodyData.Name) {
 		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
 		return
@@ -230,4 +223,14 @@ func (state *AuthStore) SignOut(w http.ResponseWriter, r *http.Request) {
 	// ставим заголовок для удаления сессионной куки в браузере
 	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
 	http.SetCookie(w, sessionCookie)
+
+	// Успешно вышли из системы, возвращаем статус 200 OK и сообщение
+	w.WriteHeader(http.StatusOK)
+	message := "Пользователь успешно завершил сессию"
+	_, errorWrite := w.Write([]byte(message))
+	if errorWrite != nil {
+		// Обработка ошибки записи сообщения в тело ответа
+		http.Error(w, "Ошибка при формировании тела ответа", http.StatusBadRequest)
+		return
+	}
 }
