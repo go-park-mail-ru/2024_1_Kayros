@@ -1,6 +1,7 @@
 package authorization
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -49,13 +50,6 @@ func NewAuthStore() *AuthStore {
 
 func CorsMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		handler.ServeHTTP(w, r)
-	})
-}
-
-func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const allowedOrigin = "http://localhost"
 		w.Header().Add("Access-Control-Allow-Origin", allowedOrigin)
 		if r.Method == http.MethodOptions {
@@ -66,6 +60,33 @@ func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler
 		}
 		if r.Method == http.MethodGet {
 			w.Header().Set("Content-Type", "application/json")
+		}
+		handler.ServeHTTP(w, r)
+	})
+}
+
+func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
+		if loggedIn := !errors.Is(errNoSessionCookie, http.ErrNoCookie); loggedIn {
+			// проверка на корректность UUID
+			sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
+			if errWrongSessionId == nil {
+				// проверка на наличие UUID в таблице сессий
+				state.SessionTableMu.RLock()
+				userEmail, sessionExist := state.SessionTable[sessionId]
+				state.SessionTableMu.RUnlock()
+
+				if sessionExist {
+					state.UsersMu.RLock()
+					user := state.Users[userEmail]
+					state.UsersMu.RUnlock()
+
+					var ctx context.Context
+					ctx = context.WithValue(r.Context(), "user", user)
+					r = r.WithContext(ctx)
+				}
+			}
 		}
 		handler.ServeHTTP(w, r)
 	})
