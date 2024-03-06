@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -22,9 +23,15 @@ type AuthStore struct {
 	UsersMu        sync.RWMutex
 }
 
+type Registration struct {
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	Password string `json:"password"`
+}
+
 func NewAuthStore() *AuthStore {
 	users := []*entity.User{
-		{Id: 1, Name: "Ivan", Email: "ivan@yandex.ru"},
+		{Id: 1, Name: "Ivan", Email: "ivan@yandex.ru", Password: "358100c210df061db1f9a7a8945fa3140e169ddf67f7005c57c007647753e100"},
 		{Id: 2, Name: "Sofia", Email: "sofia@yandex.ru"},
 		{Id: 3, Name: "Bogdan", Email: "bogdan@yandex.ru"},
 		{Id: 4, Name: "Pasha", Email: "pasha@yandex.ru"},
@@ -43,6 +50,7 @@ func NewAuthStore() *AuthStore {
 }
 
 func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler {
+	fmt.Printf("middl users %v, sessions %v", state.Users, state.SessionTable)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
 		if loggedIn := !errors.Is(errNoSessionCookie, http.ErrNoCookie); loggedIn {
@@ -71,6 +79,7 @@ func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler
 
 func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
+	fmt.Printf("users %v, sessions %v", state.Users, state.SessionTable)
 	user := r.Context().Value("user")
 	if user != nil {
 		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
@@ -85,6 +94,7 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	var bodyData entity.AuthorizationProps
 	errRetrieveBodyData := json.Unmarshal(requestBody, &bodyData)
+	_ = r.Body.Close()
 	if errRetrieveBodyData != nil {
 		http.Error(w, "Ошибка при десериализации тела запроса", http.StatusBadRequest)
 		return
@@ -132,33 +142,42 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// добавить валидацию на имя и пароль
-	email := r.Form["email"][0]
-	name := r.Form["name"][0]
-	password := r.Form["password"][0]
+	requestBody, errWrongData := io.ReadAll(r.Body)
+	if errWrongData != nil {
+		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+		return
+	}
+
+	var bodyData Registration
+	errRetrieveBodyData := json.Unmarshal(requestBody, &bodyData)
+	_ = r.Body.Close()
+	if errRetrieveBodyData != nil {
+		http.Error(w, "Ошибка при десериализации тела запроса", http.StatusBadRequest)
+		return
+	}
 
 	regexPassword := regexp.MustCompile(`^[a-zA-Z0-9]{8}$`)
-	if !regexPassword.MatchString(password) {
+	if !regexPassword.MatchString(bodyData.Password) {
 		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
 		return
 	}
 
 	regexName := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]{1,19}$`)
-	if !regexName.MatchString(name) {
+	if !regexName.MatchString(bodyData.Name) {
 		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
 		return
 	}
 
 	regexEmail := regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`)
-	if regexEmail.MatchString(email) {
-		state.Users[email] = &entity.User{Id: len(state.Users), Email: email, Password: entity.HashData(password), Name: name}
+	if regexEmail.MatchString(bodyData.Email) {
+		state.Users[bodyData.Email] = &entity.User{Id: len(state.Users), Email: bodyData.Email, Password: entity.HashData(bodyData.Password), Name: bodyData.Name}
 	} else {
 		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
 		return
 	}
 
 	sessionId := uuid.NewV4()
-	state.SessionTable[sessionId] = email
+	state.SessionTable[sessionId] = bodyData.Email
 
 	// собираем Cookie
 	expiration := time.Now().Add(14 * 24 * time.Hour)
@@ -170,7 +189,7 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 
-	body, err := json.Marshal(state.Users[email])
+	body, err := json.Marshal(state.Users[bodyData.Email])
 	if err != nil {
 		http.Error(w, "Ошибка при сериализации тела ответа", http.StatusBadRequest)
 		return
