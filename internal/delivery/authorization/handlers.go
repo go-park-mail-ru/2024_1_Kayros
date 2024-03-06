@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -50,17 +51,10 @@ func NewAuthStore() *AuthStore {
 
 func CorsMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		const allowedOrigin = "http://109.120.180.238"
-		w.Header().Add("Access-Control-Allow-Origin", allowedOrigin)
-		if r.Method == http.MethodOptions {
-			w.Header().Add("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PATCH, OPTIONS")
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		if r.Method == http.MethodGet {
-			w.Header().Set("Content-Type", "application/json")
-		}
+		fmt.Println(r.Header.Get("Origin"))
+		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		handler.ServeHTTP(w, r)
 	})
 }
@@ -96,6 +90,7 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user != nil {
+		fmt.Print("ответ тело:", "aflafhas[vha[ishviashv[oasho[asovhas[ovhao[svha[osjvausviashv[uashvo[uahsobv123124124124124")
 		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
 		return
 	}
@@ -138,6 +133,7 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
+
 		_, errWriteResponseBody := w.Write(jsonResponse)
 		if errWriteResponseBody != nil {
 			http.Error(w, "Ошибка при формировании тела ответа", http.StatusBadRequest)
@@ -150,6 +146,13 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
+	// если пришел авторизованный пользователь, возвращаем 401
+	user := r.Context().Value("user")
+	if user != nil {
+		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
+		return
+	}
+
 	requestBody, errWrongData := io.ReadAll(r.Body)
 	if errWrongData != nil {
 		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
@@ -161,6 +164,12 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 	_ = r.Body.Close()
 	if errRetrieveBodyData != nil {
 		http.Error(w, "Ошибка при десериализации тела запроса", http.StatusBadRequest)
+		return
+	}
+
+	_, userAlreadyExist := state.Users[bodyData.Email]
+	if userAlreadyExist {
+		http.Error(w, "Пользователь с таким именем уже зарегистрирован", http.StatusBadRequest)
 		return
 	}
 
