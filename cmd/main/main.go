@@ -27,6 +27,9 @@ func main() {
 	// устанавливаем middlewares для аутентификации с помощью сессионной куки
 	r.Use(auth.SessionAuthentication)
 
+	// устанавливаем middleware для CORS
+	r.Use(authorization.CorsMiddleware)
+
 	// cаброутинг для блока авторизации
 	subRoutingAuth := r.Methods("POST").Subrouter()
 	// авторизация, регистрация, деавторизация
