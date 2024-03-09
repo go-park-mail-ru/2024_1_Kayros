@@ -9,6 +9,11 @@ type ErrorObject struct {
 	Detail string `json:"detail"`
 }
 
+type UserResponse struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 // ErrorResponse формирует ответ с ошибкой от хендлеров
 func ErrorResponse(w http.ResponseWriter, message string, code int) http.ResponseWriter {
 	w.Header().Set("Content-Type", "application/json")

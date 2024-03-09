@@ -262,12 +262,17 @@ func (state *AuthStore) SignOut(w http.ResponseWriter, r *http.Request) {
 
 func (state *AuthStore) UserData(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
-	user := r.Context().Value("user")
-	if user == nil {
+	userPrt := r.Context().Value("user")
+	if userPrt == nil {
 		w = entity.ErrorResponse(w, "Не хватает прав для доступа", http.StatusBadRequest)
 		return
 	}
-	data, errSerialization := json.Marshal(user)
+	user := userPrt.(*entity.User)
+	response := entity.UserResponse{
+		Id:   user.Id,
+		Name: user.Name,
+	}
+	data, errSerialization := json.Marshal(response)
 	if errSerialization != nil {
 		w = entity.ErrorResponse(w, "Ошибка при формировании тела ответа", http.StatusBadRequest)
 		return
