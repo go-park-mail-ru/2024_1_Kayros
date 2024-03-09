@@ -13,11 +13,11 @@ import (
 	"2024_1_kayros/internal/entity"
 )
 
-type SystemRouter struct {
+type AuthHandler struct {
 	Database entity.SystemDatabase
 }
 
-func (s *SystemRouter) SignIn(w http.ResponseWriter, r *http.Request) {
+func (s *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user != nil {
@@ -75,7 +75,7 @@ func (s *SystemRouter) SignIn(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *SystemRouter) SignUp(w http.ResponseWriter, r *http.Request) {
+func (s *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user != nil {
@@ -151,7 +151,7 @@ func (s *SystemRouter) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *SystemRouter) SignOut(w http.ResponseWriter, r *http.Request) {
+func (s *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user == nil {

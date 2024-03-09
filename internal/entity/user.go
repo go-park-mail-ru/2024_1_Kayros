@@ -40,12 +40,12 @@ func (u *User) CheckPassword(password string) bool {
 
 // UserStore хранилище с пользователями
 type UserStore struct {
-	Users      map[string]User
+	Users      map[DataType]User
 	UsersMutex sync.RWMutex
 }
 
 // GetUser возвращает пользователя
-func (s *UserStore) GetUser(field string) (DataType, ErrorType) {
+func (s *UserStore) GetUser(field DataType) (DataType, ErrorType) {
 	s.UsersMutex.RLock()
 	user, userExist := s.Users[field]
 	s.UsersMutex.RUnlock()
@@ -56,10 +56,10 @@ func (s *UserStore) GetUser(field string) (DataType, ErrorType) {
 }
 
 // SetNewUser добавляет нового пользователя в БД
-func (s *UserStore) SetNewUser(field string, data User) (DataType, ErrorType) {
+func (s *UserStore) SetNewUser(field DataType, data User) (DataType, ErrorType) {
 	// пока что мы проверяем по почте
 	regexEmail := regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`)
-	if regexEmail.MatchString(field) {
+	if regexEmail.MatchString(string()) {
 		s.UsersMutex.Lock()
 		s.Users[field] = data
 		s.Users[field].SetPassword(data.Password)

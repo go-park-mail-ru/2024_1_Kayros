@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	// устанавливаем middlewares для аутентификации с помощью сессионной куки
-	r.Use(entity.MiddlewareMux.SessionAuthentication)
+	r.Use(entity..SessionAuthentication)
 
 	// устанавливаем middleware для CORS
 	r.Use(authorization.CorsMiddleware)
