@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"2024_1_kayros/internal/entity"
+	"2024_1_kayros/internal/delivery/middlewares"
 	"github.com/gorilla/mux"
 )
 
@@ -19,8 +19,10 @@ func main() {
 		"плавно завершает работу, завершая текущие запросы")
 	flag.Parse()
 
+	auth := autho
+
 	// устанавливаем middlewares для аутентификации с помощью сессионной куки
-	r.Use(entity..SessionAuthentication)
+	r.Use(middlewares.SessionAuthentication())
 
 	// устанавливаем middleware для CORS
 	r.Use(authorization.CorsMiddleware)
