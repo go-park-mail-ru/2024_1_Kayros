@@ -34,6 +34,8 @@ func main() {
 	r.HandleFunc("/signin", auth.SignIn).Methods("POST", "OPTIONS").Name("signin")
 	r.HandleFunc("/signup", auth.SignUp).Methods("POST", "OPTIONS").Name("signup")
 	r.HandleFunc("/signout", auth.SignOut).Methods("POST", "OPTIONS").Name("signout")
+	// получение информации о пользователе
+	r.HandleFunc("/user", auth.UserData).Methods("GET").Name("userdata")
 
 	// рестораны
 	r.HandleFunc("/restaurants", restaurants.RestaurantList).Methods("GET").Name("restaurants")
