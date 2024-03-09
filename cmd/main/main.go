@@ -6,26 +6,21 @@ import (
 	"net/http"
 	"time"
 
+	"2024_1_kayros/internal/entity"
 	"github.com/gorilla/mux"
-
-	"2024_1_kayros/internal/delivery/authorization"
-	"2024_1_kayros/internal/delivery/restaurants"
 )
 
 func main() {
 	r := mux.NewRouter()
 
-	// мультиплексор авторизации
-	auth := authorization.NewAuthStore()
-	restaurants := delivery.NewRestaurantStore()
-
 	// флаг для установки времени graceful shutdown-а
 	var wait time.Duration
-	flag.DurationVar(&wait, "grtm", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
+	flag.DurationVar(&wait, "grtm", time.Second*15, "Промежуток времени, в течение которого сервер "+
+		"плавно завершает работу, завершая текущие запросы")
 	flag.Parse()
 
 	// устанавливаем middlewares для аутентификации с помощью сессионной куки
-	r.Use(auth.SessionAuthentication)
+	r.Use(entity.MiddlewareMux.SessionAuthentication)
 
 	// устанавливаем middleware для CORS
 	r.Use(authorization.CorsMiddleware)

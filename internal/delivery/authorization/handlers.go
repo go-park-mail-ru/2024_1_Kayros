@@ -1,14 +1,11 @@
-package authorization
+package middlewares
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"regexp"
-	"sync"
 	"time"
 
 	"github.com/satori/uuid"
@@ -16,81 +13,14 @@ import (
 	"2024_1_kayros/internal/entity"
 )
 
-type AuthStore struct {
-	SessionTable   map[uuid.UUID]string    // ключ - сессия, значение - идентификатор пользователя
-	Users          map[string]*entity.User // ключ - почта пользователя, значение - данные пользователя (экземпляр структуры)
-	SessionTableMu sync.RWMutex
-	UsersMu        sync.RWMutex
+type SystemRouter struct {
+	Database entity.SystemDatabase
 }
 
-type Registration struct {
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
-}
-
-func NewAuthStore() *AuthStore {
-	users := []*entity.User{
-		{Id: 1, Name: "Ivan", Email: "ivan@yandex.ru", Password: "358100c210df061db1f9a7a8945fa3140e169ddf67f7005c57c007647753e100"},
-		{Id: 2, Name: "Sofia", Email: "sofia@yandex.ru"},
-		{Id: 3, Name: "Bogdan", Email: "bogdan@yandex.ru"},
-		{Id: 4, Name: "Pasha", Email: "pasha@yandex.ru"},
-		{Id: 5, Name: "Ilya", Email: "ilya@yandex.ru"},
-	}
-	tmpUsers := map[string]*entity.User{}
-	for _, user := range users {
-		tmpUsers[user.Email] = user
-	}
-	return &AuthStore{
-		SessionTable:   map[uuid.UUID]string{},
-		Users:          tmpUsers,
-		SessionTableMu: sync.RWMutex{},
-		UsersMu:        sync.RWMutex{},
-	}
-}
-
-func CorsMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.Header.Get("Origin"))
-		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		handler.ServeHTTP(w, r)
-	})
-}
-
-func (state *AuthStore) SessionAuthentication(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
-		if loggedIn := !errors.Is(errNoSessionCookie, http.ErrNoCookie); loggedIn {
-			// проверка на корректность UUID
-			sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
-			if errWrongSessionId == nil {
-				// проверка на наличие UUID в таблице сессий
-				state.SessionTableMu.RLock()
-				userEmail, sessionExist := state.SessionTable[sessionId]
-				state.SessionTableMu.RUnlock()
-
-				if sessionExist {
-					state.UsersMu.RLock()
-					user := state.Users[userEmail]
-					state.UsersMu.RUnlock()
-
-					var ctx context.Context
-					ctx = context.WithValue(r.Context(), "user", user)
-					r = r.WithContext(ctx)
-				}
-			}
-		}
-		handler.ServeHTTP(w, r)
-	})
-}
-
-func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
+func (s *SystemRouter) SignIn(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user != nil {
-		fmt.Print("ответ тело:", "aflafhas[vha[ishviashv[oasho[asovhas[ovhao[svha[osjvausviashv[uashvo[uahsobv123124124124124")
 		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
 		return
 	}
@@ -145,7 +75,7 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
+func (s *SystemRouter) SignUp(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user != nil {
@@ -221,7 +151,7 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (state *AuthStore) SignOut(w http.ResponseWriter, r *http.Request) {
+func (s *SystemRouter) SignOut(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user == nil {
