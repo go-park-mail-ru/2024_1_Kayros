@@ -90,7 +90,6 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	user := r.Context().Value("user")
 	if user != nil {
-		fmt.Print("ответ тело:", "aflafhas[vha[ishviashv[oasho[asovhas[ovhao[svha[osjvausviashv[uashvo[uahsobv123124124124124")
 		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
 		return
 	}
