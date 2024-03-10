@@ -1,4 +1,4 @@
-package middlewares
+package authorization
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 )
 
 type AuthHandler struct {
-	Database entity.SystemDatabase
+	Database *entity.SystemDatabase
 }
 
 func (s *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +39,9 @@ func (s *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if currentUser, userExist := state.Users[bodyData.Email]; userExist && currentUser.CheckPassword(bodyData.Password) {
+	currentUser, userExist := s.Database.Users.GetUser(bodyData.Email)
+	currentUser = currentUser
+	if userExist != nil && currentUser.CheckPassword(bodyData.Password) {
 		sessionId := uuid.NewV4()
 		// собираем Cookie
 		expiration := time.Now().Add(14 * 24 * time.Hour)

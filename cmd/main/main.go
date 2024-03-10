@@ -6,12 +6,15 @@ import (
 	"net/http"
 	"time"
 
+	"2024_1_kayros/internal/delivery/authorization"
 	"2024_1_kayros/internal/delivery/middlewares"
+	"2024_1_kayros/internal/entity"
 	"github.com/gorilla/mux"
 )
 
 func main() {
 	r := mux.NewRouter()
+	r.StrictSlash(true)
 
 	// флаг для установки времени graceful shutdown-а
 	var wait time.Duration
@@ -19,21 +22,24 @@ func main() {
 		"плавно завершает работу, завершая текущие запросы")
 	flag.Parse()
 
-	auth := autho
+	db := entity.InitDatabase()
+
+	auth := authorization.AuthHandler{
+		Database: db,
+	}
 
 	// устанавливаем middlewares для аутентификации с помощью сессионной куки
-	r.Use(middlewares.SessionAuthentication())
-
+	handler := middlewares.SessionAuthentication(db)
 	// устанавливаем middleware для CORS
-	r.Use(authorization.CorsMiddleware)
+	handler = middlewares.CorsMiddleware(handler)
 
 	// авторизация, регистрация, деавторизация
-	r.HandleFunc("/signin", auth.SignIn).Methods("POST", "OPTIONS").Name("signin")
-	r.HandleFunc("/signup", auth.SignUp).Methods("POST", "OPTIONS").Name("signup")
-	r.HandleFunc("/signout", auth.SignOut).Methods("POST", "OPTIONS").Name("signout")
+	r.HandleFunc("/signin/", auth.SignIn).Methods("POST").Name("signin")
+	r.HandleFunc("/signup/", auth.SignUp).Methods("POST").Name("signup")
+	r.HandleFunc("/signout/", auth.SignOut).Methods("POST").Name("signout")
 
 	// рестораны
-	r.HandleFunc("/restaurants", restaurants.RestaurantList).Methods("GET").Name("restaurants")
+	r.HandleFunc("/restaurants/", db.Restaurants.RestaurantList).Methods("GET").Name("restaurants")
 
 	srv := &http.Server{
 		Handler:      r,

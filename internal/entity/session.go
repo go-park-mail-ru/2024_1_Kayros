@@ -9,7 +9,7 @@ import (
 
 // SessionStore хранилище сессий пользователей
 type SessionStore struct {
-	SessionTable      map[uuid.UUID]string // ключ - сессия, значение - идентификатор пользователя
+	SessionTable      map[uuid.UUID]DataType // ключ - сессия, значение - идентификатор пользователя
 	SessionTableMutex sync.RWMutex
 }
 

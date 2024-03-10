@@ -10,7 +10,7 @@ import (
 	"github.com/satori/uuid"
 )
 
-// SessionAuthentication добавляет во временное хранилище Redis данные о пользователе, сделавшем запрос
+// SessionAuthentication добавляет в контекст ключ авторизации пользователя, которого получилось аутентифицировать
 func SessionAuthentication(handler http.Handler, db *entity.SystemDatabase) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
@@ -27,12 +27,12 @@ func SessionAuthentication(handler http.Handler, db *entity.SystemDatabase) http
 				if errGettingEmail != nil {
 					log.Println(errGettingEmail)
 				} else {
-					user, errWrongCredentionals := db.Users.GetUser(userEmail)
+					_, errWrongCredentionals := db.Users.GetUser(userEmail)
 					if errWrongCredentionals != nil {
 						log.Println(errWrongCredentionals)
 					} else {
 						var ctx context.Context
-						ctx = context.WithValue(r.Context(), "user", user)
+						ctx = context.WithValue(r.Context(), "userKey", userEmail)
 						r = r.WithContext(ctx)
 					}
 				}

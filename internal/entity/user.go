@@ -59,7 +59,7 @@ func (s *UserStore) GetUser(field DataType) (DataType, ErrorType) {
 func (s *UserStore) SetNewUser(field DataType, data User) (DataType, ErrorType) {
 	// пока что мы проверяем по почте
 	regexEmail := regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`)
-	if regexEmail.MatchString(string()) {
+	if regexEmail.MatchString(field) {
 		s.UsersMutex.Lock()
 		s.Users[field] = data
 		s.Users[field].SetPassword(data.Password)
