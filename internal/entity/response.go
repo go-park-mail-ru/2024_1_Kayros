@@ -5,6 +5,14 @@ import (
 	"net/http"
 )
 
+const UnexpectedServerError = "Внутренняя ошибка сервера"
+const JsonUnmarshallError = "Ошибка при десериализации тела запроса"
+const JsonMarshallError = "Ошибка при сериализации тела ответа"
+const BadResponseBody = "Ошибка при формировании тела ответа"
+const BadPermission = "Не хватает прав для доступа"
+const BadCredentials = "Предоставлены неверные учетные данные"
+const UserAlreadyExist = "Пользователь с таким именем уже зарегистрирован"
+
 type ErrorObject struct {
 	Detail string `json:"detail"`
 }
