@@ -96,7 +96,7 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	requestBody, errWrongData := io.ReadAll(r.Body)
 	if errWrongData != nil {
-		w = entity.ErrorResponse(w, entity.BadCredentials, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
@@ -104,7 +104,7 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 	errRetrieveBodyData := json.Unmarshal(requestBody, &bodyData)
 	_ = r.Body.Close()
 	if errRetrieveBodyData != nil {
-		w = entity.ErrorResponse(w, entity.JsonUnmarshallError, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
@@ -133,19 +133,19 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonResponse, err := json.Marshal(response)
 		if err != nil {
-			w = entity.ErrorResponse(w, entity.JsonMarshallError, http.StatusBadRequest)
+			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
 
 		_, errWriteResponseBody := w.Write(jsonResponse)
 		if errWriteResponseBody != nil {
-			w = entity.ErrorResponse(w, entity.BadResponseBody, http.StatusBadRequest)
+			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 			return
 		}
 		return
 	}
-	w = entity.ErrorResponse(w, entity.BadCredentials, http.StatusBadRequest)
+	w = entity.ErrorResponse(w, entity.BadAuthCredentials, http.StatusBadRequest)
 	return
 }
 
@@ -160,7 +160,7 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	requestBody, errWrongData := io.ReadAll(r.Body)
 	if errWrongData != nil {
-		w = entity.ErrorResponse(w, entity.BadCredentials, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 	errRetrieveBodyData := json.Unmarshal(requestBody, &bodyData)
 	_ = r.Body.Close()
 	if errRetrieveBodyData != nil {
-		w = entity.ErrorResponse(w, entity.JsonUnmarshallError, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
@@ -180,13 +180,13 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	regexPassword := regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
 	if !regexPassword.MatchString(bodyData.Password) {
-		w = entity.ErrorResponse(w, entity.BadCredentials, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
 	regexName := regexp.MustCompile(`^[a-zA-Zа-яА-Я][a-zA-Zа-яА-Я0-9]{1,19}$`)
 	if !regexName.MatchString(bodyData.Name) {
-		w = entity.ErrorResponse(w, entity.BadCredentials, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
@@ -199,7 +199,7 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 			Name:     bodyData.Name,
 		}
 	} else {
-		w = entity.ErrorResponse(w, entity.BadCredentials, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
@@ -223,14 +223,14 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	body, err := json.Marshal(response)
 	if err != nil {
-		w = entity.ErrorResponse(w, entity.JsonMarshallError, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
 	_, err = w.Write(body)
 
 	if err != nil {
-		w = entity.ErrorResponse(w, entity.BadResponseBody, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -267,7 +267,7 @@ func (state *AuthStore) SignOut(w http.ResponseWriter, r *http.Request) {
 
 	// Успешно вышли из системы, возвращаем статус 200 OK и сообщение
 	w.WriteHeader(http.StatusOK)
-	w = entity.ErrorResponse(w, "Пользователь успешно завершил сессию", http.StatusOK)
+	w = entity.ErrorResponse(w, "Сессия успешно завершена", http.StatusOK)
 }
 
 func (state *AuthStore) UserData(w http.ResponseWriter, r *http.Request) {
@@ -275,7 +275,7 @@ func (state *AuthStore) UserData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	userPrt := r.Context().Value("user")
 	if userPrt == nil {
-		w = entity.ErrorResponse(w, entity.BadCredentials, http.StatusUnauthorized)
+		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
 	user := userPrt.(*entity.User)
@@ -285,7 +285,7 @@ func (state *AuthStore) UserData(w http.ResponseWriter, r *http.Request) {
 	}
 	data, errSerialization := json.Marshal(response)
 	if errSerialization != nil {
-		w = entity.ErrorResponse(w, entity.JsonMarshallError, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 	_, errWrite := w.Write(data)

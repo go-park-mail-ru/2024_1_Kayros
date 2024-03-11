@@ -5,12 +5,10 @@ import (
 	"net/http"
 )
 
-const UnexpectedServerError = "Внутренняя ошибка сервера"
-const JsonUnmarshallError = "Ошибка при десериализации тела запроса"
-const JsonMarshallError = "Ошибка при сериализации тела ответа"
-const BadResponseBody = "Ошибка при формировании тела ответа"
+const UnexpectedServerError = "Ошибка сервера, попробуйте снова"
 const BadPermission = "Не хватает прав для доступа"
-const BadCredentials = "Предоставлены неверные учетные данные"
+const BadAuthCredentials = "Неверный логин или пароль"
+const BadRegCredentials = "Некорректные данные"
 const UserAlreadyExist = "Пользователь с таким именем уже зарегистрирован"
 
 type ErrorObject struct {
