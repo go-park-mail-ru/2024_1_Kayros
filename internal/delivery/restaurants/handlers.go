@@ -25,6 +25,10 @@ func NewRestaurantStore() *RestaurantStore {
 			{5, "Pino", "Обширное интернациональное меню", "assets/mocks/restaurants/5.jpg"},
 			{6, "Sage", "Авторская евпропейская кухня с акцентом на мясо и рыбу", "assets/mocks/restaurants/6.jpg"},
 			{7, "TECHNIKUM", "Современное гастробистро с нескучной едой", "assets/mocks/restaurants/7.jpg"},
+			{8, "Mandy's", "Классическое нью-йоркское брассери", "assets/mocks/restaurants/8.jpg"},
+			{9, "Mates Pizza&Bar", "Городской проект от команды Mátes. В печи готовят неаполитанскую пиццу", "assets/mocks/restaurants/9.jpg"},
+			{10, "Mama Tuta", "Современное авторское прочтение классической грузинской кухни", "assets/mocks/restaurants/10.jpg"},
+			{11, "Folk", "Пряный, колоритный comfort food, приготовленный на живом огне: в дровяной печи, в хоспере, на гриле-робата", "assets/mocks/restaurants/11.jpg"},
 		},
 		mu: sync.RWMutex{},
 	}

@@ -9,7 +9,7 @@ const UnexpectedServerError = "Ошибка сервера, попробуйте
 const BadPermission = "Не хватает прав для доступа"
 const BadAuthCredentials = "Неверный логин или пароль"
 const BadRegCredentials = "Некорректные данные"
-const UserAlreadyExist = "Пользователь с таким именем уже зарегистрирован"
+const UserAlreadyExist = "Пользователь с таким логином уже зарегистрирован"
 
 type ErrorObject struct {
 	Detail string `json:"detail"`

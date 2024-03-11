@@ -15,7 +15,6 @@ import (
 func main() {
 	r := mux.NewRouter()
 
-	// мультиплексор авторизации
 	auth := authorization.NewAuthStore()
 	restaurants := delivery.NewRestaurantStore()
 

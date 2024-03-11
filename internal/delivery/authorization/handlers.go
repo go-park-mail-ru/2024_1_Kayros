@@ -149,6 +149,33 @@ func (state *AuthStore) SignIn(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func isValidPassword(password string) bool {
+	// Проверка на минимальную длину
+	if len(password) < 8 {
+		return false
+	}
+
+	// Проверка на наличие хотя бы одной буквы
+	letterRegex := regexp.MustCompile(`[A-Za-z]`)
+	if !letterRegex.MatchString(password) {
+		return false
+	}
+
+	// Проверка на наличие хотя бы одной цифры
+	digitRegex := regexp.MustCompile(`\d`)
+	if !digitRegex.MatchString(password) {
+		return false
+	}
+
+	// Проверка на наличие разрешенных символов
+	validCharsRegex := regexp.MustCompile(`^[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+$`)
+	if !validCharsRegex.MatchString(password) {
+		return false
+	}
+
+	return true
+}
+
 func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")
@@ -178,19 +205,18 @@ func (state *AuthStore) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	regexPassword := regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
-	if !regexPassword.MatchString(bodyData.Password) {
+	if !isValidPassword(bodyData.Password) {
 		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
-	regexName := regexp.MustCompile(`^[a-zA-Zа-яА-Я][a-zA-Zа-яА-Я0-9]{1,19}$`)
+	regexName := regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ][a-zA-Zа-яА-ЯёЁ0-9]{1,19}$`)
 	if !regexName.MatchString(bodyData.Name) {
 		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
-	regexEmail := regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`)
+	regexEmail := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	if regexEmail.MatchString(bodyData.Email) {
 		state.Users[bodyData.Email] = &entity.User{
 			Id:       len(state.Users),
