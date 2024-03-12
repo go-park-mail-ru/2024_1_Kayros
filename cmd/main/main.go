@@ -14,7 +14,7 @@ import (
 
 func main() {
 	r := mux.NewRouter()
-	r.StrictSlash(true)
+	r.StrictSlash(false)
 
 	// флаг для установки времени graceful shutdown-а
 	var wait time.Duration
@@ -22,33 +22,31 @@ func main() {
 		"плавно завершает работу, завершая текущие запросы")
 	flag.Parse()
 
-	db := entity.InitDatabase()
-
+	// для работы блока авторизации необходима база данных
 	auth := authorization.AuthHandler{
-		Database: db,
+		Database: entity.InitDatabase(),
 	}
-
-	// устанавливаем middlewares для аутентификации с помощью сессионной куки
-	handler := middlewares.SessionAuthentication(db)
-	// устанавливаем middleware для CORS
-	handler = middlewares.CorsMiddleware(handler)
 
 	// авторизация, регистрация, деавторизация
-	r.HandleFunc("/signin/", auth.SignIn).Methods("POST").Name("signin")
-	r.HandleFunc("/signup/", auth.SignUp).Methods("POST").Name("signup")
-	r.HandleFunc("/signout/", auth.SignOut).Methods("POST").Name("signout")
+	r.HandleFunc("/api/v1/signin/", auth.SignIn).Methods("POST").Name("signin")
+	r.HandleFunc("/api/v1/signup/", auth.SignUp).Methods("POST").Name("signup")
+	r.HandleFunc("/api/v1/signout/", auth.SignOut).Methods("POST").Name("signout")
 
 	// рестораны
-	r.HandleFunc("/restaurants/", db.Restaurants.RestaurantList).Methods("GET").Name("restaurants")
+	r.HandleFunc("api/v1/restaurants/", auth.Database.Restaurants.RestaurantList).Methods("GET").Name("restaurants")
 
-	srv := &http.Server{
-		Handler:      r,
-		Addr:         ":8000",
-		WriteTimeout: 10 * time.Second, // таймаут на запись данных в ответ на запрос
-		ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
-		IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
-	}
-	log.Fatal(srv.ListenAndServe())
+	// устанавливаем middlewares для аутентификации с помощью сессионной куки
+	handler := middlewares.SessionAuthentication(r, &auth.Database)
+	// устанавливаем middleware для CORS
+	handler = middlewares.CorsMiddleware(handler)
+	//srv := &http.Server{
+	//	Handler:      r,
+	//	Addr:         ":8000",
+	//	WriteTimeout: 10 * time.Second, // таймаут на запись данных в ответ на запрос
+	//	ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
+	//	IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
+	//}
+	log.Fatal(http.ListenAndServe(":8000", r))
 	//
 	//go func() {
 	//	if err := srv.ListenAndServe(); err != nil {

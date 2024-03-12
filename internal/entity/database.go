@@ -8,13 +8,13 @@ import (
 )
 
 type SystemDatabase struct {
-	Users       *UserStore
-	Sessions    *SessionStore
-	Restaurants *restaurants.RestaurantStore
+	Users       UserStore
+	Sessions    SessionStore
+	Restaurants restaurants.RestaurantStore
 }
 
 // InitDatabase метод, который инициализирует нашу базу данных
-func InitDatabase() *SystemDatabase {
+func InitDatabase() SystemDatabase {
 	r := []Restaurant{
 		{1, "Пицца 22 см", "Пиццерия с настоящей неаполитанской пиццей", "assets/mocks/restaurants/1.jpg"},
 		{2, "Bro&N", "Ресторан классической итальянской кухни", "assets/mocks/restaurants/2.jpg"},
@@ -24,21 +24,18 @@ func InitDatabase() *SystemDatabase {
 		{6, "Sage", "Авторская евпропейская кухня с акцентом на мясо и рыбу", "assets/mocks/restaurants/6.jpg"},
 		{7, "TECHNIKUM", "Современное гастробистро с нескучной едой", "assets/mocks/restaurants/7.jpg"},
 	}
-	rests := restaurants.RestaurantStore{
-		Restaurants:      r,
-		RestaurantsMutex: sync.RWMutex{},
-	}
-	users := UserStore{
-		Users:      map[DataType]User{},
-		UsersMutex: sync.RWMutex{},
-	}
-	sessions := SessionStore{
-		SessionTable:      map[uuid.UUID]DataType{},
-		SessionTableMutex: sync.RWMutex{},
-	}
-	return &SystemDatabase{
-		Users:       &users,
-		Sessions:    &sessions,
-		Restaurants: &rests,
+	return SystemDatabase{
+		Users: UserStore{
+			Users:      make(map[DataType]User),
+			UsersMutex: sync.RWMutex{},
+		},
+		Sessions: SessionStore{
+			SessionTable:      make(map[uuid.UUID]DataType),
+			SessionTableMutex: sync.RWMutex{},
+		},
+		Restaurants: restaurants.RestaurantStore{
+			Restaurants:      r,
+			RestaurantsMutex: sync.RWMutex{},
+		},
 	}
 }

@@ -14,7 +14,7 @@ import (
 )
 
 type AuthHandler struct {
-	Database *entity.SystemDatabase
+	Database entity.SystemDatabase
 }
 
 func (s *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {

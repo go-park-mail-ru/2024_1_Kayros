@@ -11,15 +11,15 @@ import (
 
 // RestaurantStore хранилище ресторанов
 type RestaurantStore struct {
-	Restaurants      []entity.Restaurant
-	RestaurantsMutex sync.RWMutex
+	Restaurants []entity.Restaurant
+	sync.RWMutex
 }
 
 func (store *RestaurantStore) RestaurantList(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	store.RestaurantsMutex.Lock()
+	store.Lock()
 	body, err := json.Marshal(store.Restaurants)
-	store.RestaurantsMutex.Unlock()
+	store.Unlock()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
