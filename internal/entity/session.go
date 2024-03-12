@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"regexp"
+	"errors"
 	"sync"
 
 	"github.com/satori/uuid"
@@ -9,40 +9,31 @@ import (
 
 // SessionStore хранилище сессий пользователей
 type SessionStore struct {
-	SessionTable      map[uuid.UUID]DataType // ключ - сессия, значение - идентификатор пользователя
-	SessionTableMutex sync.RWMutex
+	SessionTable map[uuid.UUID]string // ключ - сессия, значение - либо почта, либо номер телефона
+	sync.RWMutex
 }
 
-func (s *SessionStore) GetValue(key uuid.UUID) (DataType, ErrorType) {
-	s.SessionTableMutex.RLock()
+func (s *SessionStore) GetValue(key uuid.UUID) (string, error) {
+	s.RLock()
 	email, emailExist := s.SessionTable[key]
-	s.SessionTableMutex.RUnlock()
+	s.RUnlock()
+
 	if emailExist {
-		return GenerateResponse(email)
+		return email, nil
 	}
-	return RaiseError("Ошибка получения email")
+	return "", errors.New(BadPermission)
 }
 
-func (s *SessionStore) SetNewSession(email string) (DataType, ErrorType) {
-	regexEmail := regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`)
-	if regexEmail.MatchString(email) {
-		sessionId := uuid.NewV4()
-		s.SessionTableMutex.Lock()
-		s.SessionTable[sessionId] = email
-		s.SessionTableMutex.Unlock()
-		return GenerateResponse(sessionId)
-	} else {
-		return RaiseError("Предоставлены неверные учетные данные")
-	}
+func (s *SessionStore) SetNewSession(email string) {
+	sessionId := uuid.NewV4()
+	s.Lock()
+	s.SessionTable[sessionId] = email
+	s.Unlock()
 }
 
-func (s *SessionStore) HasKey(key uuid.UUID) (DataType, ErrorType) {
-	s.SessionTableMutex.RLock()
+func (s *SessionStore) HasKey(key uuid.UUID) bool {
+	s.RLock()
 	_, hasKey := s.SessionTable[key]
-	s.SessionTableMutex.RUnlock()
-	if hasKey {
-		return GenerateResponse(true)
-	} else {
-		return GenerateResponse(false)
-	}
+	s.RUnlock()
+	return hasKey
 }

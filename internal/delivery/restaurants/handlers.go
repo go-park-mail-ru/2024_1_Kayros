@@ -3,7 +3,6 @@ package restaurants
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"sync"
 
 	"2024_1_kayros/internal/entity"
@@ -24,12 +23,10 @@ func (store *RestaurantStore) RestaurantList(w http.ResponseWriter, _ *http.Requ
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 
 	_, err = w.Write(body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		entity.RaiseError("Ошибка формирования ответа")
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}

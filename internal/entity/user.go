@@ -3,8 +3,8 @@ package entity
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"regexp"
-	"sync"
 )
 
 type User struct {
@@ -16,55 +16,58 @@ type User struct {
 }
 
 // HashData хэширует данные с помощью хэш-функции sha256
-func HashData(data string) string {
+func hashData(data string) (string, error) {
 	hashedPassword := sha256.New()
-	hashedPassword.Write([]byte(data))
-	return hex.EncodeToString(hashedPassword.Sum(nil))
+	_, err := hashedPassword.Write([]byte(data))
+	if err != nil {
+		return "", errors.New(UnexpectedServerError)
+	}
+	return hex.EncodeToString(hashedPassword.Sum(nil)), nil
 }
 
-// SetPassword устанавливает пароль пользователя
-func (u *User) SetPassword(password string) (DataType, ErrorType) {
-	regexPassword := regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
-	if regexPassword.MatchString(password) {
-		u.Password = HashData(password) // возвращает строку
-		return GenerateResponse(true)
+// IsValidPassword проверяет пароль на валидность
+func IsValidPassword(password string) bool {
+	// Проверка на минимальную длину
+	if len(password) < 8 {
+		return false
 	}
-	return RaiseError("Предоставлены неверные учетные данные")
+
+	// Проверка на наличие хотя бы одной буквы
+	letterRegex := regexp.MustCompile(`[A-Za-z]`)
+	if !letterRegex.MatchString(password) {
+		return false
+	}
+
+	// Проверка на наличие хотя бы одной цифры
+	digitRegex := regexp.MustCompile(`\d`)
+	if !digitRegex.MatchString(password) {
+		return false
+	}
+
+	// Проверка на наличие разрешенных символов
+	validCharsRegex := regexp.MustCompile(`^[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+$`)
+	if !validCharsRegex.MatchString(password) {
+		return false
+	}
+
+	return true
 }
 
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
 func (u *User) CheckPassword(password string) bool {
-	hashPassword := HashData(password)
+	hashPassword, err := hashData(password)
+	if err != nil {
+		return false
+	}
 	return u.Password == hashPassword
 }
 
-// UserStore хранилище с пользователями
-type UserStore struct {
-	Users      map[DataType]User
-	UsersMutex sync.RWMutex
-}
-
-// GetUser возвращает пользователя
-func (s *UserStore) GetUser(field DataType) (DataType, ErrorType) {
-	s.UsersMutex.RLock()
-	user, userExist := s.Users[field]
-	s.UsersMutex.RUnlock()
-	if userExist {
-		return GenerateResponse(user)
+// SetPassword устанавливает пароль пользователя
+func (u *User) SetPassword(password string) (bool, error) {
+	newPassword, err := hashData(password)
+	if err != nil {
+		return false, err
 	}
-	return RaiseError("Предоставлены неверные учетные данные")
-}
-
-// SetNewUser добавляет нового пользователя в БД
-func (s *UserStore) SetNewUser(field DataType, data User) (DataType, ErrorType) {
-	// пока что мы проверяем по почте
-	regexEmail := regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`)
-	if regexEmail.MatchString(field) {
-		s.UsersMutex.Lock()
-		s.Users[field] = data
-		s.Users[field].SetPassword(data.Password)
-		s.UsersMutex.Unlock()
-		return GenerateResponse(data)
-	}
-	return RaiseError("Предоставлены неверные учетные данные")
+	u.Password = newPassword
+	return true, nil
 }

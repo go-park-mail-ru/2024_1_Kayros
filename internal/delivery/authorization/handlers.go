@@ -14,20 +14,20 @@ import (
 )
 
 type AuthHandler struct {
-	Database entity.SystemDatabase
+	db entity.SystemDatabase
 }
 
-func (s *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
+func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
-	user := r.Context().Value("user")
-	if user != nil {
-		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
+	authKey := r.Context().Value("authKey")
+	if authKey != nil {
+		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
 
 	requestBody, errWrongData := io.ReadAll(r.Body)
 	if errWrongData != nil {
-		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
@@ -35,13 +35,12 @@ func (s *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	errRetrieveBodyData := json.Unmarshal(requestBody, &bodyData)
 	_ = r.Body.Close()
 	if errRetrieveBodyData != nil {
-		http.Error(w, "Ошибка при десериализации тела запроса", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
-	currentUser, userExist := s.Database.Users.GetUser(bodyData.Email)
-	currentUser = currentUser
-	if userExist != nil && currentUser.CheckPassword(bodyData.Password) {
+	currentUser, userNotExist := state.db.Users.GetUser(bodyData.Email)
+	if userNotExist == nil && currentUser.CheckPassword(bodyData.Password) {
 		sessionId := uuid.NewV4()
 		// собираем Cookie
 		expiration := time.Now().Add(14 * 24 * time.Hour)
@@ -59,35 +58,68 @@ func (s *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 
 		// Собираем ответ
 		w.Header().Set("Content-Type", "application/json")
-		jsonResponse, err := json.Marshal(currentUser)
+		returnUser := state.Users[bodyData.Email]
+		response := entity.UserResponse{
+			Id:   returnUser.Id,
+			Name: returnUser.Name,
+		}
+		jsonResponse, err := json.Marshal(response)
 		if err != nil {
-			http.Error(w, "Ошибка при сериализации тела ответа", http.StatusBadRequest)
+			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
 
 		_, errWriteResponseBody := w.Write(jsonResponse)
 		if errWriteResponseBody != nil {
-			http.Error(w, "Ошибка при формировании тела ответа", http.StatusBadRequest)
+			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 			return
 		}
 		return
 	}
-	http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+	w = entity.ErrorResponse(w, entity.BadAuthCredentials, http.StatusBadRequest)
 	return
 }
 
-func (s *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
+func isValidPassword(password string) bool {
+	// Проверка на минимальную длину
+	if len(password) < 8 {
+		return false
+	}
+
+	// Проверка на наличие хотя бы одной буквы
+	letterRegex := regexp.MustCompile(`[A-Za-z]`)
+	if !letterRegex.MatchString(password) {
+		return false
+	}
+
+	// Проверка на наличие хотя бы одной цифры
+	digitRegex := regexp.MustCompile(`\d`)
+	if !digitRegex.MatchString(password) {
+		return false
+	}
+
+	// Проверка на наличие разрешенных символов
+	validCharsRegex := regexp.MustCompile(`^[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+$`)
+	if !validCharsRegex.MatchString(password) {
+		return false
+	}
+
+	return true
+}
+
+func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
+	w.Header().Set("Content-Type", "application/json")
 	user := r.Context().Value("user")
 	if user != nil {
-		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
+		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
 
 	requestBody, errWrongData := io.ReadAll(r.Body)
 	if errWrongData != nil {
-		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
@@ -95,33 +127,37 @@ func (s *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	errRetrieveBodyData := json.Unmarshal(requestBody, &bodyData)
 	_ = r.Body.Close()
 	if errRetrieveBodyData != nil {
-		http.Error(w, "Ошибка при десериализации тела запроса", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
 	_, userAlreadyExist := state.Users[bodyData.Email]
 	if userAlreadyExist {
-		http.Error(w, "Пользователь с таким именем уже зарегистрирован", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UserAlreadyExist, http.StatusBadRequest)
 		return
 	}
 
-	regexPassword := regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
-	if !regexPassword.MatchString(bodyData.Password) {
-		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+	if !isValidPassword(bodyData.Password) {
+		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
-	regexName := regexp.MustCompile(`^[a-zA-Zа-яА-Я][a-zA-Zа-яА-Я0-9]{1,19}$`)
+	regexName := regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ][a-zA-Zа-яА-ЯёЁ0-9]{1,19}$`)
 	if !regexName.MatchString(bodyData.Name) {
-		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
-	regexEmail := regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`)
+	regexEmail := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	if regexEmail.MatchString(bodyData.Email) {
-		state.Users[bodyData.Email] = &entity.User{Id: len(state.Users), Email: bodyData.Email, Password: entity.HashData(bodyData.Password), Name: bodyData.Name}
+		state.Users[bodyData.Email] = &entity.User{
+			Id:       len(state.Users),
+			Email:    bodyData.Email,
+			Password: entity.HashData(bodyData.Password),
+			Name:     bodyData.Name,
+		}
 	} else {
-		http.Error(w, "Предоставлены неверные учетные данные", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
@@ -138,39 +174,45 @@ func (s *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 
-	body, err := json.Marshal(state.Users[bodyData.Email])
+	returnUser := state.Users[bodyData.Email]
+	response := entity.UserResponse{
+		Id:   returnUser.Id,
+		Name: returnUser.Name,
+	}
+	body, err := json.Marshal(response)
 	if err != nil {
-		http.Error(w, "Ошибка при сериализации тела ответа", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 
 	_, err = w.Write(body)
 
 	if err != nil {
-		http.Error(w, "Ошибка при формировании тела ответа", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
+func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
+	w.Header().Set("Content-Type", "application/json")
 	user := r.Context().Value("user")
 	if user == nil {
-		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
+		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
 
 	// удаляем запись из таблицы сессий
 	sessionCookie, errNoSessionCookie := r.Cookie("session_id")
 	if errors.Is(errNoSessionCookie, http.ErrNoCookie) {
-		http.Error(w, "Не хватает действительных учётных данных для целевого ресурса", http.StatusUnauthorized)
+		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
 	// проверка на корректность UUID
 	sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
 	if errWrongSessionId != nil {
-		http.Error(w, "Ошибка при получении ключа сессии", http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
 	state.SessionTableMu.RLock()
@@ -183,11 +225,32 @@ func (s *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 
 	// Успешно вышли из системы, возвращаем статус 200 OK и сообщение
 	w.WriteHeader(http.StatusOK)
-	message := "Пользователь успешно завершил сессию"
-	_, errorWrite := w.Write([]byte(message))
-	if errorWrite != nil {
-		// Обработка ошибки записи сообщения в тело ответа
-		http.Error(w, "Ошибка при формировании тела ответа", http.StatusBadRequest)
+	w = entity.ErrorResponse(w, "Сессия успешно завершена", http.StatusOK)
+}
+
+func (state *AuthHandler) UserData(w http.ResponseWriter, r *http.Request) {
+	// если пришел неавторизованный пользователь, возвращаем 401
+	w.Header().Set("Content-Type", "application/json")
+	userPrt := r.Context().Value("user")
+	if userPrt == nil {
+		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
+	user := userPrt.(*entity.User)
+	response := entity.UserResponse{
+		Id:   user.Id,
+		Name: user.Name,
+	}
+	data, errSerialization := json.Marshal(response)
+	if errSerialization != nil {
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
+		return
+	}
+	_, errWrite := w.Write(data)
+	if errWrite != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	return
 }

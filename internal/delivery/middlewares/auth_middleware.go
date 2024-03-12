@@ -11,7 +11,7 @@ import (
 )
 
 // SessionAuthentication добавляет в контекст ключ авторизации пользователя, которого получилось аутентифицировать
-func SessionAuthentication(_ *mux.Router, db *entity.SystemDatabase) http.Handler {
+func SessionAuthentication(m *mux.Router, db *entity.SystemDatabase) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
 		if !errors.Is(errNoSessionCookie, http.ErrNoCookie) {
@@ -21,16 +21,15 @@ func SessionAuthentication(_ *mux.Router, db *entity.SystemDatabase) http.Handle
 				// проверка на наличие UUID в таблице сессий
 				userEmail, errGettingEmail := db.Sessions.GetValue(sessionId)
 				if errGettingEmail == nil {
-					_, errWrongCredentionals := db.Users.GetUser(userEmail)
+					_, errWrongCredentionals := db.Users.
 					if errWrongCredentionals == nil {
 						var ctx context.Context
-						ctx = context.WithValue(r.Context(), "userKey", userEmail)
+						ctx = context.WithValue(r.Context(), "authKey", userEmail)
 						r = r.WithContext(ctx)
 					}
 				}
 			}
 		}
-		var handler http.Handler
-		handler.ServeHTTP(w, r)
+		m.ServeHTTP(w, r)
 	})
 }
