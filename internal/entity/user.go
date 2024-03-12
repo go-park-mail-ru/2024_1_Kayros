@@ -15,14 +15,23 @@ type User struct {
 	Password string `json:"password"`
 }
 
-// HashData хэширует данные с помощью хэш-функции sha256
-func hashData(data string) (string, error) {
-	hashedPassword := sha256.New()
-	_, err := hashedPassword.Write([]byte(data))
+// CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
+func (u *User) CheckPassword(password string) bool {
+	hashPassword, err := HashData(password)
 	if err != nil {
-		return "", errors.New(UnexpectedServerError)
+		return false
 	}
-	return hex.EncodeToString(hashedPassword.Sum(nil)), nil
+	return u.Password == hashPassword
+}
+
+// SetPassword устанавливает пароль пользователя
+func (u *User) SetPassword(password string) (bool, error) {
+	newPassword, err := HashData(password)
+	if err != nil {
+		return false, err
+	}
+	u.Password = newPassword
+	return true, nil
 }
 
 // IsValidPassword проверяет пароль на валидность
@@ -53,21 +62,12 @@ func IsValidPassword(password string) bool {
 	return true
 }
 
-// CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
-func (u *User) CheckPassword(password string) bool {
-	hashPassword, err := hashData(password)
+// HashData хэширует данные с помощью хэш-функции sha256
+func HashData(data string) (string, error) {
+	hashedPassword := sha256.New()
+	_, err := hashedPassword.Write([]byte(data))
 	if err != nil {
-		return false
+		return "", errors.New(UnexpectedServerError)
 	}
-	return u.Password == hashPassword
-}
-
-// SetPassword устанавливает пароль пользователя
-func (u *User) SetPassword(password string) (bool, error) {
-	newPassword, err := hashData(password)
-	if err != nil {
-		return false, err
-	}
-	u.Password = newPassword
-	return true, nil
+	return hex.EncodeToString(hashedPassword.Sum(nil)), nil
 }

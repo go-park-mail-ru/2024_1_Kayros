@@ -28,13 +28,13 @@ func InitDatabase() SystemDatabase {
 	}
 	return SystemDatabase{
 		Users: UserStore{
-			Users: make(map[string]User),
+			Data: make(map[string]User),
 		},
 		Sessions: SessionStore{
-			SessionTable: make(map[uuid.UUID]string),
+			Data: make(map[uuid.UUID]string),
 		},
 		Restaurants: restaurants.RestaurantStore{
-			Restaurants: r,
+			Data: r,
 		},
 	}
 }

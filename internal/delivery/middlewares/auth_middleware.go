@@ -18,13 +18,13 @@ func SessionAuthentication(m *mux.Router, db *entity.SystemDatabase) http.Handle
 			// проверка на корректность UUID
 			sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
 			if errWrongSessionId == nil {
-				// проверка на наличие UUID в таблице сессий
-				userEmail, errGettingEmail := db.Sessions.GetValue(sessionId)
-				if errGettingEmail == nil {
-					_, errWrongCredentionals := db.Users.
+				// проверка на наличие сессии пользователя в таблице сессий
+				key, errGettingKey := db.Sessions.GetValueByKey(sessionId)
+				if errGettingKey == nil {
+					_, errWrongCredentionals := db.Users.GetUser(key)
 					if errWrongCredentionals == nil {
 						var ctx context.Context
-						ctx = context.WithValue(r.Context(), "authKey", userEmail)
+						ctx = context.WithValue(r.Context(), "authKey", key)
 						r = r.WithContext(ctx)
 					}
 				}

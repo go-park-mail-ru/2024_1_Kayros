@@ -18,6 +18,7 @@ type AuthHandler struct {
 }
 
 func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	// если пришел авторизованный пользователь, возвращаем 401
 	authKey := r.Context().Value("authKey")
 	if authKey != nil {
@@ -40,7 +41,7 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	currentUser, userNotExist := state.db.Users.GetUser(bodyData.Email)
-	if userNotExist == nil && currentUser.CheckPassword(bodyData.Password) {
+	if userNotExist == nil && currentUser.CheckPassword(bodyData.Email) {
 		sessionId := uuid.NewV4()
 		// собираем Cookie
 		expiration := time.Now().Add(14 * 24 * time.Hour)
@@ -52,16 +53,12 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, &cookie)
 
-		state.SessionTableMu.RLock()
-		state.SessionTable[sessionId] = currentUser.Email
-		state.SessionTableMu.RUnlock()
+		state.db.Sessions.SetNewSession(sessionId, bodyData.Email)
 
 		// Собираем ответ
-		w.Header().Set("Content-Type", "application/json")
-		returnUser := state.Users[bodyData.Email]
 		response := entity.UserResponse{
-			Id:   returnUser.Id,
-			Name: returnUser.Name,
+			Id:   currentUser.Id,
+			Name: currentUser.Name,
 		}
 		jsonResponse, err := json.Marshal(response)
 		if err != nil {
@@ -75,69 +72,41 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 			return
 		}
-		return
+	} else {
+		w = entity.ErrorResponse(w, userNotExist.Error(), http.StatusBadRequest)
 	}
-	w = entity.ErrorResponse(w, entity.BadAuthCredentials, http.StatusBadRequest)
-	return
-}
-
-func isValidPassword(password string) bool {
-	// Проверка на минимальную длину
-	if len(password) < 8 {
-		return false
-	}
-
-	// Проверка на наличие хотя бы одной буквы
-	letterRegex := regexp.MustCompile(`[A-Za-z]`)
-	if !letterRegex.MatchString(password) {
-		return false
-	}
-
-	// Проверка на наличие хотя бы одной цифры
-	digitRegex := regexp.MustCompile(`\d`)
-	if !digitRegex.MatchString(password) {
-		return false
-	}
-
-	// Проверка на наличие разрешенных символов
-	validCharsRegex := regexp.MustCompile(`^[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+$`)
-	if !validCharsRegex.MatchString(password) {
-		return false
-	}
-
-	return true
 }
 
 func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")
-	user := r.Context().Value("user")
-	if user != nil {
+	authKey := r.Context().Value("authKey")
+	if authKey != nil {
 		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
 
 	requestBody, errWrongData := io.ReadAll(r.Body)
 	if errWrongData != nil {
-		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
 		return
 	}
 
-	var bodyData Registration
+	var bodyData entity.RegistrationProps
 	errRetrieveBodyData := json.Unmarshal(requestBody, &bodyData)
 	_ = r.Body.Close()
 	if errRetrieveBodyData != nil {
-		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
 		return
 	}
 
-	_, userAlreadyExist := state.Users[bodyData.Email]
-	if userAlreadyExist {
+	_, userAlreadyExist := state.db.Users.GetUser(bodyData.Email)
+	if userAlreadyExist != nil {
 		w = entity.ErrorResponse(w, entity.UserAlreadyExist, http.StatusBadRequest)
 		return
 	}
 
-	if !isValidPassword(bodyData.Password) {
+	if !entity.IsValidPassword(bodyData.Password) {
 		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
@@ -150,19 +119,24 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	regexEmail := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	if regexEmail.MatchString(bodyData.Email) {
-		state.Users[bodyData.Email] = &entity.User{
-			Id:       len(state.Users),
-			Email:    bodyData.Email,
-			Password: entity.HashData(bodyData.Password),
-			Name:     bodyData.Name,
+		hashedPassword, errHash := entity.HashData(bodyData.Password)
+		if errHash != nil {
+			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
+			return
 		}
+		_, _ = state.db.Users.SetNewUser(bodyData.Email, entity.User{
+			Id:       len(state.db.Users.Data),
+			Email:    bodyData.Email,
+			Password: hashedPassword,
+			Name:     bodyData.Name,
+		})
 	} else {
 		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
 	sessionId := uuid.NewV4()
-	state.SessionTable[sessionId] = bodyData.Email
+	state.db.Sessions.SetNewSession(sessionId, bodyData.Email)
 
 	// собираем Cookie
 	expiration := time.Now().Add(14 * 24 * time.Hour)
@@ -174,7 +148,11 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 
-	returnUser := state.Users[bodyData.Email]
+	returnUser, errGetUser := state.db.Users.GetUser(bodyData.Email)
+	if errGetUser != nil {
+		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
+		return
+	}
 	response := entity.UserResponse{
 		Id:   returnUser.Id,
 		Name: returnUser.Name,
@@ -197,8 +175,8 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")
-	user := r.Context().Value("user")
-	if user == nil {
+	authKey := r.Context().Value("authKey")
+	if authKey == nil {
 		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
@@ -215,9 +193,8 @@ func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
-	state.SessionTableMu.RLock()
-	delete(state.SessionTable, sessionId)
-	state.SessionTableMu.RUnlock()
+
+	state.db.Sessions.DeleteSession(sessionId)
 
 	// ставим заголовок для удаления сессионной куки в браузере
 	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
@@ -231,12 +208,15 @@ func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 func (state *AuthHandler) UserData(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")
-	userPrt := r.Context().Value("user")
-	if userPrt == nil {
+	authKey := r.Context().Value("authKey")
+	if authKey == nil {
 		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
-	user := userPrt.(*entity.User)
+	user, errGetUser := state.db.Users.GetUser(authKey.(string))
+	if errGetUser != nil {
+		w = entity.ErrorResponse(w, errGetUser.Error(), http.StatusUnauthorized)
+	}
 	response := entity.UserResponse{
 		Id:   user.Id,
 		Name: user.Name,
