@@ -1,11 +1,9 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"2024_1_kayros/internal/delivery/authorization"
 	"2024_1_kayros/internal/delivery/middlewares"
@@ -20,10 +18,10 @@ func main() {
 	const PORT int = 8000
 
 	// флаг для установки времени graceful shutdown-а
-	var wait time.Duration
-	flag.DurationVar(&wait, "grtm", time.Second*15, "Промежуток времени, в течение которого сервер "+
-		"плавно завершает работу, завершая текущие запросы")
-	flag.Parse()
+	//var wait time.Duration
+	//flag.DurationVar(&wait, "grtm", time.Second*15, "Промежуток времени, в течение которого сервер "+
+	//	"плавно завершает работу, завершая текущие запросы")
+	//flag.Parse()
 
 	// для работы блока авторизации
 	auth := authorization.AuthHandler{
@@ -36,6 +34,8 @@ func main() {
 	r.HandleFunc("/api/v1/signin/", auth.SignIn).Methods("POST").Name("signin")
 	r.HandleFunc("/api/v1/signup/", auth.SignUp).Methods("POST").Name("signup")
 	r.HandleFunc("/api/v1/signout/", auth.SignOut).Methods("POST").Name("signout")
+	// получение информации о пользователе
+	r.HandleFunc("/api/v1//user", auth.UserData).Methods("GET").Name("userdata")
 	// рестораны
 	r.HandleFunc("/api/v1/restaurants/", rest.RestaurantList).Methods("GET").Name("restaurants")
 

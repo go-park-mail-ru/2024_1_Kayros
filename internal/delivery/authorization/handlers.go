@@ -3,6 +3,7 @@ package authorization
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -45,7 +46,7 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	currentUser, userNotExist := state.DB.Users.GetUser(bodyData.Email)
-	if userNotExist == nil && currentUser.CheckPassword(bodyData.Email) {
+	if userNotExist == nil && currentUser.CheckPassword(bodyData.Password) {
 		sessionId := uuid.NewV4()
 		// собираем Cookie
 		expiration := time.Now().Add(14 * 24 * time.Hour)
@@ -79,8 +80,7 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		log.Println(userNotExist.Error())
-		w = entity.ErrorResponse(w, userNotExist.Error(), http.StatusBadRequest)
+		w = entity.ErrorResponse(w, entity.BadAuthCredentials, http.StatusBadRequest)
 	}
 }
 
@@ -183,6 +183,7 @@ func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")
 	authKey := r.Context().Value("authKey")
+	fmt.Print(authKey)
 	if authKey == nil {
 		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
