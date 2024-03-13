@@ -35,7 +35,7 @@ func main() {
 	r.HandleFunc("/api/v1/signup/", auth.SignUp).Methods("POST").Name("signup")
 	r.HandleFunc("/api/v1/signout/", auth.SignOut).Methods("POST").Name("signout")
 	// получение информации о пользователе
-	r.HandleFunc("/api/v1//user", auth.UserData).Methods("GET").Name("userdata")
+	r.HandleFunc("/api/v1/user/", auth.UserData).Methods("GET").Name("userdata")
 	// рестораны
 	r.HandleFunc("/api/v1/restaurants/", rest.RestaurantList).Methods("GET").Name("restaurants")
 
