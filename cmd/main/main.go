@@ -36,7 +36,6 @@ func main() {
 	r.HandleFunc("/api/v1/signin/", auth.SignIn).Methods("POST").Name("signin")
 	r.HandleFunc("/api/v1/signup/", auth.SignUp).Methods("POST").Name("signup")
 	r.HandleFunc("/api/v1/signout/", auth.SignOut).Methods("POST").Name("signout")
-
 	// рестораны
 	r.HandleFunc("/api/v1/restaurants/", rest.RestaurantList).Methods("GET").Name("restaurants")
 

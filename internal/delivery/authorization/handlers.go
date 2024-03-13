@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"time"
@@ -22,12 +23,14 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	authKey := r.Context().Value("authKey")
 	if authKey != nil {
+		log.Println(entity.BadPermission)
 		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
 
 	requestBody, errWrongData := io.ReadAll(r.Body)
 	if errWrongData != nil {
+		log.Println(entity.UnexpectedServerError)
 		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
 		return
 	}
@@ -36,7 +39,8 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	errRetrieveBodyData := json.Unmarshal(requestBody, &bodyData)
 	_ = r.Body.Close()
 	if errRetrieveBodyData != nil {
-		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
+		log.Println(entity.BadRegCredentials)
+		w = entity.ErrorResponse(w, entity.BadRegCredentials, http.StatusBadRequest)
 		return
 	}
 
@@ -62,17 +66,20 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonResponse, err := json.Marshal(response)
 		if err != nil {
-			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
+			log.Println(entity.UnexpectedServerError)
+			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
 
 		_, errWriteResponseBody := w.Write(jsonResponse)
 		if errWriteResponseBody != nil {
-			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusBadRequest)
+			log.Println(entity.UnexpectedServerError)
+			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
 			return
 		}
 	} else {
+		log.Println(userNotExist.Error())
 		w = entity.ErrorResponse(w, userNotExist.Error(), http.StatusBadRequest)
 	}
 }
@@ -87,6 +94,7 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	requestBody, errWrongData := io.ReadAll(r.Body)
+	_ = r.Body.Close()
 	if errWrongData != nil {
 		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
 		return
@@ -94,7 +102,6 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	var bodyData entity.RegistrationProps
 	errRetrieveBodyData := json.Unmarshal(requestBody, &bodyData)
-	_ = r.Body.Close()
 	if errRetrieveBodyData != nil {
 		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
 		return

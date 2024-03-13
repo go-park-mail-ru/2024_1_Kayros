@@ -35,9 +35,10 @@ func InitRestaurantStore() RestaurantStore {
 
 func (store *RestaurantStore) RestaurantList(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	store.Lock()
-	body, err := json.Marshal(store.Data)
-	store.Unlock()
+	store.RLock()
+	rests := store.Data
+	store.RUnlock()
+	body, err := json.Marshal(rests)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
