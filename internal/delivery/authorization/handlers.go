@@ -14,7 +14,7 @@ import (
 )
 
 type AuthHandler struct {
-	db entity.SystemDatabase
+	DB entity.AuthDatabase
 }
 
 func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +40,7 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentUser, userNotExist := state.db.Users.GetUser(bodyData.Email)
+	currentUser, userNotExist := state.DB.Users.GetUser(bodyData.Email)
 	if userNotExist == nil && currentUser.CheckPassword(bodyData.Email) {
 		sessionId := uuid.NewV4()
 		// собираем Cookie
@@ -53,7 +53,7 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, &cookie)
 
-		state.db.Sessions.SetNewSession(sessionId, bodyData.Email)
+		state.DB.Sessions.SetNewSession(sessionId, bodyData.Email)
 
 		// Собираем ответ
 		response := entity.UserResponse{
@@ -100,9 +100,9 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, userAlreadyExist := state.db.Users.GetUser(bodyData.Email)
-	if userAlreadyExist != nil {
-		w = entity.ErrorResponse(w, entity.UserAlreadyExist, http.StatusBadRequest)
+	_, userNotExist := state.DB.Users.GetUser(bodyData.Email)
+	if userNotExist == nil {
+		w = entity.ErrorResponse(w, userNotExist.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -121,11 +121,11 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	if regexEmail.MatchString(bodyData.Email) {
 		hashedPassword, errHash := entity.HashData(bodyData.Password)
 		if errHash != nil {
-			w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
+			w = entity.ErrorResponse(w, errHash.Error(), http.StatusInternalServerError)
 			return
 		}
-		_, _ = state.db.Users.SetNewUser(bodyData.Email, entity.User{
-			Id:       len(state.db.Users.Data),
+		_, _ = state.DB.Users.SetNewUser(bodyData.Email, entity.User{
+			Id:       len(state.DB.Users.Data),
 			Email:    bodyData.Email,
 			Password: hashedPassword,
 			Name:     bodyData.Name,
@@ -136,7 +136,7 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionId := uuid.NewV4()
-	state.db.Sessions.SetNewSession(sessionId, bodyData.Email)
+	state.DB.Sessions.SetNewSession(sessionId, bodyData.Email)
 
 	// собираем Cookie
 	expiration := time.Now().Add(14 * 24 * time.Hour)
@@ -148,7 +148,7 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 
-	returnUser, errGetUser := state.db.Users.GetUser(bodyData.Email)
+	returnUser, errGetUser := state.DB.Users.GetUser(bodyData.Email)
 	if errGetUser != nil {
 		w = entity.ErrorResponse(w, entity.UnexpectedServerError, http.StatusInternalServerError)
 		return
@@ -194,7 +194,7 @@ func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	state.db.Sessions.DeleteSession(sessionId)
+	state.DB.Sessions.DeleteSession(sessionId)
 
 	// ставим заголовок для удаления сессионной куки в браузере
 	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
@@ -213,7 +213,7 @@ func (state *AuthHandler) UserData(w http.ResponseWriter, r *http.Request) {
 		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
 		return
 	}
-	user, errGetUser := state.db.Users.GetUser(authKey.(string))
+	user, errGetUser := state.DB.Users.GetUser(authKey.(string))
 	if errGetUser != nil {
 		w = entity.ErrorResponse(w, errGetUser.Error(), http.StatusUnauthorized)
 	}

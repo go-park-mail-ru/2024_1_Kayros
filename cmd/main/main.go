@@ -4,10 +4,12 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"2024_1_kayros/internal/delivery/authorization"
 	"2024_1_kayros/internal/delivery/middlewares"
+	"2024_1_kayros/internal/delivery/restaurants"
 	"2024_1_kayros/internal/entity"
 	"github.com/gorilla/mux"
 )
@@ -15,6 +17,7 @@ import (
 func main() {
 	r := mux.NewRouter()
 	r.StrictSlash(false)
+	const PORT int = 8000
 
 	// флаг для установки времени graceful shutdown-а
 	var wait time.Duration
@@ -22,10 +25,12 @@ func main() {
 		"плавно завершает работу, завершая текущие запросы")
 	flag.Parse()
 
-	// для работы блока авторизации необходима база данных
+	// для работы блока авторизации
 	auth := authorization.AuthHandler{
-		Database: entity.InitDatabase(),
+		DB: entity.InitDatabase(),
 	}
+	// для работы с ресторанами
+	rest := restaurants.InitRestaurantStore()
 
 	// авторизация, регистрация, деавторизация
 	r.HandleFunc("/api/v1/signin/", auth.SignIn).Methods("POST").Name("signin")
@@ -33,10 +38,10 @@ func main() {
 	r.HandleFunc("/api/v1/signout/", auth.SignOut).Methods("POST").Name("signout")
 
 	// рестораны
-	r.HandleFunc("api/v1/restaurants/", auth.Database.Restaurants.RestaurantList).Methods("GET").Name("restaurants")
+	r.HandleFunc("/api/v1/restaurants/", rest.RestaurantList).Methods("GET").Name("restaurants")
 
 	// устанавливаем middlewares для аутентификации с помощью сессионной куки
-	handler := middlewares.SessionAuthentication(r, &auth.Database)
+	handler := middlewares.SessionAuthentication(r, &auth.DB)
 	// устанавливаем middleware для CORS
 	handler = middlewares.CorsMiddleware(handler)
 	//srv := &http.Server{
@@ -46,7 +51,8 @@ func main() {
 	//	ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
 	//	IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
 	//}
-	log.Fatal(http.ListenAndServe(":8000", r))
+	log.Println("Server is running")
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(PORT), handler))
 	//
 	//go func() {
 	//	if err := srv.ListenAndServe(); err != nil {

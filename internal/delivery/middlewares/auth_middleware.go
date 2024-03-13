@@ -3,6 +3,7 @@ package middlewares
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 
 	"2024_1_kayros/internal/entity"
@@ -11,7 +12,7 @@ import (
 )
 
 // SessionAuthentication добавляет в контекст ключ авторизации пользователя, которого получилось аутентифицировать
-func SessionAuthentication(m *mux.Router, db *entity.SystemDatabase) http.Handler {
+func SessionAuthentication(m *mux.Router, db *entity.AuthDatabase) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
 		if !errors.Is(errNoSessionCookie, http.ErrNoCookie) {
@@ -24,6 +25,7 @@ func SessionAuthentication(m *mux.Router, db *entity.SystemDatabase) http.Handle
 					_, errWrongCredentionals := db.Users.GetUser(key)
 					if errWrongCredentionals == nil {
 						var ctx context.Context
+						log.Println(key)
 						ctx = context.WithValue(r.Context(), "authKey", key)
 						r = r.WithContext(ctx)
 					}
