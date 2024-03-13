@@ -31,8 +31,6 @@ func SessionAuthentication(m http.Handler, db *entity.AuthDatabase) http.Handler
 					}
 				}
 			}
-		} else {
-			log.Println("cookie is empty")
 		}
 		m.ServeHTTP(w, r)
 	})
