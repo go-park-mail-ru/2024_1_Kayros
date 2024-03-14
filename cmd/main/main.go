@@ -1,52 +1,57 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
-	"time"
-
-	"github.com/gorilla/mux"
+	"strconv"
 
 	"2024_1_kayros/internal/delivery/authorization"
+	"2024_1_kayros/internal/delivery/middlewares"
 	"2024_1_kayros/internal/delivery/restaurants"
+	"2024_1_kayros/internal/entity"
+	"github.com/gorilla/mux"
 )
 
 func main() {
 	r := mux.NewRouter()
-
-	auth := authorization.NewAuthStore()
-	restaurants := delivery.NewRestaurantStore()
+	r.StrictSlash(true)
+	const PORT int = 8000
 
 	// флаг для установки времени graceful shutdown-а
-	var wait time.Duration
-	flag.DurationVar(&wait, "grtm", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
-	flag.Parse()
+	//var wait time.Duration
+	//flag.DurationVar(&wait, "grtm", time.Second*15, "Промежуток времени, в течение которого сервер "+
+	//	"плавно завершает работу, завершая текущие запросы")
+	//flag.Parse()
 
-	// устанавливаем middlewares для аутентификации с помощью сессионной куки
-	r.Use(auth.SessionAuthentication)
-
-	// устанавливаем middleware для CORS
-	r.Use(authorization.CorsMiddleware)
+	// для работы блока авторизации
+	auth := authorization.AuthHandler{
+		DB: entity.InitDatabase(),
+	}
+	// для работы с ресторанами
+	rest := restaurants.InitRestaurantStore()
 
 	// авторизация, регистрация, деавторизация
-	r.HandleFunc("/signin", auth.SignIn).Methods("POST", "OPTIONS").Name("signin")
-	r.HandleFunc("/signup", auth.SignUp).Methods("POST", "OPTIONS").Name("signup")
-	r.HandleFunc("/signout", auth.SignOut).Methods("POST", "OPTIONS").Name("signout")
+	r.HandleFunc("/api/v1/signin", auth.SignIn).Methods("POST").Name("signin")
+	r.HandleFunc("/api/v1/signup", auth.SignUp).Methods("POST").Name("signup")
+	r.HandleFunc("/api/v1/signout", auth.SignOut).Methods("POST").Name("signout")
 	// получение информации о пользователе
-	r.HandleFunc("/user", auth.UserData).Methods("GET").Name("userdata")
-
+	r.HandleFunc("/api/v1/user", auth.UserData).Methods("GET").Name("userdata")
 	// рестораны
-	r.HandleFunc("/restaurants", restaurants.RestaurantList).Methods("GET").Name("restaurants")
+	r.HandleFunc("/api/v1/restaurants", rest.RestaurantList).Methods("GET").Name("restaurants")
 
-	srv := &http.Server{
-		Handler:      r,
-		Addr:         ":8000",
-		WriteTimeout: 10 * time.Second, // таймаут на запись данных в ответ на запрос
-		ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
-		IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
-	}
-	log.Fatal(srv.ListenAndServe())
+	// устанавливаем middlewares для аутентификации с помощью сессионной куки
+	handler := middlewares.SessionAuthentication(r, &auth.DB)
+	// устанавливаем middleware для CORS
+	handler = middlewares.CorsMiddleware(handler)
+	//srv := &http.Server{
+	//	Handler:      r,
+	//	Addr:         ":8000",
+	//	WriteTimeout: 10 * time.Second, // таймаут на запись данных в ответ на запрос
+	//	ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
+	//	IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
+	//}
+	log.Println("Server is running")
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(PORT), handler))
 	//
 	//go func() {
 	//	if err := srv.ListenAndServe(); err != nil {
