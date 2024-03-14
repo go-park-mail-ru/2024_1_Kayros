@@ -14,7 +14,7 @@ import (
 
 func main() {
 	r := mux.NewRouter()
-	r.StrictSlash(false)
+	r.StrictSlash(true)
 	const PORT int = 8000
 
 	// флаг для установки времени graceful shutdown-а
@@ -31,13 +31,13 @@ func main() {
 	rest := restaurants.InitRestaurantStore()
 
 	// авторизация, регистрация, деавторизация
-	r.HandleFunc("/api/v1/signin/", auth.SignIn).Methods("POST").Name("signin")
-	r.HandleFunc("/api/v1/signup/", auth.SignUp).Methods("POST").Name("signup")
-	r.HandleFunc("/api/v1/signout/", auth.SignOut).Methods("POST").Name("signout")
+	r.HandleFunc("/api/v1/signin", auth.SignIn).Methods("POST").Name("signin")
+	r.HandleFunc("/api/v1/signup", auth.SignUp).Methods("POST").Name("signup")
+	r.HandleFunc("/api/v1/signout", auth.SignOut).Methods("POST").Name("signout")
 	// получение информации о пользователе
-	r.HandleFunc("/api/v1/user/", auth.UserData).Methods("GET").Name("userdata")
+	r.HandleFunc("/api/v1/user", auth.UserData).Methods("GET").Name("userdata")
 	// рестораны
-	r.HandleFunc("/api/v1/restaurants/", rest.RestaurantList).Methods("GET").Name("restaurants")
+	r.HandleFunc("/api/v1/restaurants", rest.RestaurantList).Methods("GET").Name("restaurants")
 
 	// устанавливаем middlewares для аутентификации с помощью сессионной куки
 	handler := middlewares.SessionAuthentication(r, &auth.DB)
