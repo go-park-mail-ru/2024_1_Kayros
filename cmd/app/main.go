@@ -1,28 +1,78 @@
-package main
+package app
 
 import (
+	"context"
+	"flag"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"2024_1_kayros/internal/delivery/authorization"
 	"2024_1_kayros/internal/delivery/middlewares"
 	"2024_1_kayros/internal/delivery/restaurants"
 	"2024_1_kayros/internal/entity"
 	"github.com/gorilla/mux"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func main() {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
-	const PORT int = 8000
+	const PORT int = 8000 // нужно в файл конфигурации закинуть
 
 	// флаг для установки времени graceful shutdown-а
-	//var wait time.Duration
-	//flag.DurationVar(&wait, "grtm", time.Second*15, "Промежуток времени, в течение которого сервер "+
-	//	"плавно завершает работу, завершая текущие запросы")
-	//flag.Parse()
+	var wait time.Duration
+	flag.DurationVar(&wait, "grtm", time.Second*15, "Промежуток времени, в течение которого сервер "+
+		"плавно завершает работу, завершая текущие запросы")
+	flag.Parse()
 
+	// все в файл конфигурации
+	endpoint := "play.min.io"
+	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
+	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+
+	// Initialize minio client object.
+	ctx := context.Background()
+	minioClient, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: false,
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	// Make a new bucket called testbucket.
+	bucketName := "testbucket"
+	location := "us-east-1"
+
+	err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{Region: location})
+	if err != nil {
+		// Check to see if we already own this bucket (which happens if you run this twice)
+		exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
+		if errBucketExists == nil && exists {
+			log.Printf("We already own %s\n", bucketName)
+		} else {
+			log.Fatalln(err)
+		}
+	} else {
+		log.Printf("Successfully created %s\n", bucketName)
+	}
+
+	// Upload the test file
+	// Change the value of filePath if the file is in another location
+	objectName := "testdata"
+	filePath := "/tmp/testdata"
+	contentType := "application/octet-stream"
+
+	// Upload the test file with FPutObject
+	info, err := minioClient.FPutObject(ctx, bucketName, objectName, filePath, minio.PutObjectOptions{ContentType: contentType})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Printf("Successfully uploaded %s of size %d\n", objectName, info.Size)
 	// для работы блока авторизации
 	auth := authorization.AuthHandler{
 		DB: entity.InitDatabase(),
@@ -31,13 +81,13 @@ func main() {
 	rest := restaurants.InitRestaurantStore()
 
 	// авторизация, регистрация, деавторизация
-	r.HandleFunc("/api/v1/signin", auth.SignIn).Methods("POST").Name("signin")
-	r.HandleFunc("/api/v1/signup", auth.SignUp).Methods("POST").Name("signup")
-	r.HandleFunc("/api/v1/signout", auth.SignOut).Methods("POST").Name("signout")
+	r.HandleFunc("/docs/v1/signin", auth.SignIn).Methods("POST").Name("signin")
+	r.HandleFunc("/docs/v1/signup", auth.SignUp).Methods("POST").Name("signup")
+	r.HandleFunc("/docs/v1/signout", auth.SignOut).Methods("POST").Name("signout")
 	// получение информации о пользователе
-	r.HandleFunc("/api/v1/user", auth.UserData).Methods("GET").Name("userdata")
+	r.HandleFunc("/docs/v1/user", auth.UserData).Methods("GET").Name("userdata")
 	// рестораны
-	r.HandleFunc("/api/v1/restaurants", rest.RestaurantList).Methods("GET").Name("restaurants")
+	r.HandleFunc("/docs/v1/restaurants", rest.RestaurantList).Methods("GET").Name("restaurants")
 
 	// устанавливаем middlewares для аутентификации с помощью сессионной куки
 	handler := middlewares.SessionAuthentication(r, &auth.DB)
