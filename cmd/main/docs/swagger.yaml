@@ -1,0 +1,10 @@
+basePath: /
+host: localhost:8000
+info:
+  contact: {}
+  description: This swagger documents the Resto api. Resto is a food delivery service
+    from restaurants,
+  title: Resto API
+  version: "1.0"
+paths: {}
+swagger: "2.0"

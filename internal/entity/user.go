@@ -3,7 +3,8 @@ package entity
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"net/http"
+	"errors"
+	"regexp"
 )
 
 type User struct {
@@ -14,26 +15,59 @@ type User struct {
 	Password string `json:"password"`
 }
 
-// HashData хэширует данные с помощью хэш-функции sha256
-func HashData(data string) string {
-	hashedPassword := sha256.New()
-	hashedPassword.Write([]byte(data))
-	return hex.EncodeToString(hashedPassword.Sum(nil))
-}
-
-// SetPassword устанавливает пароль пользователя
-func (u *User) SetPassword(password string) {
-	u.Password = HashData(password) // возвращает строку
-}
-
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
 func (u *User) CheckPassword(password string) bool {
-	hashPassword := HashData(password)
+	hashPassword, err := HashData(password)
+	if err != nil {
+		return false
+	}
 	return u.Password == hashPassword
 }
 
-// IsAuthenticated проверяет
-func (u *User) IsAuthenticated(r *http.Request) bool {
-	userData := r.Context().Value("user")
-	return userData != nil
+// SetPassword устанавливает пароль пользователя
+func (u *User) SetPassword(password string) (bool, error) {
+	newPassword, err := HashData(password)
+	if err != nil {
+		return false, err
+	}
+	u.Password = newPassword
+	return true, nil
+}
+
+// IsValidPassword проверяет пароль на валидность
+func IsValidPassword(password string) bool {
+	// Проверка на минимальную длину
+	if len(password) < 8 {
+		return false
+	}
+
+	// Проверка на наличие хотя бы одной буквы
+	letterRegex := regexp.MustCompile(`[A-Za-z]`)
+	if !letterRegex.MatchString(password) {
+		return false
+	}
+
+	// Проверка на наличие хотя бы одной цифры
+	digitRegex := regexp.MustCompile(`\d`)
+	if !digitRegex.MatchString(password) {
+		return false
+	}
+
+	// Проверка на наличие разрешенных символов
+	validCharsRegex := regexp.MustCompile(`^[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+$`)
+	if !validCharsRegex.MatchString(password) {
+		return false
+	}
+
+	return true
+}
+
+// HashData хэширует данные с помощью хэш-функции sha256
+func HashData(data string) (string, error) {
+	hashedPassword := sha256.New()
+	_, err := hashedPassword.Write([]byte(data))
+	if err != nil {
+		return "", errors.New(UnexpectedServerError)
+	}
+	return hex.EncodeToString(hashedPassword.Sum(nil)), nil
 }
