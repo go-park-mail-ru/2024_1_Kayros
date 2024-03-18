@@ -5,13 +5,22 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/mux"
+	"github.com/swaggo/http-swagger"
+
 	"2024_1_kayros/internal/delivery/authorization"
 	"2024_1_kayros/internal/delivery/middlewares"
 	"2024_1_kayros/internal/delivery/restaurants"
 	"2024_1_kayros/internal/entity"
-	"github.com/gorilla/mux"
+
+	_ "2024_1_kayros/cmd/main/docs"
 )
 
+// @title Resto API
+// @version 1.0
+// @description This swagger documents the Resto api. Resto is a food delivery service from restaurants,
+// @host localhost:8000
+// @BasePath /
 func main() {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
@@ -38,6 +47,7 @@ func main() {
 	r.HandleFunc("/api/v1/user", auth.UserData).Methods("GET").Name("userdata")
 	// рестораны
 	r.HandleFunc("/api/v1/restaurants", rest.RestaurantList).Methods("GET").Name("restaurants")
+	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	// устанавливаем middlewares для аутентификации с помощью сессионной куки
 	handler := middlewares.SessionAuthentication(r, &auth.DB)

@@ -19,6 +19,17 @@ type AuthHandler struct {
 	DB entity.AuthDatabase
 }
 
+// SignIn godoc @Summary Авторизация
+// @Description Авторизация пользователя в системе. После авторизации устанавливается кука session_id, с помощью которой он в дальнейшем получает доступ к ресурсу
+// @Tags User
+// @Produce  json
+// @Param		email		body		string					true	"email"
+// @Param		password	body		string					true	"password"
+// @Success 200 {object} 	entity.UserResponce 			"Пользователь успешно авторизован"
+// @Failure 400 {object} 	entity.BadRegCredentials 		"Пользователь предоставил неверные данные для входа в аккаунт"
+// @Failure 401 {object} 	entity.BadPermission			"Не хватает прав для доступа"
+// @Failure 500 {object} 	entity.UnexpectedServerError	"Произошла неожиданная ошибка"
+// @Router /signin [post]
 func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	// если пришел авторизованный пользователь, возвращаем 401
@@ -84,6 +95,19 @@ func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SignUp godoc @Summary Регистрация
+// @Description Регистрация пользователя в системе. После регистрации пользователю устанавливается кука session_id, с помощью которой он в дальнейшем получает доступ к ресурсу
+// @Tags User
+// @Produce  json
+// @Param		email		body		string					true	"email"
+// @Param		password	body		string					true	"password"
+// @Param		name		body		string					true	"name"
+// @Param		phone		body		string					true	"phone"
+// @Success 200 {object} 	entity.UserResponce 			"Пользователь успешно зарегистрирован"
+// @Failure 400 {object} 	entity.BadRegCredentials 		"Были переданы некорректные данные для регистрации"
+// @Failure 401 {object} 	entity.BadPermission			"Не хватает прав для доступа"
+// @Failure 500 {object} 	entity.UnexpectedServerError	"Произошла неожиданная ошибка"
+// @Router /signup [post]
 func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")
@@ -179,6 +203,15 @@ func (state *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// SignOut godoc @Summary Деавторизация
+// @Description Выход пользователя из системы. Удаляется кука session_id из браузера. Данные доступны пользователю в режиме чтения
+// @Tags User
+// @Produce  json
+// @Success 200 {object} 	entity.UserResponce 			"Пользователь успешно деавторизован"
+// @Failure 400 {object} 	entity.BadRegCredentials 		"Пользователь не может деавторизоваться"
+// @Failure 401 {object} 	entity.BadPermission			"Неудачная попытка покинуть систему"
+// @Failure 500 {object} 	entity.UnexpectedServerError	"Произошла неожиданная ошибка"
+// @Router /signout [post]
 func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")
@@ -213,6 +246,14 @@ func (state *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 	w = entity.ErrorResponse(w, "Сессия успешно завершена", http.StatusOK)
 }
 
+// UserData godoc @Summary Данные пользователя
+// @Description Получение данных о пользователе
+// @Tags User
+// @Produce  json
+// @Success 200 {object} 	entity.UserResponce 			"Данные пользователь успешно отправлены"
+// @Failure 401 {object} 	entity.BadPermission			"Неудачная получить данные"
+// @Failure 500 {object} 	entity.UnexpectedServerError	"Произошла неожиданная ошибка"
+// @Router /signout [post]
 func (state *AuthHandler) UserData(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")

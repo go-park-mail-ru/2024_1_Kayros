@@ -33,6 +33,13 @@ func InitRestaurantStore() RestaurantStore {
 	}
 }
 
+// RestaurantList godoc @Summary Возвращает список ресторанов
+// @Description Список ресторанов с информацией о них
+// @Tags  restaurants
+// @Produce  json
+// @Success 200 {object} entity.Restaurants
+// @Failure 500 {object} entity.UnexpectedServerError
+// @Router /restaurants [get]
 func (store *RestaurantStore) RestaurantList(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	store.RLock()
