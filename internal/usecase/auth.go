@@ -1,4 +1,4 @@
-package authorization
+package usecase
 
 import (
 	"encoding/json"
@@ -10,13 +10,16 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/satori/uuid"
-
 	"2024_1_kayros/internal/entity"
+	"github.com/satori/uuid"
 )
 
-type AuthHandler struct {
-	DB entity.AuthDatabase
+type AuthUsecase interface {
+}
+
+// должна возвращать интерфейс блока авторизации
+func NewAuthBlock() {
+
 }
 
 func (state *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {

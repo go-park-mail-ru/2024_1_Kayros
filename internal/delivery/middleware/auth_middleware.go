@@ -1,4 +1,4 @@
-package middlewares
+package middleware
 
 import (
 	"context"
@@ -6,12 +6,11 @@ import (
 	"log"
 	"net/http"
 
-	"2024_1_kayros/internal/entity"
 	"github.com/satori/uuid"
 )
 
 // SessionAuthentication добавляет в контекст ключ авторизации пользователя, которого получилось аутентифицировать
-func SessionAuthentication(m http.Handler, db *entity.AuthDatabase) http.Handler {
+func SessionAuthentication(m http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, errNoSessionCookie := r.Cookie("session_id")
 		if !errors.Is(errNoSessionCookie, http.ErrNoCookie) {
