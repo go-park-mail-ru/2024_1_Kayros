@@ -1,4 +1,4 @@
-package usecase
+package signin
 
 import (
 	"encoding/json"

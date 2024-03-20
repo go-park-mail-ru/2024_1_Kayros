@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -11,18 +10,26 @@ import (
 
 	"2024_1_kayros/config"
 	route "2024_1_kayros/internal/delivery"
+	"2024_1_kayros/services/postgres"
 	"github.com/gorilla/mux"
 )
 
 // Run создает все сервисы приложения и запускает их
-func Run(cfg *config.Config) {
-	// вот тут вот нужно создать редис, постгрес, минио
+func Run(cfg *config.Project) {
+	// вот тут вот нужно создать редис, минио
 	// ....
+	db, err := postgres.DatabaseInit(cfg)
+	if err != nil {
+		log.Printf("Не удалось подключиться к базе данных %s по адресу %s:%d\n%s\n",
+			cfg.Postgres.Database, cfg.Postgres.Host, cfg.Postgres.Port, err)
+		return
+	}
+
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
 	// нужно будет поменять на настоящий объект базы данных
-	route.Setup(&sql.DB{}, r)
+	route.Setup(db, r)
 
 	srvConfig := cfg.Server
 	srvAddress := srvConfig.Host + ":" + strconv.Itoa(srvConfig.Port)

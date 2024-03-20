@@ -1,4 +1,4 @@
-package delivery
+package user
 
 import (
 	"encoding/json"

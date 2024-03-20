@@ -12,6 +12,7 @@ postgres:
     user: 'admin'
     password: '123'
     database: 'main_db'
+    sslmode: 'disable'
 
 minio:
     port-server: 9001

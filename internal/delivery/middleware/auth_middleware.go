@@ -23,7 +23,7 @@ func SessionAuthentication(m http.Handler) http.Handler {
 					_, errWrongCredentionals := db.Users.GetUser(key)
 					if errWrongCredentionals == nil {
 						var ctx context.Context
-						log.Println("auth")
+						log.Println("signin")
 						log.Println(key)
 						ctx = context.WithValue(r.Context(), "authKey", key)
 						r = r.WithContext(ctx)

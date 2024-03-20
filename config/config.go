@@ -9,7 +9,7 @@ import (
 )
 
 type (
-	Config struct {
+	Project struct {
 		Server   `yaml:"server"`
 		Postgres `yaml:"postgresql"`
 		Minio    `yaml:"minio"`
@@ -31,6 +31,7 @@ type (
 		User     string `env-required:"true" yaml:"user" env:"PG_USER"`
 		Password string `env-required:"true" yaml:"password" env:"PG_PASSWORD"`
 		Database string `env-required:"true" yaml:"database" env:"PG_DB"`
+		SslMode  string `env-required:"true" yaml:"sslmode" env:"PG_SSL_MODE"`
 	}
 
 	Minio struct {
@@ -45,8 +46,8 @@ type (
 	}
 )
 
-func NewConfig() (*Config, error) {
-	cfg := &Config{}
+func NewConfig() (*Project, error) {
+	cfg := &Project{}
 
 	// нужно будет переписать --> нет смысла подключать целый пакет для чтения конфигурации
 	err := cleanenv.ReadConfig("./config.yaml", cfg)

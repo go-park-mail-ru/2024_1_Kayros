@@ -1,20 +1,21 @@
-package repository
+package user
 
 import "database/sql"
 
 type UserRepoInterface interface {
+	func GetByEmail (email string)
 }
 
 type UserRepo struct {
 	database *sql.DB
 }
 
-func GetUserRepo(db *sql.DB) UserRepoInterface {
+func GetUserRepo(db *sql.DB) *UserRepo {
 	return &UserRepo{
 		database: db,
 	}
 }
 
-func (database *UserRepo) GetByEmail(email string) {
-
+func (repo *UserRepo) GetByEmail(email string) {
+	repo
 }
