@@ -1,19 +1,23 @@
 package user
 
-import "database/sql"
+import (
+	"database/sql"
 
-type UserRepoInterface interface {
-	func GetByEmail (email string)
+	"2024_1_kayros/internal/entity"
+	"github.com/redis/go-redis/v9"
+)
+
+type UserRepository interface {
+	GetByEmail(email string)
 }
 
-type UserRepo struct {
+type UserTable struct {
 	database *sql.DB
+	redis    *redis.Client
 }
 
-func GetUserRepo(db *sql.DB) *UserRepo {
-	return &UserRepo{
-		database: db,
-	}
+func (t *UserTable) GetUserById() *entity.User {
+
 }
 
 func (repo *UserRepo) GetByEmail(email string) {

@@ -13,6 +13,7 @@ type User struct {
 	Phone    string `json:"phone"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	ImgUrl   string `json:"img_url"`
 }
 
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
