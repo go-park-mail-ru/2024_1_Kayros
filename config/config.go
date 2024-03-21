@@ -49,6 +49,8 @@ type (
 		Host     string `env-required:"true" yaml:"host"    env:"R_HOST"`
 		Port     int    `env-required:"true" yaml:"port" env:"R_PORT"`
 		Database int    `env-required:"true" yaml:"database" env:"R_DB"`
+		User     string `env-required:"true" yaml:"user" env:"R_USER"`
+		Password string `env-required:"true" yaml:"password" env:"R_PASSWORD"`
 	}
 )
 

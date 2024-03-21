@@ -9,8 +9,8 @@ server:
 postgres:
     host: "localhost"
     port: 5432
-    user: 'admin'
-    password: '123'
+    user: 'restoadmin'
+    password: 'qwerty'
     database: 'main_db'
     sslmode: 'disable'
     max-open-connections: 50
@@ -28,3 +28,5 @@ redis:
     host: "localhost"
     port: 6379
     database: 0
+    user: "restoadmin"
+    password: "qwerty"

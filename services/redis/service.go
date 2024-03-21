@@ -13,8 +13,10 @@ func RedisInit(cfg *config.Project) (*redis.Client, error) {
 	cfgRedis := cfg.Redis
 	redisAddress := fmt.Sprintf("%s:%d", cfgRedis.Host, cfgRedis.Port)
 	r := redis.NewClient(&redis.Options{
-		DB:   cfgRedis.Database,
-		Addr: redisAddress,
+		DB:       cfgRedis.Database,
+		Addr:     redisAddress,
+		Username: cfgRedis.User,
+		Password: cfgRedis.Password,
 	})
 
 	const maxPingTime = 5 * time.Second
