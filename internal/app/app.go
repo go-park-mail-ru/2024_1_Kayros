@@ -11,6 +11,7 @@ import (
 	"2024_1_kayros/config"
 	route "2024_1_kayros/internal/delivery"
 	"2024_1_kayros/services/postgres"
+	"2024_1_kayros/services/redis"
 	"github.com/gorilla/mux"
 )
 
@@ -18,18 +19,20 @@ import (
 func Run(cfg *config.Project) {
 	// вот тут вот нужно создать редис, минио
 	// ....
-	db, err := postgres.DatabaseInit(cfg)
+	postgreDB, err := postgres.PostgresInit(cfg)
 	if err != nil {
 		log.Printf("Не удалось подключиться к базе данных %s по адресу %s:%d\n%s\n",
 			cfg.Postgres.Database, cfg.Postgres.Host, cfg.Postgres.Port, err)
 		return
 	}
 
+	redisDB, err := redis.RedisInit(cfg)
+
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
 	// нужно будет поменять на настоящий объект базы данных
-	route.Setup(db, r)
+	route.Setup(postgreDB, r)
 
 	srvConfig := cfg.Server
 	srvAddress := srvConfig.Host + ":" + strconv.Itoa(srvConfig.Port)
@@ -49,18 +52,17 @@ func Run(cfg *config.Project) {
 		}
 	}()
 
-	// канал для получения прерывания, завершающего работу сервиса (ожидает Ctrl+C)
+	// канал для получения прерывания, завершающего работу сервиса (ожидает прерывание процесса)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-
 	<-c
 
-	// контекст ожидания выполнения запросов в течение времени wait
 	ctx, cancel := context.WithTimeout(context.Background(), srvConfig.ShutdownDuration)
 	defer cancel()
-	err := srv.Shutdown(ctx)
+
+	err = srv.Shutdown(ctx)
 	if err != nil {
-		log.Printf("Сервер завершил свою работу с ошибкой.\n%v", err)
+		log.Printf("Сервер экстренно завершил свою работу с ошибкой.\n%v", err)
 		os.Exit(1) //
 	}
 

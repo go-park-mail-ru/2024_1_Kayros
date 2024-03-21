@@ -13,6 +13,10 @@ postgres:
     password: '123'
     database: 'main_db'
     sslmode: 'disable'
+    max-open-connections: 50
+    conn-max-lifetime: 30
+    max-idle-conns: 50
+    conn-max-idle-time: 15
 
 minio:
     port-server: 9001
@@ -21,4 +25,6 @@ minio:
     access-key: '123'
 
 redis:
+    host: "localhost"
     port: 6379
+    database: 0

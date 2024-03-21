@@ -14,5 +14,5 @@ func main() {
 	}
 
 	app.Run(cfg)
-	log.Printf("Сервер завершил работу")
+	log.Println("Сервер завершил работу")
 }
