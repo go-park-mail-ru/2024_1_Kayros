@@ -1,12 +1,10 @@
 package myerrors
 
-import "errors"
-
 var (
-	UnexpectedServerError   = errors.New("Ошибка сервера")
-	HashedPasswordError     = errors.New("Не удалось захешировать пароль пользователя")
-	BadPermissionError      = errors.New("Не хватает прав для доступа")
-	BadAuthCredentialsError = errors.New("Неверный логин или пароль")
-	BadRegCredentialsError  = errors.New("Некорректные данные")
-	UserAlreadyExistError   = errors.New("Пользователь с таким логином уже зарегистрирован")
+	IntServerError          = "Ошибка сервера"
+	HashedPasswordError     = "Не удалось захешировать пароль пользователя"
+	BadPermissionError      = "Не хватает прав для доступа"
+	BadAuthCredentialsError = "Неверный логин или пароль"
+	BadCredentialsError     = "Предоставлены некорректные данные"
+	UserAlreadyExistError   = "Пользователь с таким логином уже зарегистрирован"
 )

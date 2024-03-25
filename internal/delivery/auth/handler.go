@@ -1,4 +1,4 @@
-package signin
+package auth
 
 import (
 	"encoding/json"
@@ -7,18 +7,28 @@ import (
 	"net/http"
 	"time"
 
+	"2024_1_kayros/internal/usecase/auth"
+	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/internal/utils/myerrors"
 	"github.com/satori/uuid"
-
-	"2024_1_kayros/internal/entity"
 )
 
-func SignIn(w http.ResponseWriter, r *http.Request) {
+type AuthDelivery struct {
+	authUsecase auth.AuthUsecaseInterface
+}
+
+func NewAuthDelivery(authUsecase auth.AuthUsecaseInterface) *AuthDelivery {
+	return &AuthDelivery{
+		authUsecase: authUsecase,
+	}
+}
+
+func (d *AuthDelivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	// если пришел авторизованный пользователь, возвращаем 401
 	authKey := r.Context().Value("authKey")
 	if authKey != nil {
-		log.Println(entity.BadPermission)
-		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.BadPermissionError, http.StatusUnauthorized)
 		return
 	}
 
@@ -75,4 +85,14 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w = entity.ErrorResponse(w, entity.BadAuthCredentials, http.StatusBadRequest)
 	}
+}
+
+func (d *AuthDelivery) SignUp(w http.ResponseWriter, r *http.Request) {
+	// если пришел авторизованный пользователь, возвращаем 401
+	w.Header().Set("Content-Type", "application/json")
+	d.SignUp(w, r)
+}
+
+func (d *AuthDelivery) SignOut(w http.ResponseWriter, r *http.Request) {
+
 }

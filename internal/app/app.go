@@ -33,7 +33,7 @@ func Run(cfg *config.Project) {
 	r.StrictSlash(true)
 
 	// нужно будет поменять на настоящий объект базы данных
-	route.Setup(postgreDB, r)
+	route.Setup(postgreDB, redisDB, r)
 
 	srvConfig := cfg.Server
 	srvAddress := srvConfig.Host + ":" + strconv.Itoa(srvConfig.Port)

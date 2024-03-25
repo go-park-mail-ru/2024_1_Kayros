@@ -3,25 +3,25 @@ package functions
 import (
 	"encoding/json"
 	"net/http"
+
+	"2024_1_kayros/internal/utils/myerrors"
 )
 
 // ErrorResponse формирует ответ с ошибкой от хендлеров
-func ErrorResponse(w http.ResponseWriter, message string, code int) http.ResponseWriter {
-	w.Header().Set("Content-Type", "application/json")
-	errObject := ErrorObject{Detail: message}
-	responseBody, errSerialization := json.Marshal(errObject)
-	if errSerialization != nil {
+func ErrorResponse(w http.ResponseWriter, messageError string, codeStatus int) http.ResponseWriter {
+	errObject := map[string]string{"detail": messageError}
+	responseBody, err := json.Marshal(errObject)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		errMessageBody, _ := json.Marshal("Ошибка формирования ответа")
-		_, errWriteErrorResponseBody := w.Write(errMessageBody)
-		if errWriteErrorResponseBody != nil {
+		_, err = w.Write([]byte(myerrors.UnexpectedServerError))
+		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 		return w
 	}
-	w.WriteHeader(code)
-	_, errWriteResponseBody := w.Write(responseBody)
-	if errWriteResponseBody != nil {
+	w.WriteHeader(codeStatus)
+	_, err = w.Write(responseBody)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	return w

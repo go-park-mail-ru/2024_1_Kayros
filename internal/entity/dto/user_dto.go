@@ -1,6 +1,6 @@
 package dto
 
-type User struct {
+type UserDTO struct {
 	Id       uint64 `json:"id"`
 	Name     string `json:"name"`
 	Phone    string `json:"phone"`

@@ -10,7 +10,13 @@ import (
 
 type UserRepositoryInterface interface {
 	GetById(alias.UserId) (*entity.User, error)
+	GetByEmail(string) (*entity.User, error)
+	GetByPhone(string) (*entity.User, error)
+
 	DeleteById(alias.UserId) (bool, error)
+	DeleteByEmail(string) (bool, error)
+	DeleteByPhone(string) (bool, error)
+
 	Create(*entity.User) (*entity.User, error)
 	Update(*entity.User) (*entity.User, error)
 }
@@ -36,8 +42,54 @@ func (t *UserRepository) GetById(id alias.UserId) (*entity.User, error) {
 	return user, nil
 }
 
+func (t *UserRepository) GetByEmail(email string) (*entity.User, error) {
+	user := &entity.User{}
+	row := t.database.QueryRow(`SELECT id, name, phone, email, password, img_url FROM "User" WHERE email = $1`, email)
+
+	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Password, &user.ImgUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (t *UserRepository) GetByPhone(phone string) (*entity.User, error) {
+	user := &entity.User{}
+	row := t.database.QueryRow(`SELECT id, name, phone, email, password, img_url FROM "User" WHERE phone = $1`, phone)
+
+	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Password, &user.ImgUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (t *UserRepository) DeleteById(id alias.UserId) (bool, error) {
 	row := t.database.QueryRow(`DELETE FROM "User" WHERE id = $1`, id)
+
+	err := row.Err()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (t *UserRepository) DeleteByEmail(email string) (bool, error) {
+	row := t.database.QueryRow(`DELETE FROM "User" WHERE email = $1`, email)
+
+	err := row.Err()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (t *UserRepository) DeleteByPhone(phone string) (bool, error) {
+	row := t.database.QueryRow(`DELETE FROM "User" WHERE phone = $1`, phone)
 
 	err := row.Err()
 	if err != nil {

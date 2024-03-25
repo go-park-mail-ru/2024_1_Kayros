@@ -1,13 +1,13 @@
 package dto
 
 // SignInProps структура данных, получаемая с формы авторизации
-type SignInProps struct {
+type SignInDTO struct {
 	Email    string `json:"email"`
 	Password string `json:"-"`
 }
 
-// SingUpProps структура данных, получаемая с формы регистрации
-type SingUpProps struct {
+// SignUpProps структура данных, получаемая с формы регистрации
+type SignUpDTO struct {
 	Email    string `json:"email"`
 	Name     string `json:"name"`
 	Password string `json:"-"`
