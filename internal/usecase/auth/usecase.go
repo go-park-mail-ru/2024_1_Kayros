@@ -2,8 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -36,15 +34,96 @@ func NewAuthUsecase(repoUserProps user.UserRepositoryInterface, repoSessionProps
 	}
 }
 
-func (state *AuthUsecase) SignInUser(w http.ResponseWriter, r *http.Request) {
+func (uc *AuthUsecase) SignInUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
+	// если пришел авторизованный пользователь, возвращаем 401
+	authKey := r.Context().Value("authKey")
+	if authKey != nil {
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return w
+	}
 
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return w
+	}
+
+	var bodyDTO dto.SignInDTO
+	err = json.Unmarshal(body, &bodyDTO)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return w
+	}
+
+	isValid := bodyDTO.Validate()
+	if !isValid {
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return w
+	}
+
+	u, err := uc.repoUser.GetByEmail(bodyDTO.Email)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.BadAuthCredentialsError, http.StatusBadRequest)
+		return w
+	}
+
+	isRightPassword, err := uc.repoUser.CheckPassword(alias.UserId(u.Id), bodyDTO.Password)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return w
+	}
+
+	if isRightPassword {
+		sessionId := uuid.NewV4()
+		expiration := time.Now().Add(14 * 24 * time.Hour)
+		cookie := http.Cookie{
+			Name:     "session_id",
+			Value:    sessionId.String(),
+			Expires:  expiration,
+			HttpOnly: false,
+		}
+		http.SetCookie(w, &cookie)
+
+		err = uc.repoSession.SetValue(alias.SessionKey(sessionId.String()), alias.SessionValue(u.Email))
+		if err != nil {
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return w
+		}
+
+		// Собираем ответ
+		uDTO := &dto.UserDTO{
+			Id:       u.Id,
+			Name:     u.Name,
+			Phone:    u.Phone,
+			Email:    u.Email,
+			ImgUrl:   u.ImgUrl,
+			Password: u.Password,
+		}
+		jsonResponse, err := json.Marshal(uDTO)
+		if err != nil {
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return w
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(jsonResponse)
+		if err != nil {
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return w
+		}
+	} else {
+		w = functions.ErrorResponse(w, myerrors.BadAuthCredentialsError, http.StatusBadRequest)
+		return w
+	}
+	return w
 }
 
 // SignUpUser пока что логгера нет, нужно будет пробрасывать
 func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	authKey := r.Context().Value("authKey")
 	if authKey != nil {
-		w = functions.ErrorResponse(w, myerrors.BadPermissionError, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return w
 	}
 
@@ -109,8 +188,15 @@ func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.R
 		return w
 	}
 
-	// вот тут надо перегнать файлы в DTOшку
-	body, err := json.Marshal(u)
+	uDTO := &dto.UserDTO{
+		Id:       u.Id,
+		Name:     u.Name,
+		Phone:    u.Phone,
+		Email:    u.Email,
+		ImgUrl:   u.ImgUrl,
+		Password: u.Password,
+	}
+	body, err := json.Marshal(uDTO)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return w
@@ -125,30 +211,32 @@ func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.R
 	return w
 }
 
-func (state *AuthUsecase) SignOutUser(w http.ResponseWriter, r *http.Request) {
-	// если пришел неавторизованный пользователь, возвращаем 401
-	w.Header().Set("Content-Type", "application/json")
+func (uc *AuthUsecase) SignOutUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	authKey := r.Context().Value("authKey")
-	fmt.Print(authKey)
 	if authKey == nil {
-		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
-		return
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return w
 	}
 
-	// удаляем запись из таблицы сессий
-	sessionCookie, errNoSessionCookie := r.Cookie("session_id")
-	if errors.Is(errNoSessionCookie, http.ErrNoCookie) {
-		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
-		return
-	}
-	// проверка на корректность UUID
-	sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
-	if errWrongSessionId != nil {
-		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
-		return
+	sessionCookie, err := r.Cookie("session_id")
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return w
 	}
 
-	state.DB.Sessions.DeleteSession(sessionId)
+	// проверка на соответствие формату UUID4
+	sessionKey := sessionCookie.Value
+	_, err = uuid.FromString(sessionKey)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return w
+	}
+
+	err = uc.repoSession.DeleteKey(alias.SessionKey(sessionKey))
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return w
+	}
 
 	// ставим заголовок для удаления сессионной куки в браузере
 	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
@@ -156,35 +244,6 @@ func (state *AuthUsecase) SignOutUser(w http.ResponseWriter, r *http.Request) {
 
 	// Успешно вышли из системы, возвращаем статус 200 OK и сообщение
 	w.WriteHeader(http.StatusOK)
-	w = entity.ErrorResponse(w, "Сессия успешно завершена", http.StatusOK)
-}
-
-func (state *AuthHandler) UserData(w http.ResponseWriter, r *http.Request) {
-	// если пришел неавторизованный пользователь, возвращаем 401
-	w.Header().Set("Content-Type", "application/json")
-	authKey := r.Context().Value("authKey")
-	if authKey == nil {
-		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
-		return
-	}
-	user, errGetUser := state.DB.Users.GetUser(authKey.(string))
-	if errGetUser != nil {
-		w = entity.ErrorResponse(w, errGetUser.Error(), http.StatusUnauthorized)
-	}
-	response := entity.UserResponse{
-		Id:   user.Id,
-		Name: user.Name,
-	}
-	data, errSerialization := json.Marshal(response)
-	if errSerialization != nil {
-		w = entity.ErrorResponse(w, entity.InternalServerError, http.StatusBadRequest)
-		return
-	}
-	_, errWrite := w.Write(data)
-	if errWrite != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	return
+	w = functions.ErrorResponse(w, "Сессия успешно завершена", http.StatusOK)
+	return w
 }
