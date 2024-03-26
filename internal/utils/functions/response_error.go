@@ -5,7 +5,6 @@ import (
 	"net/http"
 )
 
-// ErrorResponse формирует ответ с ошибкой от хендлеров
 func ErrorResponse(w http.ResponseWriter, messageError string, codeStatus int) http.ResponseWriter {
 	errObject := map[string]string{"detail": messageError}
 	responseBody, err := json.Marshal(errObject)
