@@ -3,32 +3,40 @@ package delivery
 import (
 	"database/sql"
 
-	authDelivery "2024_1_kayros/internal/delivery/auth"
-	"2024_1_kayros/internal/delivery/restaurants"
-	"2024_1_kayros/internal/delivery/user"
+	deliveryAuth "2024_1_kayros/internal/delivery/auth"
+	deliveryRest "2024_1_kayros/internal/delivery/restaurants"
+	deliveryUser "2024_1_kayros/internal/delivery/user"
 	"2024_1_kayros/internal/middleware"
 	repoSession "2024_1_kayros/internal/repository/session"
 	repoUser "2024_1_kayros/internal/repository/user"
-	authUsecase "2024_1_kayros/internal/usecase/auth"
+	usecaseAuth "2024_1_kayros/internal/usecase/auth"
+	usecaseUser "2024_1_kayros/internal/usecase/user"
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
 )
 
 func Setup(db *sql.DB, redis *redis.Client, mux *mux.Router) {
-	userRepo := repoUser.NewUserRepository(db)
-	sessionRepo := repoSession.NewSessionRepository(redis)
+	mux.PathPrefix("/api/v1")
+	mux.StrictSlash(true)
+	// слои repository
+	rUser := repoUser.NewUserRepository(db)
+	rSession := repoSession.NewSessionRepository(redis)
 
-	userUsecase := authUsecase.NewAuthUsecase(userRepo, sessionRepo)
+	// слои usecase
+	uAuth := usecaseAuth.NewAuthUsecase(rUser, rSession)
+	uUser := usecaseUser.NewUserUsecase(rUser)
 
-	authHandlers := authDelivery.NewAuthDelivery(userUsecase)
+	// слои delivery
+	authHandlers := deliveryAuth.NewAuthDelivery(uAuth)
+	userHandlers := deliveryUser.NewUserDelivery(uUser)
 
-	mux.HandleFunc("/api/v1/signin", authHandlers.SignIn).Methods("POST").Name("signin")
-	mux.HandleFunc("/api/v1/signup", authHandlers.SignUp).Methods("POST").Name("signup")
-	mux.HandleFunc("/api/v1/signout", authHandlers.SignOut).Methods("POST").Name("signout")
+	mux.HandleFunc("signin", authHandlers.SignIn).Methods("POST").Name("signin")
+	mux.HandleFunc("signup", authHandlers.SignUp).Methods("POST").Name("signup")
+	mux.HandleFunc("signout", authHandlers.SignOut).Methods("POST").Name("signout")
 
-	mux.HandleFunc("/api/v1/user", user.UserData).Methods("GET").Name("userdata")
-	mux.HandleFunc("/api/v1/restaurants", restaurants.RestaurantList).Methods("GET").Name("restaurants")
+	mux.HandleFunc("user", userHandlers.UserData).Methods("GET").Name("userdata")
+	mux.HandleFunc("restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants")
 
-	handler := middleware.SessionAuthentication(mux)
+	handler := middleware.SessionAuthentication(mux, rUser, rSession)
 	handler = middleware.CorsMiddleware(handler)
 }

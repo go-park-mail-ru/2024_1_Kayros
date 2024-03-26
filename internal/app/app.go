@@ -31,10 +31,6 @@ func Run(cfg *config.Project) {
 	redisDB, err := redis.RedisInit(cfg)
 
 	r := mux.NewRouter()
-	//r.PathPrefix("/api/v1")
-	r.StrictSlash(true)
-
-	// нужно будет поменять на настоящий объект базы данных
 	route.Setup(postgreDB, redisDB, r)
 
 	srvConfig := cfg.Server
