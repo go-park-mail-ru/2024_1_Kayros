@@ -2,8 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -36,7 +34,7 @@ func NewAuthUsecase(repoUserProps user.UserRepositoryInterface, repoSessionProps
 	}
 }
 
-func (state *AuthUsecase) SignInUser(w http.ResponseWriter, r *http.Request) {
+func (uc *AuthUsecase) SignInUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
@@ -132,30 +130,32 @@ func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.R
 	return w
 }
 
-func (state *AuthUsecase) SignOutUser(w http.ResponseWriter, r *http.Request) {
-	// если пришел неавторизованный пользователь, возвращаем 401
-	w.Header().Set("Content-Type", "application/json")
+func (uc *AuthUsecase) SignOutUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	authKey := r.Context().Value("authKey")
-	fmt.Print(authKey)
 	if authKey == nil {
-		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
-		return
+		w = functions.ErrorResponse(w, myerrors.BadPermissionError, http.StatusUnauthorized)
+		return w
 	}
 
-	// удаляем запись из таблицы сессий
-	sessionCookie, errNoSessionCookie := r.Cookie("session_id")
-	if errors.Is(errNoSessionCookie, http.ErrNoCookie) {
-		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
-		return
+	sessionCookie, err := r.Cookie("session_id")
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.BadPermissionError, http.StatusUnauthorized)
+		return w
 	}
+
 	// проверка на корректность UUID
-	sessionId, errWrongSessionId := uuid.FromString(sessionCookie.Value)
-	if errWrongSessionId != nil {
-		w = entity.ErrorResponse(w, entity.BadPermission, http.StatusUnauthorized)
-		return
+	sessionKey := sessionCookie.Value
+	_, err = uuid.FromString(sessionKey)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.BadPermissionError, http.StatusUnauthorized)
+		return w
 	}
 
-	state.DB.Sessions.DeleteSession(sessionId)
+	err = uc.repoSession.DeleteKey(alias.SessionKey(sessionKey))
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return w
+	}
 
 	// ставим заголовок для удаления сессионной куки в браузере
 	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
@@ -163,7 +163,8 @@ func (state *AuthUsecase) SignOutUser(w http.ResponseWriter, r *http.Request) {
 
 	// Успешно вышли из системы, возвращаем статус 200 OK и сообщение
 	w.WriteHeader(http.StatusOK)
-	w = entity.ErrorResponse(w, "Сессия успешно завершена", http.StatusOK)
+	w = functions.ErrorResponse(w, "Сессия успешно завершена", http.StatusOK)
+	return w
 }
 
 func (state *AuthHandler) UserData(w http.ResponseWriter, r *http.Request) {
