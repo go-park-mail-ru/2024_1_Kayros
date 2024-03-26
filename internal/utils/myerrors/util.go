@@ -1,7 +1,7 @@
 package myerrors
 
 var (
-	IntServerError          = "Ошибка сервера"
+	InternalServerError     = "Ошибка сервера"
 	HashedPasswordError     = "Не удалось захешировать пароль пользователя"
 	BadPermissionError      = "Не хватает прав для доступа"
 	BadAuthCredentialsError = "Неверный логин или пароль"

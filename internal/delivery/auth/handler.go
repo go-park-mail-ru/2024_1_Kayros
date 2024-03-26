@@ -90,7 +90,7 @@ func (d *AuthDelivery) SignIn(w http.ResponseWriter, r *http.Request) {
 func (d *AuthDelivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	// если пришел авторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")
-	d.SignUp(w, r)
+	w = d.authUsecase.SignUpUser(w, r)
 }
 
 func (d *AuthDelivery) SignOut(w http.ResponseWriter, r *http.Request) {

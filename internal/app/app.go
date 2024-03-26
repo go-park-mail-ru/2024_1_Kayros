@@ -10,6 +10,7 @@ import (
 
 	"2024_1_kayros/config"
 	route "2024_1_kayros/internal/delivery"
+	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/postgres"
 	"2024_1_kayros/services/redis"
 	"github.com/gorilla/mux"
@@ -17,6 +18,7 @@ import (
 
 // Run создает все сервисы приложения и запускает их
 func Run(cfg *config.Project) {
+	functions.InitValidator()
 	// вот тут вот нужно создать редис, минио
 	// ....
 	postgreDB, err := postgres.PostgresInit(cfg)

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"time"
 
 	"2024_1_kayros/internal/entity"
@@ -20,9 +19,9 @@ import (
 )
 
 type AuthUsecaseInterface interface {
-	SignIn(w http.ResponseWriter, r *http.Request)
+	SignInUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter
 	SignUpUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter
-	SignOut(w http.ResponseWriter, r *http.Request)
+	SignOutUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter
 }
 
 type AuthUsecase struct {
@@ -37,20 +36,25 @@ func NewAuthUsecase(repoUserProps user.UserRepositoryInterface, repoSessionProps
 	}
 }
 
-func (state *AuthUsecase) SignIn(w http.ResponseWriter, r *http.Request) {
+func (state *AuthUsecase) SignInUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// пока что логгера нет, нужно будет пробрасывать
+// SignUpUser пока что логгера нет, нужно будет пробрасывать
 func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
-	requestBody, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		w = functions.ErrorResponse(w, myerrors.IntServerError, http.StatusInternalServerError)
+	authKey := r.Context().Value("authKey")
+	if authKey != nil {
+		w = functions.ErrorResponse(w, myerrors.BadPermissionError, http.StatusUnauthorized)
 		return w
 	}
 
-	// нужно на атрибуты DTO навесит теги валидации
+	requestBody, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return w
+	}
+
 	var bodyDataDTO dto.SignUpDTO
 	err = json.Unmarshal(requestBody, &bodyDataDTO)
 	if err != nil {
@@ -58,56 +62,34 @@ func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.R
 		return w
 	}
 
-	// нужно будет добавить метод на существование пользователя
-	_, err = uc.repoUser.GetByEmail(bodyDataDTO.Email)
-	if err == nil {
+	isValid := bodyDataDTO.Validate()
+	if !isValid {
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return w
+	}
+
+	isExist := uc.repoUser.IsExistByEmail(bodyDataDTO.Email)
+	if isExist {
 		w = functions.ErrorResponse(w, myerrors.UserAlreadyExistError, http.StatusBadRequest)
 		return w
 	}
 
-	// пока что проверка валидации через вспомогательную функцию
-	if !functions.IsValidPassword(bodyDataDTO.Password) {
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
-		return w
+	u := &entity.User{
+		Name:     bodyDataDTO.Name,
+		Email:    bodyDataDTO.Email,
+		Password: bodyDataDTO.Password,
 	}
 
-	regexName := regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ][a-zA-Zа-яА-ЯёЁ0-9]{1,19}$`)
-	if !regexName.MatchString(bodyDataDTO.Name) {
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
-		return w
-	}
-
-	regexEmail := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	if regexEmail.MatchString(bodyDataDTO.Email) {
-		u := &entity.User{
-			Name:     bodyDataDTO.Name,
-			Email:    bodyDataDTO.Email,
-			Password: bodyDataDTO.Password,
-			Phone:    bodyDataDTO.Phone,
-		}
-
-		u.Password, err = functions.HashData(u.Password)
-		if err != nil {
-			fmt.Println(err)
-			w = functions.ErrorResponse(w, myerrors.IntServerError, http.StatusInternalServerError)
-			return w
-		}
-
-		// тут стоит выводить текст возвращаемой ошибки и возвращать другую ошибку в handler
-		_, err = uc.repoUser.Create(u)
-		if err != nil {
-			w = functions.ErrorResponse(w, myerrors.IntServerError, http.StatusInternalServerError)
-			return w
-		}
-	} else {
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+	err = uc.repoUser.Create(u)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return w
 	}
 
 	sessionId := uuid.NewV4().String()
 	err = uc.repoSession.SetValue(alias.SessionKey(sessionId), alias.SessionValue(bodyDataDTO.Email))
 	if err != nil {
-		w = functions.ErrorResponse(w, myerrors.IntServerError, http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return w
 	}
 
@@ -121,31 +103,29 @@ func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.R
 	}
 	http.SetCookie(w, &cookie)
 
-	userByEmail, err := uc.repoUser.GetByEmail(bodyDataDTO.Email)
+	u, err = uc.repoUser.GetByEmail(bodyDataDTO.Email)
 	if err != nil {
-		w = functions.ErrorResponse(w, myerrors.IntServerError, http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return w
 	}
 
-	// нужно:
-	// 1) написать DTO структуры для маршала
-	// 2) присвоить им userByEmail (написать функцию, которая перенесет запись из entity в dto
-	body, err := json.Marshal(userByEmail)
+	// вот тут надо перегнать файлы в DTOшку
+	body, err := json.Marshal(u)
 	if err != nil {
-		w = functions.ErrorResponse(w, myerrors.IntServerError, http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return w
 	}
 
 	_, err = w.Write(body)
 	if err != nil {
-		w = functions.ErrorResponse(w, myerrors.IntServerError, http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return w
 	}
 	w.WriteHeader(http.StatusOK)
 	return w
 }
 
-func (state *AuthUsecase) SignOut(w http.ResponseWriter, r *http.Request) {
+func (state *AuthUsecase) SignOutUser(w http.ResponseWriter, r *http.Request) {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	w.Header().Set("Content-Type", "application/json")
 	authKey := r.Context().Value("authKey")

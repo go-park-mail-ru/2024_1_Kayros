@@ -17,8 +17,11 @@ type UserRepositoryInterface interface {
 	DeleteByEmail(string) (bool, error)
 	DeleteByPhone(string) (bool, error)
 
-	Create(*entity.User) (*entity.User, error)
+	Create(*entity.User) error
 	Update(*entity.User) (*entity.User, error)
+
+	IsExistById(id alias.UserId) bool
+	IsExistByEmail(email string) bool
 }
 
 type UserRepository struct {
@@ -99,20 +102,21 @@ func (t *UserRepository) DeleteByPhone(phone string) (bool, error) {
 	return true, nil
 }
 
-func (t *UserRepository) Create(u *entity.User) (*entity.User, error) {
+func (t *UserRepository) Create(u *entity.User) error {
 	hashPassword, err := functions.HashData(u.Password)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	u.Password = hashPassword
 	row := t.database.QueryRow(`INSERT INTO "User" (name, phone, email, password, img_url) VALUES ($1, $2, $3, $4, $5)`,
-		u.Name, u.Phone, u.Email, hashPassword, u.ImgUrl)
+		u.Name, u.Phone, u.Email, u.Password, u.ImgUrl)
 
 	err = row.Err()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return u, nil
+	return nil
 }
 
 // пока что полагаю, что валидация будет поддерживать возможные пустые поля
@@ -154,4 +158,21 @@ func (t *UserRepository) CheckPassword(id alias.UserId, password string) (bool, 
 		return false, err
 	}
 	return user.Password == hashPassword, nil
+}
+
+func (t *UserRepository) IsExistById(id alias.UserId) bool {
+	_, err := t.GetById(id)
+	// нужно узнать, выдаст ли оштбку отсутсвтие записи в БД
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func (t *UserRepository) IsExistByEmail(email string) bool {
+	_, err := t.GetByEmail(email)
+	if err != nil {
+		return false
+	}
+	return true
 }
