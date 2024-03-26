@@ -16,6 +16,8 @@ import (
 )
 
 func Setup(db *sql.DB, redis *redis.Client, mux *mux.Router) {
+	mux.PathPrefix("/api/v1")
+	mux.StrictSlash(true)
 	// слои repository
 	rUser := repoUser.NewUserRepository(db)
 	rSession := repoSession.NewSessionRepository(redis)
@@ -28,12 +30,12 @@ func Setup(db *sql.DB, redis *redis.Client, mux *mux.Router) {
 	authHandlers := deliveryAuth.NewAuthDelivery(uAuth)
 	userHandlers := deliveryUser.NewUserDelivery(uUser)
 
-	mux.HandleFunc("/api/v1/signin", authHandlers.SignIn).Methods("POST").Name("signin")
-	mux.HandleFunc("/api/v1/signup", authHandlers.SignUp).Methods("POST").Name("signup")
-	mux.HandleFunc("/api/v1/signout", authHandlers.SignOut).Methods("POST").Name("signout")
+	mux.HandleFunc("signin", authHandlers.SignIn).Methods("POST").Name("signin")
+	mux.HandleFunc("signup", authHandlers.SignUp).Methods("POST").Name("signup")
+	mux.HandleFunc("signout", authHandlers.SignOut).Methods("POST").Name("signout")
 
-	mux.HandleFunc("/api/v1/user", userHandlers.UserData).Methods("GET").Name("userdata")
-	mux.HandleFunc("/api/v1/restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants")
+	mux.HandleFunc("user", userHandlers.UserData).Methods("GET").Name("userdata")
+	mux.HandleFunc("restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants")
 
 	handler := middleware.SessionAuthentication(mux, rUser, rSession)
 	handler = middleware.CorsMiddleware(handler)
