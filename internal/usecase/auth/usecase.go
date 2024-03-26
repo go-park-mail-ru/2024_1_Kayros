@@ -109,8 +109,15 @@ func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.R
 		return w
 	}
 
-	// вот тут надо перегнать файлы в DTOшку
-	body, err := json.Marshal(u)
+	uDTO := &dto.UserDTO{
+		Id:       u.Id,
+		Name:     u.Name,
+		Phone:    u.Phone,
+		Email:    u.Email,
+		ImgUrl:   u.ImgUrl,
+		Password: u.Password,
+	}
+	body, err := json.Marshal(uDTO)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return w
