@@ -36,8 +36,8 @@ func NewAuthUsecase(repoUserProps user.UserRepositoryInterface, repoSessionProps
 
 func (uc *AuthUsecase) SignInUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	// если пришел авторизованный пользователь, возвращаем 401
-	authKey := r.Context().Value("authKey")
-	if authKey != nil {
+	userEmail := r.Context().Value("email")
+	if userEmail != nil {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return w
 	}

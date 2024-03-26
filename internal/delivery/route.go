@@ -29,6 +29,6 @@ func Setup(db *sql.DB, redis *redis.Client, mux *mux.Router) {
 	mux.HandleFunc("/api/v1/user", user.UserData).Methods("GET").Name("userdata")
 	mux.HandleFunc("/api/v1/restaurants", restaurants.RestaurantList).Methods("GET").Name("restaurants")
 
-	handler := middleware.SessionAuthentication(mux)
+	handler := middleware.SessionAuthentication(mux, userRepo, sessionRepo)
 	handler = middleware.CorsMiddleware(handler)
 }
