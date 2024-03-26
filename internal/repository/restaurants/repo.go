@@ -16,7 +16,7 @@ type RestaurantRepo struct {
 	DB *sql.DB
 }
 
-func NewRestaurantRepository(db *sql.DB) *RestaurantRepo {
+func NewRestaurantRepo(db *sql.DB) *RestaurantRepo {
 	return &RestaurantRepo{DB: db}
 }
 
@@ -24,6 +24,7 @@ func (repo *RestaurantRepo) GetAll(ctx context.Context) ([]*entity.Restaurant, e
 	var rests []*entity.Restaurant
 	rows, err := repo.DB.QueryContext(ctx, "SELECT id, name, short_description, img_url FROM Restaurant")
 	if err != nil {
+
 		return nil, err
 	}
 	defer rows.Close()
