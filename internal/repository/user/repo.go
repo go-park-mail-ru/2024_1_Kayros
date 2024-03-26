@@ -22,6 +22,8 @@ type UserRepositoryInterface interface {
 
 	IsExistById(id alias.UserId) bool
 	IsExistByEmail(email string) bool
+
+	CheckPassword(id alias.UserId, password string) (bool, error)
 }
 
 type UserRepository struct {
