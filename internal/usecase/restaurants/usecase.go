@@ -1,4 +1,4 @@
-package restaurants
+package rest
 
 import (
 	"context"
@@ -13,10 +13,10 @@ type RestaurantUseCaseInterface interface {
 }
 
 type RestaurantUseCase struct {
-	repo restaurants.RestaurantRepo
+	repo *restaurants.RestaurantRepo
 }
 
-func NewRestaurantUseCase(r restaurants.RestaurantRepo) *RestaurantUseCase {
+func NewRestaurantUseCase(r *restaurants.RestaurantRepo) *RestaurantUseCase {
 	return &RestaurantUseCase{repo: r}
 }
 
