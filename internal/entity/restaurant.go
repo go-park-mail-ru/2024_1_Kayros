@@ -1,8 +1,9 @@
 package entity
 
 type Restaurant struct {
-	Id          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	ImgUrl      string `json:"img_url"`
+	Id               uint64
+	Name             string
+	ShortDescription string
+	LongDescription  string
+	ImgUrl           string
 }
