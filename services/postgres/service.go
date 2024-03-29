@@ -10,8 +10,8 @@ import (
 	"2024_1_kayros/config"
 )
 
-// PostgresInit инициализирует коннект с базой данных
-func PostgresInit(cfg *config.Project) (*sql.DB, error) {
+// Init инициализирует коннект с базой данных
+func Init(cfg *config.Project) (*sql.DB, error) {
 	dbConfig := cfg.Postgres
 	dataConnection := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s",
 		dbConfig.Host, dbConfig.Port, dbConfig.Database, dbConfig.User, dbConfig.Password, dbConfig.SslMode)
