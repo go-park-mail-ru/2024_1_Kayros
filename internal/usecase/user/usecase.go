@@ -10,21 +10,21 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 )
 
-type UserUsecaseInterface interface {
+type Usecase interface {
 	GetData(w http.ResponseWriter, r *http.Request) http.ResponseWriter
 }
 
-type UserUsecase struct {
+type UsecaseLayer struct {
 	repoUser user.UserRepositoryInterface
 }
 
-func NewUserUsecase(repoUser user.UserRepositoryInterface) UserUsecaseInterface {
-	return &UserUsecase{
+func NewUsecase(repoUser user.UserRepositoryInterface) Usecase {
+	return &UsecaseLayer{
 		repoUser: repoUser,
 	}
 }
 
-func (uc *UserUsecase) GetData(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
+func (uc *UsecaseLayer) GetData(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	// если пришел неавторизованный пользователь, возвращаем 401
 	authKey := r.Context().Value("authKey")
 	if authKey == nil {

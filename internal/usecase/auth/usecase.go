@@ -16,25 +16,25 @@ import (
 	"github.com/satori/uuid"
 )
 
-type AuthUsecaseInterface interface {
+type Usecase interface {
 	SignInUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter
 	SignUpUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter
 	SignOutUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter
 }
 
-type AuthUsecase struct {
+type UsecaseLayer struct {
 	repoUser    user.UserRepositoryInterface
 	repoSession session.SessionRepositoryInterface
 }
 
-func NewAuthUsecase(repoUserProps user.UserRepositoryInterface, repoSessionProps session.SessionRepositoryInterface) AuthUsecaseInterface {
-	return &AuthUsecase{
+func NewUsecase(repoUserProps user.UserRepositoryInterface, repoSessionProps session.SessionRepositoryInterface) Usecase {
+	return &UsecaseLayer{
 		repoUser:    repoUserProps,
 		repoSession: repoSessionProps,
 	}
 }
 
-func (uc *AuthUsecase) SignInUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
+func (uc *UsecaseLayer) SignInUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	// если пришел авторизованный пользователь, возвращаем 401
 	userEmail := r.Context().Value("email")
 	if userEmail != nil {
@@ -120,7 +120,7 @@ func (uc *AuthUsecase) SignInUser(w http.ResponseWriter, r *http.Request) http.R
 }
 
 // SignUpUser пока что логгера нет, нужно будет пробрасывать
-func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
+func (uc *UsecaseLayer) SignUpUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	authKey := r.Context().Value("authKey")
 	if authKey != nil {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
@@ -211,7 +211,7 @@ func (uc *AuthUsecase) SignUpUser(w http.ResponseWriter, r *http.Request) http.R
 	return w
 }
 
-func (uc *AuthUsecase) SignOutUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
+func (uc *UsecaseLayer) SignOutUser(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	authKey := r.Context().Value("authKey")
 	if authKey == nil {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
