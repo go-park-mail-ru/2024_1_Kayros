@@ -25,7 +25,7 @@ type Repo interface {
 	IsExistById(context.Context, alias.UserId) (bool, error)
 	IsExistByEmail(context.Context, string) (bool, error)
 
-	CheckPassword(context.Context, alias.UserId, string) (bool, error)
+	CheckPassword(context.Context, string, string) (bool, error)
 }
 
 type RepoLayer struct {
@@ -159,13 +159,13 @@ func (repo *RepoLayer) Update(ctx context.Context, u *entity.User) (*entity.User
 }
 
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
-func (repo *RepoLayer) CheckPassword(ctx context.Context, id alias.UserId, password string) (bool, error) {
+func (repo *RepoLayer) CheckPassword(ctx context.Context, email string, password string) (bool, error) {
 	hashPassword, err := functions.HashData(password)
 	if err != nil {
 		return false, err
 	}
 
-	user, err := repo.GetById(ctx, id)
+	user, err := repo.GetByEmail(ctx, email)
 	if err != nil {
 		return false, err
 	}

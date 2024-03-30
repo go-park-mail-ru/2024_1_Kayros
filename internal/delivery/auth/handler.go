@@ -29,7 +29,7 @@ func NewDeliveryLayer(sessionUsecase session.Usecase, userUsecase user.Usecase) 
 }
 
 // SignUpUser пока что логгера нет, нужно будет пробрасывать
-func (d *Delivery) SignUpUser(w http.ResponseWriter, r *http.Request) {
+func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	email := r.Context().Value("email")
 	if email != nil {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
@@ -103,7 +103,73 @@ func (d *Delivery) SignUpUser(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (d *Delivery) SignOutUser(w http.ResponseWriter, r *http.Request) {
+func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
+	// если пришел авторизованный пользователь, возвращаем 401
+	email := r.Context().Value("email")
+	if email != nil {
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	var bodyDTO dto.SignInDTO
+	err = json.Unmarshal(body, &bodyDTO)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
+
+	isValid := bodyDTO.Validate()
+	if !isValid {
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
+
+	u, err := d.ucUser.GetByEmail(r.Context(), bodyDTO.Email)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.BadAuthCredentialsError, http.StatusBadRequest)
+		return
+	}
+
+	isEqual, err := d.ucUser.CheckPassword(r.Context(), bodyDTO.Email, bodyDTO.Password)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	if isEqual {
+		sessionId := uuid.NewV4()
+		expiration := time.Now().Add(14 * 24 * time.Hour)
+		cookie := http.Cookie{
+			Name:     "session_id",
+			Value:    sessionId.String(),
+			Expires:  expiration,
+			HttpOnly: false,
+		}
+		http.SetCookie(w, &cookie)
+
+		_, err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(u.Email))
+		if err != nil {
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
+
+		// Собираем ответ
+		uDTO := functions.ConvIntoUserDTO(u)
+		w = functions.JsonResponse(w, uDTO)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	w = functions.ErrorResponse(w, myerrors.BadAuthCredentialsError, http.StatusBadRequest)
+}
+
+func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 	authKey := r.Context().Value("email")
 	if authKey == nil {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)

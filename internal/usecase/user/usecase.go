@@ -23,7 +23,7 @@ type Usecase interface {
 	IsExistById(context.Context, alias.UserId) (bool, error)
 	IsExistByEmail(context.Context, string) (bool, error)
 
-	CheckPassword(context.Context, alias.UserId, string) (bool, error)
+	CheckPassword(context.Context, string, string) (bool, error)
 }
 
 type UsecaseLayer struct {
@@ -61,17 +61,17 @@ func (uc *UsecaseLayer) GetByPhone(ctx context.Context, phone string) (*entity.U
 }
 
 func (uc *UsecaseLayer) DeleteById(ctx context.Context, id alias.UserId) (bool, error) {
-	wasDeleted, err := uc.DeleteById(ctx, id)
+	wasDeleted, err := uc.repo.DeleteById(ctx, id)
 	return wasDeleted, err
 }
 
 func (uc *UsecaseLayer) DeleteByEmail(ctx context.Context, email string) (bool, error) {
-	wasDeleted, err := uc.DeleteByEmail(ctx, email)
+	wasDeleted, err := uc.repo.DeleteByEmail(ctx, email)
 	return wasDeleted, err
 }
 
 func (uc *UsecaseLayer) DeleteByPhone(ctx context.Context, phone string) (bool, error) {
-	wasDeleted, err := uc.DeleteByPhone(ctx, phone)
+	wasDeleted, err := uc.repo.DeleteByPhone(ctx, phone)
 	return wasDeleted, err
 }
 
@@ -92,17 +92,17 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 }
 
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
-func (uc *UsecaseLayer) CheckPassword(ctx context.Context, id alias.UserId, password string) (bool, error) {
-	isEqual, err := uc.CheckPassword(ctx, id, password)
+func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, password string) (bool, error) {
+	isEqual, err := uc.repo.CheckPassword(ctx, email, password)
 	return isEqual, err
 }
 
 func (uc *UsecaseLayer) IsExistById(ctx context.Context, id alias.UserId) (bool, error) {
-	isExist, err := uc.IsExistById(ctx, id)
+	isExist, err := uc.repo.IsExistById(ctx, id)
 	return isExist, err
 }
 
 func (uc *UsecaseLayer) IsExistByEmail(ctx context.Context, email string) (bool, error) {
-	isExist, err := uc.IsExistByEmail(ctx, email)
+	isExist, err := uc.repo.IsExistByEmail(ctx, email)
 	return isExist, err
 }
