@@ -22,16 +22,16 @@ type UseCaseInterface interface {
 
 type UseCase struct {
 	repoOrder order.RepoInterface
-	repoUser  user.UserRepositoryInterface
+	repoUser  user.Repo
 }
 
-func NewUseCase(ro order.RepoInterface, ru user.UserRepositoryInterface) UseCaseInterface {
+func NewUseCase(ro order.RepoInterface, ru user.Repo) UseCaseInterface {
 	return &UseCase{repoOrder: ro, repoUser: ru}
 }
 
 func (uc *UseCase) GetBasket(ctx context.Context, email string) (*entity.Order, error) {
 	status := "Корзина"
-	User, err := uc.repoUser.GetByEmail(email)
+	User, err := uc.repoUser.GetByEmail(ctx, email)
 	basket, err := uc.repoOrder.GetBasket(ctx, User.Id, status)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (uc *UseCase) GetBasket(ctx context.Context, email string) (*entity.Order, 
 
 func (uc *UseCase) GetBasketId(ctx context.Context, email string) (uint64, error) {
 	status := "Корзина"
-	User, err := uc.repoUser.GetByEmail(email)
+	User, err := uc.repoUser.GetByEmail(ctx, email)
 	id, err := uc.repoOrder.GetBasketId(ctx, User.Id, status)
 	if err != nil {
 		return 0, err
@@ -51,7 +51,7 @@ func (uc *UseCase) GetBasketId(ctx context.Context, email string) (uint64, error
 }
 
 func (uc *UseCase) Create(ctx context.Context, email string) error {
-	User, err := uc.repoUser.GetByEmail(email)
+	User, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
 		return err
 	}

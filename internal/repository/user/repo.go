@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"database/sql"
 
 	"2024_1_kayros/internal/entity"
@@ -8,38 +9,39 @@ import (
 	"2024_1_kayros/internal/utils/functions"
 )
 
-type UserRepositoryInterface interface {
-	GetById(alias.UserId) (*entity.User, error)
-	GetByEmail(string) (*entity.User, error)
-	GetByPhone(string) (*entity.User, error)
+// Передаем контекст запроса пользователя (! возможно лучше еще переопределить контекстом WithTimeout)
+type Repo interface {
+	GetById(context.Context, alias.UserId) (*entity.User, error)
+	GetByEmail(context.Context, string) (*entity.User, error)
+	GetByPhone(context.Context, string) (*entity.User, error)
 
-	DeleteById(alias.UserId) (bool, error)
-	DeleteByEmail(string) (bool, error)
-	DeleteByPhone(string) (bool, error)
+	DeleteById(context.Context, alias.UserId) (bool, error)
+	DeleteByEmail(context.Context, string) (bool, error)
+	DeleteByPhone(context.Context, string) (bool, error)
 
-	Create(*entity.User) error
-	Update(*entity.User) (*entity.User, error)
+	Create(context.Context, *entity.User) (*entity.User, error)
+	Update(context.Context, *entity.User) (*entity.User, error)
 
-	IsExistById(id alias.UserId) bool
-	IsExistByEmail(email string) bool
+	IsExistById(context.Context, alias.UserId) (bool, error)
+	IsExistByEmail(context.Context, string) (bool, error)
 
-	CheckPassword(id alias.UserId, password string) (bool, error)
+	CheckPassword(context.Context, alias.UserId, string) (bool, error)
 }
 
-type UserRepository struct {
+type RepoLayer struct {
 	database *sql.DB
 }
 
-func NewUserRepository(db *sql.DB) UserRepositoryInterface {
-	return &UserRepository{
+func NewRepoLayer(db *sql.DB) Repo {
+	return &RepoLayer{
 		database: db,
 	}
 }
 
-func (t *UserRepository) GetById(id alias.UserId) (*entity.User, error) {
+func (t *RepoLayer) GetById(ctx context.Context, id alias.UserId) (*entity.User, error) {
 	user := &entity.User{}
-	row := t.database.QueryRow("SELECT id, name, phone, email, img_url FROM User WHERE id = $1", id)
-	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Password, &user.ImgUrl)
+	row := t.database.QueryRowContext(ctx, "SELECT id, name, phone, email, img_url FROM User WHERE id = $1", id)
+	err := row.Scan(user.Id, user.Name, user.Phone, user.Email, user.Password, user.ImgUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -47,11 +49,11 @@ func (t *UserRepository) GetById(id alias.UserId) (*entity.User, error) {
 	return user, nil
 }
 
-func (t *UserRepository) GetByEmail(email string) (*entity.User, error) {
+func (t *RepoLayer) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
 	user := &entity.User{}
-	row := t.database.QueryRow(`SELECT id, name, phone, email, password, img_url FROM "User" WHERE email = $1`, email)
+	row := t.database.QueryRowContext(ctx, `SELECT id, name, phone, email, password, img_url FROM "User" WHERE email = $1`, email)
 
-	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Password, &user.ImgUrl)
+	err := row.Scan(user.Id, user.Name, user.Phone, user.Email, user.Password, user.ImgUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +61,11 @@ func (t *UserRepository) GetByEmail(email string) (*entity.User, error) {
 	return user, nil
 }
 
-func (t *UserRepository) GetByPhone(phone string) (*entity.User, error) {
+func (t *RepoLayer) GetByPhone(ctx context.Context, phone string) (*entity.User, error) {
 	user := &entity.User{}
-	row := t.database.QueryRow(`SELECT id, name, phone, email, password, img_url FROM "User" WHERE phone = $1`, phone)
+	row := t.database.QueryRowContext(ctx, `SELECT id, name, phone, email, password, img_url FROM "User" WHERE phone = $1`, phone)
 
-	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Password, &user.ImgUrl)
+	err := row.Scan(user.Id, user.Name, user.Phone, user.Email, user.Password, user.ImgUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +73,8 @@ func (t *UserRepository) GetByPhone(phone string) (*entity.User, error) {
 	return user, nil
 }
 
-func (t *UserRepository) DeleteById(id alias.UserId) (bool, error) {
-	row := t.database.QueryRow(`DELETE FROM "User" WHERE id = $1`, id)
+func (t *RepoLayer) DeleteById(ctx context.Context, id alias.UserId) (bool, error) {
+	row := t.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE id = $1`, id)
 
 	err := row.Err()
 	if err != nil {
@@ -82,8 +84,8 @@ func (t *UserRepository) DeleteById(id alias.UserId) (bool, error) {
 	return true, nil
 }
 
-func (t *UserRepository) DeleteByEmail(email string) (bool, error) {
-	row := t.database.QueryRow(`DELETE FROM "User" WHERE email = $1`, email)
+func (t *RepoLayer) DeleteByEmail(ctx context.Context, email string) (bool, error) {
+	row := t.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE email = $1`, email)
 
 	err := row.Err()
 	if err != nil {
@@ -93,8 +95,8 @@ func (t *UserRepository) DeleteByEmail(email string) (bool, error) {
 	return true, nil
 }
 
-func (t *UserRepository) DeleteByPhone(phone string) (bool, error) {
-	row := t.database.QueryRow(`DELETE FROM "User" WHERE phone = $1`, phone)
+func (t *RepoLayer) DeleteByPhone(ctx context.Context, phone string) (bool, error) {
+	row := t.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE phone = $1`, phone)
 
 	err := row.Err()
 	if err != nil {
@@ -104,26 +106,29 @@ func (t *UserRepository) DeleteByPhone(phone string) (bool, error) {
 	return true, nil
 }
 
-func (t *UserRepository) Create(u *entity.User) error {
+func (t *RepoLayer) Create(ctx context.Context, u *entity.User) (*entity.User, error) {
 	hashPassword, err := functions.HashData(u.Password)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	u.Password = hashPassword
-	row := t.database.QueryRow(`INSERT INTO "User" (name, phone, email, password, img_url) VALUES ($1, $2, $3, $4, $5)`,
+	row := t.database.QueryRowContext(ctx, `INSERT INTO "User" (name, phone, email, password, img_url) VALUES ($1, $2, $3, $4, $5)`,
 		u.Name, u.Phone, u.Email, u.Password, u.ImgUrl)
 
 	err = row.Err()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	user, err := t.GetByEmail(ctx, u.Email)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
-// пока что полагаю, что валидация будет поддерживать возможные пустые поля
-func (t *UserRepository) Update(u *entity.User) (*entity.User, error) {
-	user, err := t.GetById(alias.UserId(u.Id))
+func (t *RepoLayer) Update(ctx context.Context, u *entity.User) (*entity.User, error) {
+	user, err := t.GetById(ctx, alias.UserId(u.Id))
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +142,7 @@ func (t *UserRepository) Update(u *entity.User) (*entity.User, error) {
 		}
 	}
 
-	row := t.database.QueryRow(`UPDATE "User" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5 WHERE id = $6`,
+	row := t.database.QueryRowContext(ctx, `UPDATE "User" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5 WHERE id = $6`,
 		u.Name, u.Phone, u.Email, u.ImgUrl, u.Password, u.Id)
 
 	err = row.Err()
@@ -149,32 +154,32 @@ func (t *UserRepository) Update(u *entity.User) (*entity.User, error) {
 }
 
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
-func (t *UserRepository) CheckPassword(id alias.UserId, password string) (bool, error) {
+func (t *RepoLayer) CheckPassword(ctx context.Context, id alias.UserId, password string) (bool, error) {
 	hashPassword, err := functions.HashData(password)
 	if err != nil {
 		return false, err
 	}
 
-	user, err := t.GetById(id)
+	user, err := t.GetById(ctx, id)
 	if err != nil {
 		return false, err
 	}
 	return user.Password == hashPassword, nil
 }
 
-func (t *UserRepository) IsExistById(id alias.UserId) bool {
-	_, err := t.GetById(id)
+func (t *RepoLayer) IsExistById(ctx context.Context, id alias.UserId) (bool, error) {
+	_, err := t.GetById(ctx, id)
 	// нужно узнать, выдаст ли оштбку отсутсвтие записи в БД
 	if err != nil {
-		return false
+		return false, err
 	}
-	return true
+	return true, nil
 }
 
-func (t *UserRepository) IsExistByEmail(email string) bool {
-	_, err := t.GetByEmail(email)
+func (t *RepoLayer) IsExistByEmail(ctx context.Context, email string) (bool, error) {
+	_, err := t.GetByEmail(ctx, email)
 	if err != nil {
-		return false
+		return false, err
 	}
-	return true
+	return true, nil
 }
