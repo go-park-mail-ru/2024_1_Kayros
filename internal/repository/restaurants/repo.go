@@ -5,22 +5,23 @@ import (
 	"database/sql"
 
 	"2024_1_kayros/internal/entity"
+	"2024_1_kayros/internal/utils/alias"
 )
 
-type RestaurantRepoInterface interface {
-	GetAll(ctx context.Context) ([]*entity.Restaurant, error)
-	GetById(ctx context.Context, id int) (*entity.Restaurant, error)
+type Repo interface {
+	GetAll(context.Context) ([]*entity.Restaurant, error)
+	GetById(context.Context, alias.RestId) (*entity.Restaurant, error)
 }
 
-type RestaurantRepo struct {
+type RepoLayer struct {
 	DB *sql.DB
 }
 
-func NewRestaurantRepo(db *sql.DB) *RestaurantRepo {
-	return &RestaurantRepo{DB: db}
+func NewRepoLayer(db *sql.DB) Repo {
+	return &RepoLayer{DB: db}
 }
 
-func (repo *RestaurantRepo) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
+func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
 	var rests []*entity.Restaurant
 	rows, err := repo.DB.QueryContext(ctx, "SELECT id, name, short_description, img_url FROM Restaurant")
 	if err != nil {
@@ -30,7 +31,7 @@ func (repo *RestaurantRepo) GetAll(ctx context.Context) ([]*entity.Restaurant, e
 	defer rows.Close()
 	for rows.Next() {
 		rest := &entity.Restaurant{}
-		err = rows.Scan(&rest.Id, &rest.Name, &rest.ShortDescription, &rest.ImgUrl)
+		err = rows.Scan(rest.Id, rest.Name, rest.ShortDescription, rest.ImgUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -39,10 +40,10 @@ func (repo *RestaurantRepo) GetAll(ctx context.Context) ([]*entity.Restaurant, e
 	return rests, nil
 }
 
-func (repo *RestaurantRepo) GetById(ctx context.Context, id int) (*entity.Restaurant, error) {
+func (repo *RepoLayer) GetById(ctx context.Context, id alias.RestId) (*entity.Restaurant, error) {
 	rest := &entity.Restaurant{}
-	row := repo.DB.QueryRowContext(ctx, "SELECT id, name, long_description, img_url FROM Restaurant WHERE id=$1", id)
-	err := row.Scan(&rest.Id, &rest.Name, &rest.LongDescription, &rest.ImgUrl)
+	row := repo.DB.QueryRowContext(ctx, "SELECT id, name, long_description, img_url FROM Restaurant WHERE id=$1", uint64(id))
+	err := row.Scan(rest.Id, rest.Name, rest.LongDescription, rest.ImgUrl)
 	if err != nil {
 		return nil, err
 	}
