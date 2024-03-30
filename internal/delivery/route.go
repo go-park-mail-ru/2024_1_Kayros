@@ -13,8 +13,8 @@ import (
 	repoRest "2024_1_kayros/internal/repository/restaurants"
 	repoSession "2024_1_kayros/internal/repository/session"
 	repoUser "2024_1_kayros/internal/repository/user"
-	usecaseAuth "2024_1_kayros/internal/usecase/auth"
 	usecaseRest "2024_1_kayros/internal/usecase/restaurants"
+	usecaseAuth "2024_1_kayros/internal/usecase/session"
 	usecaseUser "2024_1_kayros/internal/usecase/user"
 )
 

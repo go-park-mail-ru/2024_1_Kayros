@@ -40,6 +40,6 @@ func (uc *UsecaseLayer) SetValue(ctx context.Context, key alias.SessionKey, valu
 }
 
 func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error) {
-	wasDeleted, err := uc.DeleteKey(ctx, key)
+	wasDeleted, err := uc.repoSession.DeleteKey(ctx, key)
 	return wasDeleted, err
 }

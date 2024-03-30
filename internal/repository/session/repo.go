@@ -8,9 +8,9 @@ import (
 )
 
 type Repo interface {
-	GetValue(key alias.SessionKey) (alias.SessionValue, error)
-	SetValue(key alias.SessionKey, value alias.SessionValue) (bool, error)
-	DeleteKey(key alias.SessionKey) (bool, error)
+	GetValue(context.Context, alias.SessionKey) (alias.SessionValue, error)
+	SetValue(context.Context, alias.SessionKey, alias.SessionValue) (bool, error)
+	DeleteKey(context.Context, alias.SessionKey) (bool, error)
 }
 
 type RepoLayer struct {
@@ -23,8 +23,8 @@ func NewRepoLayer(client *redis.Client) Repo {
 	}
 }
 
-func (t *RepoLayer) GetValue(key alias.SessionKey) (alias.SessionValue, error) {
-	value, err := t.redis.Get(context.Background(), string(key)).Result()
+func (repo *RepoLayer) GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error) {
+	value, err := repo.redis.Get(ctx, string(key)).Result()
 	if err == redis.Nil {
 		return "", nil
 	} else if err != nil {
@@ -35,8 +35,8 @@ func (t *RepoLayer) GetValue(key alias.SessionKey) (alias.SessionValue, error) {
 	return returnValue, nil
 }
 
-func (t *RepoLayer) SetValue(key alias.SessionKey, value alias.SessionValue) (bool, error) {
-	err := t.redis.Set(context.Background(), string(key), string(value), 0).Err()
+func (repo *RepoLayer) SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) (bool, error) {
+	err := repo.redis.Set(ctx, string(key), string(value), 0).Err()
 	if err != nil {
 		return false, err
 	}
@@ -44,8 +44,8 @@ func (t *RepoLayer) SetValue(key alias.SessionKey, value alias.SessionValue) (bo
 	return true, nil
 }
 
-func (t *RepoLayer) DeleteKey(key alias.SessionKey) (bool, error) {
-	err := t.redis.Del(context.Background(), string(key)).Err()
+func (repo *RepoLayer) DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error) {
+	err := repo.redis.Del(ctx, string(key)).Err()
 	if err == redis.Nil {
 		return false, nil
 	} else if err != nil {
