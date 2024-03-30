@@ -9,4 +9,5 @@ type Order struct {
 	Address       string
 	ExtraAddress  string
 	Sum           uint64
+	Food          []*FoodInOrder
 }

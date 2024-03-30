@@ -10,9 +10,6 @@ import (
 type RepoInterface interface {
 	GetByRest(ctx context.Context, restId int) ([]*entity.Food, error)
 	GetById(ctx context.Context, id int) (*entity.Food, error)
-	AddToOrder(ctx context.Context, foodId int, orderId int) error
-	UpdateCountInOrder(ctx context.Context, foodId int, orderId int, count int) error
-	DeleteFromOrder(ctx context.Context, foodId int, orderId int) error
 }
 
 type Repo struct {
@@ -49,28 +46,4 @@ func (repo *Repo) GetById(ctx context.Context, id int) (*entity.Food, error) {
 		return nil, err
 	}
 	return item, nil
-}
-
-func (repo *Repo) AddToOrder(ctx context.Context, foodId int, orderId int) error {
-	_, err := repo.DB.ExecContext(ctx, "INSERT INTO food-in-order (food_id, order_id, count) VALUES ($1, $2, 1)", foodId, orderId)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *Repo) UpdateCountInOrder(ctx context.Context, foodId int, orderId int, count int) error {
-	_, err := repo.DB.ExecContext(ctx, "UPDATE food-in-order SET count=$1 WHERE order_id=$2 AND food_id=$3", count, orderId, foodId)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *Repo) DeleteFromOrder(ctx context.Context, foodId int, orderId int) error {
-	_, err := repo.DB.ExecContext(ctx, "DELETE FROM food-in-order WHERE order_id=$1 AND food_id=$2", orderId, foodId)
-	if err != nil {
-		return err
-	}
-	return nil
 }

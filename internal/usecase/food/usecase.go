@@ -10,16 +10,13 @@ import (
 type UseCaseInterface interface {
 	GetByRest(ctx context.Context, restId int) ([]*entity.Food, error)
 	GetById(ctx context.Context, id int) (*entity.Food, error)
-	AddToOrder(ctx context.Context, foodId int, orderId int) error
-	UpdateCountInOrder(ctx context.Context, foodId int, orderId int, count int) error
-	DeleteFromOrder(ctx context.Context, foodId int, orderId int) error
 }
 
 type UseCase struct {
-	repo food.Repo
+	repo *food.Repo
 }
 
-func NewUseCase(r food.Repo) *UseCase {
+func NewUseCase(r *food.Repo) *UseCase {
 	return &UseCase{repo: r}
 }
 
@@ -39,18 +36,4 @@ func (uc *UseCase) GetById(ctx context.Context, id int) (*entity.Food, error) {
 		return nil, err
 	}
 	return dish, nil
-}
-
-func (uc *UseCase) AddToOrder(ctx context.Context, foodId int, orderId int) error {
-	err := uc.repo.AddToOrder(ctx, foodId, orderId)
-	return err
-}
-
-func (uc *UseCase) UpdateCountInOrder(ctx context.Context, foodId int, orderId int, count int) error {
-	err := uc.repo.UpdateCountInOrder(ctx, foodId, orderId, count)
-	return err
-}
-func (uc *UseCase) DeleteFromOrder(ctx context.Context, foodId int, orderId int) error {
-	err := uc.repo.DeleteFromOrder(ctx, foodId, orderId)
-	return err
 }
