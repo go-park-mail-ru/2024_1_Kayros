@@ -7,7 +7,6 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	foodUc "2024_1_kayros/internal/usecase/food"
 	restUc "2024_1_kayros/internal/usecase/restaurants"
@@ -23,17 +22,16 @@ type RestaurantAndFoodDTO struct {
 }
 
 type RestaurantHandler struct {
-	ucRest *restUc.RestaurantUseCase
-	ucFood *foodUc.UseCase
+	ucRest restUc.UseCaseInterface
+	ucFood foodUc.UseCaseInterface
 }
 
-func NewRestaurantHandler(ucr *restUc.RestaurantUseCase, ucf *foodUc.UseCase) *RestaurantHandler {
+func NewRestaurantHandler(ucr restUc.UseCaseInterface, ucf foodUc.UseCaseInterface) *RestaurantHandler {
 	return &RestaurantHandler{ucRest: ucr, ucFood: ucf}
 }
 
 func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	var rests []*entity.Restaurant
 	rests, err := h.ucRest.GetAll(r.Context())
 	if err != nil {
 		w = functions.ErrorResponse(w, err.Error(), http.StatusUnauthorized)
@@ -67,7 +65,7 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 		w = functions.ErrorResponse(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	food, err := h.ucFood.GetByRest(r.Context(), id)
+	food, err := h.ucFood.GetByRest(r.Context(), uint64(id))
 	var foodDTO []*dto.FoodDTO
 	for i := range food {
 		foodDTO[i].Id = food[i].Id

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/satori/uuid"
+
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/repository/session"
@@ -13,7 +15,6 @@ import (
 	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
-	"github.com/satori/uuid"
 )
 
 type Usecase interface {
@@ -23,11 +24,11 @@ type Usecase interface {
 }
 
 type UsecaseLayer struct {
-	repoUser    user.UserRepositoryInterface
-	repoSession session.SessionRepositoryInterface
+	repoUser    user.Repo
+	repoSession session.Repo
 }
 
-func NewUsecase(repoUserProps user.UserRepositoryInterface, repoSessionProps session.SessionRepositoryInterface) Usecase {
+func NewUsecase(repoUserProps user.Repo, repoSessionProps session.Repo) Usecase {
 	return &UsecaseLayer{
 		repoUser:    repoUserProps,
 		repoSession: repoSessionProps,
@@ -62,7 +63,7 @@ func (uc *UsecaseLayer) SignInUser(w http.ResponseWriter, r *http.Request) http.
 		return w
 	}
 
-	u, err := uc.repoUser.GetByEmail(bodyDTO.Email)
+	u, err := uc.repoUser.GetByEmail(ctx, bodyDTO.Email)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.BadAuthCredentialsError, http.StatusBadRequest)
 		return w

@@ -7,21 +7,20 @@ import (
 	"2024_1_kayros/internal/repository/restaurants"
 )
 
-type Usecase interface {
+type UseCaseInterface interface {
 	GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 	GetById(ctx context.Context, id int) (*entity.Restaurant, error)
 }
 
-type UsecaseLayer struct {
-	repo *restaurants.RestaurantRepo
+type UseCase struct {
+	repo restaurants.RepoInterface
 }
 
-func NewUsecase(r *restaurants.RestaurantRepo) Usecase {
-	return &UsecaseLayer{repo: r}
+func NewUseCase(r restaurants.RepoInterface) UseCaseInterface {
+	return &UseCase{repo: r}
 }
 
-func (uc *UsecaseLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
-	var rests []*entity.Restaurant
+func (uc *UseCase) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
 	rests, err := uc.repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
@@ -29,8 +28,7 @@ func (uc *UsecaseLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error
 	return rests, err
 }
 
-func (uc *UsecaseLayer) GetById(ctx context.Context, id int) (*entity.Restaurant, error) {
-	var rest *entity.Restaurant
+func (uc *UseCase) GetById(ctx context.Context, id int) (*entity.Restaurant, error) {
 	rest, err := uc.repo.GetById(ctx, id)
 	if err != nil {
 		return nil, err

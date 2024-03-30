@@ -29,14 +29,14 @@ func Setup(db *sql.DB, redis *redis.Client, mux *mux.Router) {
 	// слои repository
 	rUser := repoUser.NewUserRepository(db)
 	rSession := repoSession.NewSessionRepository(redis)
-	rRestaurants := repoRest.NewRestaurantRepo(db)
-	rFood := repoFood.NewFoodRepository(db)
+	rRestaurants := repoRest.NewRepository(db)
+	rFood := repoFood.NewRepository(db)
 	rOrder := repoOrder.NewRepository(db)
 
 	// слои usecase
 	uAuth := usecaseAuth.NewAuthUsecase(rUser, rSession)
 	uUser := usecaseUser.NewUserUsecase(rUser)
-	uRestaurants := usecaseRest.NewRestaurantUseCase(rRestaurants)
+	uRestaurants := usecaseRest.NewUseCase(rRestaurants)
 	uFood := usecaseFood.NewUseCase(rFood)
 	uOrder := usecaseOrder.NewUseCase(rOrder, rUser)
 

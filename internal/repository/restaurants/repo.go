@@ -5,23 +5,22 @@ import (
 	"database/sql"
 
 	"2024_1_kayros/internal/entity"
-	"2024_1_kayros/internal/utils/alias"
 )
 
-type Repo interface {
+type RepoInterface interface {
 	GetAll(context.Context) ([]*entity.Restaurant, error)
-	GetById(context.Context, alias.RestId) (*entity.Restaurant, error)
+	GetById(context.Context, int) (*entity.Restaurant, error)
 }
 
-type RepoLayer struct {
+type Repo struct {
 	DB *sql.DB
 }
 
-func NewRepoLayer(db *sql.DB) Repo {
-	return &RepoLayer{DB: db}
+func NewRepository(db *sql.DB) RepoInterface {
+	return &Repo{DB: db}
 }
 
-func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
+func (repo *Repo) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
 	var rests []*entity.Restaurant
 	rows, err := repo.DB.QueryContext(ctx, "SELECT id, name, short_description, img_url FROM Restaurant")
 	if err != nil {
@@ -40,7 +39,7 @@ func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 	return rests, nil
 }
 
-func (repo *RepoLayer) GetById(ctx context.Context, id alias.RestId) (*entity.Restaurant, error) {
+func (repo *Repo) GetById(ctx context.Context, id int) (*entity.Restaurant, error) {
 	rest := &entity.Restaurant{}
 	row := repo.DB.QueryRowContext(ctx, "SELECT id, name, long_description, img_url FROM Restaurant WHERE id=$1", uint64(id))
 	err := row.Scan(rest.Id, rest.Name, rest.LongDescription, rest.ImgUrl)
