@@ -7,23 +7,23 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type SessionRepositoryInterface interface {
+type Repo interface {
 	GetValue(key alias.SessionKey) (alias.SessionValue, error)
-	SetValue(key alias.SessionKey, value alias.SessionValue) error
-	DeleteKey(key alias.SessionKey) error
+	SetValue(key alias.SessionKey, value alias.SessionValue) (bool, error)
+	DeleteKey(key alias.SessionKey) (bool, error)
 }
 
-type SessionRepository struct {
+type RepoLayer struct {
 	redis *redis.Client
 }
 
-func NewSessionRepository(client *redis.Client) SessionRepositoryInterface {
-	return &SessionRepository{
+func NewRepoLayer(client *redis.Client) Repo {
+	return &RepoLayer{
 		redis: client,
 	}
 }
 
-func (t *SessionRepository) GetValue(key alias.SessionKey) (alias.SessionValue, error) {
+func (t *RepoLayer) GetValue(key alias.SessionKey) (alias.SessionValue, error) {
 	value, err := t.redis.Get(context.Background(), string(key)).Result()
 	if err == redis.Nil {
 		return "", nil
@@ -35,22 +35,22 @@ func (t *SessionRepository) GetValue(key alias.SessionKey) (alias.SessionValue, 
 	return returnValue, nil
 }
 
-func (t *SessionRepository) SetValue(key alias.SessionKey, value alias.SessionValue) error {
+func (t *RepoLayer) SetValue(key alias.SessionKey, value alias.SessionValue) (bool, error) {
 	err := t.redis.Set(context.Background(), string(key), string(value), 0).Err()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
-func (t *SessionRepository) DeleteKey(key alias.SessionKey) error {
+func (t *RepoLayer) DeleteKey(key alias.SessionKey) (bool, error) {
 	err := t.redis.Del(context.Background(), string(key)).Err()
 	if err == redis.Nil {
-		return nil
+		return false, nil
 	} else if err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }

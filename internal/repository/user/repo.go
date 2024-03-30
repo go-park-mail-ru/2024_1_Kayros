@@ -32,7 +32,7 @@ type RepoLayer struct {
 	database *sql.DB
 }
 
-func NewRepo(db *sql.DB) Repo {
+func NewRepoLayer(db *sql.DB) Repo {
 	return &RepoLayer{
 		database: db,
 	}
