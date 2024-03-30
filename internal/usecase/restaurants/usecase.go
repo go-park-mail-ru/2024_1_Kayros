@@ -5,18 +5,19 @@ import (
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/restaurants"
+	"2024_1_kayros/internal/utils/alias"
 )
 
 type Usecase interface {
 	GetAll(ctx context.Context) ([]*entity.Restaurant, error)
-	GetById(ctx context.Context, id int) (*entity.Restaurant, error)
+	GetById(ctx context.Context, id alias.FoodId) (*entity.Restaurant, error)
 }
 
 type UsecaseLayer struct {
-	repo *restaurants.RestaurantRepo
+	repo *restaurants.Repo
 }
 
-func NewUsecase(r *restaurants.RestaurantRepo) Usecase {
+func NewUsecaseLayer(r *restaurants.Repo) Usecase {
 	return &UsecaseLayer{repo: r}
 }
 
@@ -29,7 +30,7 @@ func (uc *UsecaseLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error
 	return rests, err
 }
 
-func (uc *UsecaseLayer) GetById(ctx context.Context, id int) (*entity.Restaurant, error) {
+func (uc *UsecaseLayer) GetById(ctx context.Context, id alias.FoodId) (*entity.Restaurant, error) {
 	var rest *entity.Restaurant
 	rest, err := uc.repo.GetById(ctx, id)
 	if err != nil {
