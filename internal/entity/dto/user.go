@@ -18,7 +18,7 @@ func (d *UserDTO) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
 
-func NewUserDTO(u *entity.User) *UserDTO {
+func NewUser(u *entity.User) *UserDTO {
 	uDTO := &UserDTO{
 		Id:       u.Id,
 		Name:     u.Name,
