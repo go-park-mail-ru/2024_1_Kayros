@@ -14,16 +14,16 @@ type Repo interface {
 }
 
 type RepoLayer struct {
-	DB *sql.DB
+	db *sql.DB
 }
 
-func NewRepoLayer(db *sql.DB) Repo {
-	return &RepoLayer{DB: db}
+func NewRepoLayer(dbProps *sql.DB) Repo {
+	return &RepoLayer{db: dbProps}
 }
 
 func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
 	var rests []*entity.Restaurant
-	rows, err := repo.DB.QueryContext(ctx, "SELECT id, name, short_description, img_url FROM Restaurant")
+	rows, err := repo.db.QueryContext(ctx, "SELECT id, name, short_description, img_url FROM Restaurant")
 	if err != nil {
 
 		return nil, err
@@ -41,7 +41,7 @@ func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 
 func (repo *RepoLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
 	rest := &entity.Restaurant{}
-	row := repo.DB.QueryRowContext(ctx, "SELECT id, name, long_description, img_url FROM Restaurant WHERE id=$1", uint64(restId))
+	row := repo.db.QueryRowContext(ctx, "SELECT id, name, long_description, img_url FROM Restaurant WHERE id=$1", uint64(restId))
 	err := row.Scan(rest.Id, rest.Name, rest.LongDescription, rest.ImgUrl)
 	if err != nil {
 		return nil, err

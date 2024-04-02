@@ -7,4 +7,5 @@ var (
 	BadAuthCredentialsError = "Неверный логин или пароль"
 	BadCredentialsError     = "Предоставлены некорректные данные"
 	UserAlreadyExistError   = "Пользователь с таким логином уже зарегистрирован"
+	NotFoundError           = "Данные не найдены"
 )
