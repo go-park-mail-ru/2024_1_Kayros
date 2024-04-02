@@ -12,8 +12,8 @@ type Usecase interface {
 	GetById(ctx context.Context, userId alias.UserId) (*entity.User, error)
 	GetByEmail(ctx context.Context, email string) (*entity.User, error)
 
-	DeleteById(ctx context.Context, userId alias.UserId) (bool, error)
-	DeleteByEmail(ctx context.Context, email string) (bool, error)
+	DeleteById(ctx context.Context, userId alias.UserId) error
+	DeleteByEmail(ctx context.Context, email string) error
 
 	IsExistById(ctx context.Context, userId alias.UserId) (bool, error)
 	IsExistByEmail(ctx context.Context, email string) (bool, error)
@@ -42,11 +42,11 @@ func (uc *UsecaseLayer) GetByEmail(ctx context.Context, email string) (*entity.U
 	return uc.repoUser.GetByEmail(ctx, email)
 }
 
-func (uc *UsecaseLayer) DeleteById(ctx context.Context, userId alias.UserId) (bool, error) {
+func (uc *UsecaseLayer) DeleteById(ctx context.Context, userId alias.UserId) error {
 	return uc.repoUser.DeleteById(ctx, userId)
 }
 
-func (uc *UsecaseLayer) DeleteByEmail(ctx context.Context, email string) (bool, error) {
+func (uc *UsecaseLayer) DeleteByEmail(ctx context.Context, email string) error {
 	return uc.repoUser.DeleteByEmail(ctx, email)
 }
 

@@ -12,8 +12,10 @@ import (
 
 type Repo interface {
 	Create(ctx context.Context, userId alias.UserId, dateOrder string) (*entity.Order, error)
-	GetBasket(ctx context.Context, userId alias.UserId) (*entity.Order, error)
-	GetBasketId(ctx context.Context, userId alias.UserId) (uint64, error)
+	GetBasketByUserId(ctx context.Context, userId alias.UserId) (*entity.Order, error)
+	GetBasketByUserEmail(ctx context.Context, email string) (*entity.Order, error)
+	GetBasketIdByUserId(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
+	GetBasketIdByUserEmail(ctx context.Context, email string) (alias.OrderId, error)
 	GetFood(ctx context.Context, orderId alias.OrderId) ([]*entity.FoodInOrder, error)
 	Update(ctx context.Context, order *entity.Order) error
 	UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) error
@@ -45,14 +47,14 @@ func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrde
 		return nil, errors.New("Заказ не был добавлен")
 	}
 
-	order, err := repo.GetBasket(ctx, userId)
+	order, err := repo.GetBasketByUserId(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
 	return order, nil
 }
 
-func (repo *RepoLayer) GetBasket(ctx context.Context, userId alias.UserId) (*entity.Order, error) {
+func (repo *RepoLayer) GetBasketByUserId(ctx context.Context, userId alias.UserId) (*entity.Order, error) {
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT id, user_id, date_order, date_receiving, status, address, 
        				extra_address, sum FROM "Order" WHERE user_id= $1 AND status=$2`, uint64(userId), orderStatus.Draft)
@@ -73,7 +75,28 @@ func (repo *RepoLayer) GetBasket(ctx context.Context, userId alias.UserId) (*ent
 	return &order, nil
 }
 
-func (repo *RepoLayer) GetBasketId(ctx context.Context, userId alias.UserId) (uint64, error) {
+func (repo *RepoLayer) GetBasketByUserEmail(ctx context.Context, email string) (*entity.Order, error) {
+	row := repo.db.QueryRowContext(ctx,
+		`SELECT id, user_id, date_order, date_receiving, status, address, 
+       				extra_address, sum FROM "Order" WHERE email= $1 AND status=$2`, email, orderStatus.Draft)
+	var order entity.Order
+	err := row.Scan(&order.Id, &order.UserId, &order.DateOrder, &order.DateReceiving, &order.Status, &order.Address,
+		&order.ExtraAddress, &order.Sum)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	order.Food, err = repo.GetFood(ctx, alias.OrderId(order.Id))
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+func (repo *RepoLayer) GetBasketIdByUserId(ctx context.Context, userId alias.UserId) (alias.OrderId, error) {
 	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "Order" WHERE user_id= $1 AND status=$2`, uint64(userId), orderStatus.Draft)
 	var orderId uint64
 	err := row.Scan(&orderId)
@@ -83,7 +106,20 @@ func (repo *RepoLayer) GetBasketId(ctx context.Context, userId alias.UserId) (ui
 	if err != nil {
 		return 0, err
 	}
-	return orderId, nil
+	return alias.OrderId(orderId), nil
+}
+
+func (repo *RepoLayer) GetBasketIdByUserEmail(ctx context.Context, email string) (alias.OrderId, error) {
+	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "Order" WHERE email= $1 AND status=$2`, email, orderStatus.Draft)
+	var orderId uint64
+	err := row.Scan(&orderId)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return alias.OrderId(orderId), nil
 }
 
 func (repo *RepoLayer) GetFood(ctx context.Context, orderId alias.OrderId) ([]*entity.FoodInOrder, error) {
