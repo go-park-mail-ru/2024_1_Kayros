@@ -23,7 +23,7 @@ func NewRepoLayer(dbProps *sql.DB) Repo {
 
 func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
 	var food []*entity.Food
-	rows, err := repo.db.QueryContext(ctx, "SELECT id, name, img_url, price, weight FROM food WHERE restaurant = $1", uint64(restId))
+	rows, err := repo.db.QueryContext(ctx, `SELECT id, name, description, restaurant, img_url, weight, price FROM "Food" WHERE restaurant = $1`, uint64(restId))
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]
 
 func (repo *RepoLayer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {
 	item := &entity.Food{}
-	row := repo.db.QueryRowContext(ctx, "SELECT id, name, img_url, price, weight FROM food WHERE id=$1", foodId)
+	row := repo.db.QueryRowContext(ctx, `SELECT id, name, description, restaurant, img_url, weight, price FROM "Food" WHERE id=$1`, uint64(foodId))
 	err := row.Scan(item.Id, item.Name, item.ImgUrl, item.Price, item.Weight)
 	if err != nil {
 		return nil, err

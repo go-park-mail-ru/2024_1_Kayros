@@ -1,6 +1,6 @@
 package myerrors
 
-var (
+const (
 	InternalServerError     = "Ошибка сервера"
 	HashedPasswordError     = "Не удалось захешировать пароль пользователя"
 	UnauthorizedError       = "Не хватает прав для доступа"

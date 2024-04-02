@@ -2,7 +2,7 @@ package entity
 
 type Order struct {
 	Id            uint64
-	User          uint64
+	UserId        uint64
 	DateOrder     string
 	DateReceiving string
 	Status        string

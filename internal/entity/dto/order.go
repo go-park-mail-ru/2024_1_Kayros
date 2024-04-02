@@ -7,7 +7,7 @@ import (
 
 type Order struct {
 	Id            uint64         `json:"id" valid:"-"`
-	User          uint64         `json:"user" valid:"-"`
+	UserId        uint64         `json:"user_id" valid:"-"`
 	DateOrder     string         `json:"date_order" valid:"-"`
 	DateReceiving string         `json:"date_receiving" valid:"-"`
 	Status        string         `json:"status" valid:"-"`
@@ -26,7 +26,7 @@ func NewOrder(order *entity.Order) *Order {
 	foodInOrder := NewFoodArray(food)
 	return &Order{
 		Id:            order.Id,
-		User:          order.User,
+		UserId:        order.UserId,
 		DateOrder:     order.DateOrder,
 		DateReceiving: order.DateReceiving,
 		Status:        order.Status,

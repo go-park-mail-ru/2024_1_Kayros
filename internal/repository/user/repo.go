@@ -13,11 +13,9 @@ import (
 type Repo interface {
 	GetById(ctx context.Context, userId alias.UserId) (*entity.User, error)
 	GetByEmail(ctx context.Context, email string) (*entity.User, error)
-	GetByPhone(ctx context.Context, phone string) (*entity.User, error)
 
-	DeleteById(ctx context.Context, userId alias.UserId) (bool, error)
-	DeleteByEmail(ctx context.Context, email string) (bool, error)
-	DeleteByPhone(ctx context.Context, phone string) (bool, error)
+	DeleteById(ctx context.Context, userId alias.UserId) error
+	DeleteByEmail(ctx context.Context, email string) error
 
 	Create(ctx context.Context, u *entity.User) (*entity.User, error)
 	Update(ctx context.Context, u *entity.User) (*entity.User, error)
@@ -40,7 +38,7 @@ func NewRepoLayer(db *sql.DB) Repo {
 
 func (repo *RepoLayer) GetById(ctx context.Context, userId alias.UserId) (*entity.User, error) {
 	user := &entity.User{}
-	row := repo.database.QueryRowContext(ctx, "SELECT id, name, phone, email, img_url FROM User WHERE id = $1", uint64(userId))
+	row := repo.database.QueryRowContext(ctx, `SELECT id, name, phone, email, img_url FROM "User" WHERE id = $1`, uint64(userId))
 	err := row.Scan(user.Id, user.Name, user.Phone, user.Email, user.Password, user.ImgUrl)
 	if err != nil {
 		return nil, err
@@ -61,49 +59,26 @@ func (repo *RepoLayer) GetByEmail(ctx context.Context, email string) (*entity.Us
 	return user, nil
 }
 
-func (repo *RepoLayer) GetByPhone(ctx context.Context, phone string) (*entity.User, error) {
-	user := &entity.User{}
-	row := repo.database.QueryRowContext(ctx, `SELECT id, name, phone, email, password, img_url FROM "User" WHERE phone = $1`, phone)
-
-	err := row.Scan(user.Id, user.Name, user.Phone, user.Email, user.Password, user.ImgUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func (repo *RepoLayer) DeleteById(ctx context.Context, userId alias.UserId) (bool, error) {
+func (repo *RepoLayer) DeleteById(ctx context.Context, userId alias.UserId) error {
 	row := repo.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE id = $1`, uint64(userId))
 
 	err := row.Err()
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
-func (repo *RepoLayer) DeleteByEmail(ctx context.Context, email string) (bool, error) {
+func (repo *RepoLayer) DeleteByEmail(ctx context.Context, email string) error {
 	row := repo.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE email = $1`, email)
 
 	err := row.Err()
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
-}
-
-func (repo *RepoLayer) DeleteByPhone(ctx context.Context, phone string) (bool, error) {
-	row := repo.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE phone = $1`, phone)
-
-	err := row.Err()
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return nil
 }
 
 func (repo *RepoLayer) Create(ctx context.Context, u *entity.User) (*entity.User, error) {

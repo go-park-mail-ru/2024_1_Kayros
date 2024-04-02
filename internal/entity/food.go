@@ -9,12 +9,3 @@ type Food struct {
 	Weight      uint64
 	Price       uint64
 }
-
-type FoodInOrder struct {
-	Id     uint64
-	Name   string
-	ImgUrl string
-	Weight uint64
-	Price  uint64
-	Count  uint64
-}
