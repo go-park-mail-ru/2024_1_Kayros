@@ -10,6 +10,7 @@ type UserDTO struct {
 	Name     string `json:"name" valid:"user_name"`
 	Phone    string `json:"phone" valid:"user_phone"`
 	Email    string `json:"email" valid:"user_email"`
+	Address  string `json:"address" valid:"-"` // нужно добавить валидацию для адреса
 	ImgUrl   string `json:"img_url" valid:"url"`
 	Password string `json:"-" valid:"user_pwd"`
 }

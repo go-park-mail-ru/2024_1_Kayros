@@ -42,7 +42,7 @@ func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrde
 		return nil, err
 	}
 	if countRows == 0 {
-		return nil, errors.New("Заказ не был добавлен в БД")
+		return nil, errors.New("Заказ не был добавлен")
 	}
 
 	order, err := repo.GetBasket(ctx, userId)

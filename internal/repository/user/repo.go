@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
@@ -37,47 +38,62 @@ func NewRepoLayer(db *sql.DB) Repo {
 }
 
 func (repo *RepoLayer) GetById(ctx context.Context, userId alias.UserId) (*entity.User, error) {
-	user := &entity.User{}
-	row := repo.database.QueryRowContext(ctx, `SELECT id, name, phone, email, img_url FROM "User" WHERE id = $1`, uint64(userId))
-	err := row.Scan(user.Id, user.Name, user.Phone, user.Email, user.Password, user.ImgUrl)
+	row := repo.database.QueryRowContext(ctx,
+		`SELECT id, name, password, phone, email, address, img_url FROM "User" WHERE id = $1`, uint64(userId))
+	user := entity.User{}
+	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Password, &user.ImgUrl)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func (repo *RepoLayer) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
-	user := &entity.User{}
-	row := repo.database.QueryRowContext(ctx, `SELECT id, name, phone, email, password, img_url FROM "User" WHERE email = $1`, email)
-
-	err := row.Scan(user.Id, user.Name, user.Phone, user.Email, user.Password, user.ImgUrl)
+	row := repo.database.QueryRowContext(ctx,
+		`SELECT id, name, password, phone, email, address, img_url FROM "User" WHERE email = $1`, email)
+	user := entity.User{}
+	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Password, &user.ImgUrl)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func (repo *RepoLayer) DeleteById(ctx context.Context, userId alias.UserId) error {
-	row := repo.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE id = $1`, uint64(userId))
-
-	err := row.Err()
+	res, err := repo.database.ExecContext(ctx, `DELETE FROM "User" WHERE id = $1`, uint64(userId))
 	if err != nil {
 		return err
 	}
-
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return errors.New("Пользователь не был удален")
+	}
 	return nil
 }
 
 func (repo *RepoLayer) DeleteByEmail(ctx context.Context, email string) error {
-	row := repo.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE email = $1`, email)
-
-	err := row.Err()
+	res, err := repo.database.ExecContext(ctx, `DELETE FROM "User" WHERE email = $1`, email)
 	if err != nil {
 		return err
 	}
-
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return errors.New("Пользователь не был удален")
+	}
 	return nil
 }
 
@@ -86,13 +102,19 @@ func (repo *RepoLayer) Create(ctx context.Context, u *entity.User) (*entity.User
 	if err != nil {
 		return nil, err
 	}
-	u.Password = hashPassword
-	row := repo.database.QueryRowContext(ctx, `INSERT INTO "User" (name, phone, email, password, img_url) VALUES ($1, $2, $3, $4, $5)`,
-		u.Name, u.Phone, u.Email, u.Password, u.ImgUrl)
+	res, err := repo.database.ExecContext(ctx,
+		`INSERT INTO "User" (name, phone, email, password, img_url) VALUES ($1, $2, $3, $4, $5)`,
+		u.Name, u.Phone, u.Email, hashPassword, u.ImgUrl)
 
-	err = row.Err()
 	if err != nil {
 		return nil, err
+	}
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if countRows == 0 {
+		return nil, errors.New("Пользователь не был добавлен")
 	}
 
 	user, err := repo.GetByEmail(ctx, u.Email)
@@ -108,28 +130,35 @@ func (repo *RepoLayer) Update(ctx context.Context, u *entity.User) (*entity.User
 		return nil, err
 	}
 
+	var hashPassword string
 	if u.Password == "" {
-		u.Password = user.Password
+		hashPassword = user.Password
 	} else {
-		u.Password, err = functions.HashData(u.Password)
+		hashPassword, err = functions.HashData(u.Password)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	row := repo.database.QueryRowContext(ctx, `UPDATE "User" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5 WHERE id = $6`,
-		u.Name, u.Phone, u.Email, u.ImgUrl, u.Password, u.Id)
+	res, err := repo.database.ExecContext(ctx,
+		`UPDATE "User" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5 WHERE id = $6`,
+		u.Name, u.Phone, u.Email, u.ImgUrl, hashPassword, u.Id)
 
-	err = row.Err()
 	if err != nil {
 		return nil, err
+	}
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if countRows == 0 {
+		return nil, errors.New("Данные о пользователе не были обновлены")
 	}
 
 	user, err = repo.GetById(ctx, alias.UserId(u.Id))
 	if err != nil {
 		return nil, err
 	}
-
 	return user, nil
 }
 
@@ -149,7 +178,6 @@ func (repo *RepoLayer) CheckPassword(ctx context.Context, email string, password
 
 func (repo *RepoLayer) IsExistById(ctx context.Context, userId alias.UserId) (bool, error) {
 	_, err := repo.GetById(ctx, userId)
-	// нужно узнать, выдаст ли оштбку отсутсвтие записи в БД
 	if err != nil {
 		return false, err
 	}
