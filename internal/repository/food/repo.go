@@ -23,7 +23,6 @@ func NewRepoLayer(dbProps *sql.DB) Repo {
 }
 
 func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
-	var food []*entity.Food
 	rows, err := repo.db.QueryContext(ctx,
 		`SELECT id, name, description, restaurant_id, category_id, weight, price, img_url 
 				FROM "Food" WHERE restaurant_id = $1`, uint64(restId))
@@ -31,6 +30,7 @@ func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]
 		return nil, err
 	}
 
+	var food []*entity.Food
 	for rows.Next() {
 		item := entity.Food{}
 		err = rows.Scan(&item.Id, &item.Name, &item.Description, &item.RestaurantId,
@@ -48,7 +48,7 @@ func (repo *RepoLayer) GetById(ctx context.Context, foodId alias.FoodId) (*entit
 		`SELECT id, name, description, restaurant_id, category_id, weight, price, img_url 
 				FROM "Food" WHERE id=$1`, uint64(foodId))
 
-	item := entity.Food{}
+	var item entity.Food
 	err := row.Scan(&item.Id, &item.Name, &item.Description, &item.RestaurantId,
 		&item.CategoryId, &item.ImgUrl, &item.Price, &item.Weight)
 	if errors.Is(err, sql.ErrNoRows) {

@@ -75,15 +75,15 @@ func (repo *RepoLayer) GetBasket(ctx context.Context, userId alias.UserId) (*ent
 
 func (repo *RepoLayer) GetBasketId(ctx context.Context, userId alias.UserId) (uint64, error) {
 	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "Order" WHERE user_id= $1 AND status=$2`, uint64(userId), orderStatus.Draft)
-	var id uint64
-	err := row.Scan(&id)
+	var orderId uint64
+	err := row.Scan(&orderId)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
 	}
 	if err != nil {
 		return 0, err
 	}
-	return id, nil
+	return orderId, nil
 }
 
 func (repo *RepoLayer) GetFood(ctx context.Context, orderId alias.OrderId) ([]*entity.FoodInOrder, error) {
@@ -92,9 +92,6 @@ func (repo *RepoLayer) GetFood(ctx context.Context, orderId alias.OrderId) ([]*e
 				FROM "FoodOrder" AS fo
 				JOIN "Food" AS f ON fo.food_id = f.id
 				WHERE fo.order_id = $1`, uint64(orderId))
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
 	if err != nil {
 		return nil, err
 	}
