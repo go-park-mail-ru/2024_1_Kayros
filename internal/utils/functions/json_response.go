@@ -19,5 +19,6 @@ func JsonResponse(w http.ResponseWriter, data interface{}) http.ResponseWriter {
 		w = ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return w
 	}
+	w.WriteHeader(http.StatusOK)
 	return w
 }

@@ -10,31 +10,21 @@ import (
 
 type Usecase interface {
 	GetAll(ctx context.Context) ([]*entity.Restaurant, error)
-	GetById(ctx context.Context, id alias.FoodId) (*entity.Restaurant, error)
+	GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error)
 }
 
 type UsecaseLayer struct {
-	repo *restaurants.Repo
+	repoRest restaurants.Repo
 }
 
-func NewUsecaseLayer(r *restaurants.Repo) Usecase {
-	return &UsecaseLayer{repo: r}
+func NewUsecaseLayer(repoRestProps restaurants.Repo) Usecase {
+	return &UsecaseLayer{repoRest: repoRestProps}
 }
 
 func (uc *UsecaseLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
-	var rests []*entity.Restaurant
-	rests, err := uc.repo.GetAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return rests, err
+	return uc.repoRest.GetAll(ctx)
 }
 
-func (uc *UsecaseLayer) GetById(ctx context.Context, id alias.FoodId) (*entity.Restaurant, error) {
-	var rest *entity.Restaurant
-	rest, err := uc.repo.GetById(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return rest, err
+func (uc *UsecaseLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
+	return uc.repoRest.GetById(ctx, restId)
 }

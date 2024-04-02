@@ -8,12 +8,8 @@ type SignInDTO struct {
 	Password string `json:"-" valid:"user_pwd"`
 }
 
-func (d *SignInDTO) Validate() bool {
-	isValid, err := govalidator.ValidateStruct(d)
-	if err != nil {
-		return false
-	}
-	return isValid
+func (d *SignInDTO) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
 }
 
 // SignUpDTO структура данных, получаемая с формы регистрации
@@ -23,10 +19,6 @@ type SignUpDTO struct {
 	Password string `json:"-" valid:"user_pwd"`
 }
 
-func (d *SignUpDTO) Validate() bool {
-	isValid, err := govalidator.ValidateStruct(d)
-	if err != nil {
-		return false
-	}
-	return isValid
+func (d *SignUpDTO) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
 }

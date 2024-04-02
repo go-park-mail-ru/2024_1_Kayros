@@ -9,50 +9,36 @@ import (
 )
 
 type Usecase interface {
-	GetByRest(context.Context, alias.RestId) ([]*entity.Food, error)
-	GetById(context.Context, alias.FoodId) (*entity.Food, error)
-	AddToOrder(context.Context, alias.FoodId, alias.OrderId) (bool, error)
-	UpdateCountInOrder(context.Context, alias.FoodId, alias.OrderId, uint32) (bool, error)
-	DeleteFromOrder(context.Context, alias.FoodId, alias.OrderId) (bool, error)
+	GetByRest(ctx context.Context, restId alias.RestId) ([]*entity.Food, error)
+	GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error)
+	AddToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) (bool, error)
+	UpdateCountInOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId, count uint32) (bool, error)
+	DeleteFromOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) (bool, error)
 }
 
 type UsecaseLayer struct {
-	repo food.Repo
+	repoFood food.Repo
 }
 
-func NewUsecaseLayer(r food.Repo) Usecase {
-	return &UsecaseLayer{repo: r}
+func NewUsecaseLayer(repoFoodProps food.Repo) Usecase {
+	return &UsecaseLayer{repoFood: repoFoodProps}
 }
 
-func (uc *UsecaseLayer) GetByRest(ctx context.Context, id alias.RestId) ([]*entity.Food, error) {
-	var dishes []*entity.Food
-
-	dishes, err := uc.repo.GetByRestId(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return dishes, nil
+func (uc *UsecaseLayer) GetByRest(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
+	return uc.repoFood.GetByRestId(ctx, restId)
 }
 
-func (uc *UsecaseLayer) GetById(ctx context.Context, id alias.FoodId) (*entity.Food, error) {
-	var dish *entity.Food
-	dish, err := uc.repo.GetById(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return dish, nil
+func (uc *UsecaseLayer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {
+	return uc.repoFood.GetById(ctx, foodId)
 }
 
 func (uc *UsecaseLayer) AddToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) (bool, error) {
-	wasAdded, err := uc.repo.AddToOrder(ctx, foodId, orderId)
-	return wasAdded, err
+	return uc.repoFood.AddToOrder(ctx, foodId, orderId)
 }
 
 func (uc *UsecaseLayer) UpdateCountInOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId, count uint32) (bool, error) {
-	wasUpdated, err := uc.repo.UpdateCountInOrder(ctx, foodId, orderId, count)
-	return wasUpdated, err
+	return uc.repoFood.UpdateCountInOrder(ctx, foodId, orderId, count)
 }
 func (uc *UsecaseLayer) DeleteFromOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) (bool, error) {
-	wasDeleted, err := uc.repo.DeleteFromOrder(ctx, foodId, orderId)
-	return wasDeleted, err
+	return uc.repoFood.DeleteFromOrder(ctx, foodId, orderId)
 }

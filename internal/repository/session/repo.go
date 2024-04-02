@@ -8,9 +8,9 @@ import (
 )
 
 type Repo interface {
-	GetValue(context.Context, alias.SessionKey) (alias.SessionValue, error)
-	SetValue(context.Context, alias.SessionKey, alias.SessionValue) (bool, error)
-	DeleteKey(context.Context, alias.SessionKey) (bool, error)
+	GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error)
+	SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) (bool, error)
+	DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error)
 }
 
 type RepoLayer struct {

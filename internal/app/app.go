@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"2024_1_kayros/config"
-	route "2024_1_kayros/internal/delivery"
+	"2024_1_kayros/internal/delivery/route"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/postgres"
 	"2024_1_kayros/services/redis"
@@ -21,14 +21,14 @@ func Run(cfg *config.Project) {
 	functions.InitValidator()
 	// вот тут вот нужно создать редис, минио
 	// ....
-	postgreDB, err := postgres.PostgresInit(cfg)
+	postgreDB, err := postgres.Init(cfg)
 	if err != nil {
 		log.Printf("Не удалось подключиться к базе данных %s по адресу %s:%d\n%s\n",
 			cfg.Postgres.Database, cfg.Postgres.Host, cfg.Postgres.Port, err)
 		return
 	}
 
-	redisDB, err := redis.RedisInit(cfg)
+	redisDB, err := redis.Init(cfg)
 
 	r := mux.NewRouter()
 	route.Setup(postgreDB, redisDB, r)

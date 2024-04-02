@@ -12,9 +12,9 @@ type Delivery struct {
 	ucUser user.Usecase
 }
 
-func NewDeliveryLayer(uc user.Usecase) *Delivery {
+func NewDeliveryLayer(ucUserProps user.Usecase) *Delivery {
 	return &Delivery{
-		ucUser: uc,
+		ucUser: ucUserProps,
 	}
 }
 
@@ -35,5 +35,4 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 	uDTO := functions.ConvIntoUserDTO(u)
 
 	w = functions.JsonResponse(w, uDTO)
-	w.WriteHeader(http.StatusOK)
 }

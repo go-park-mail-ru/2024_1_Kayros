@@ -9,100 +9,64 @@ import (
 )
 
 type Usecase interface {
-	GetById(context.Context, alias.UserId) (*entity.User, error)
-	GetByEmail(context.Context, string) (*entity.User, error)
-	GetByPhone(context.Context, string) (*entity.User, error)
+	GetById(ctx context.Context, userId alias.UserId) (*entity.User, error)
+	GetByEmail(ctx context.Context, email string) (*entity.User, error)
 
-	DeleteById(context.Context, alias.UserId) (bool, error)
-	DeleteByEmail(context.Context, string) (bool, error)
-	DeleteByPhone(context.Context, string) (bool, error)
+	DeleteById(ctx context.Context, userId alias.UserId) (bool, error)
+	DeleteByEmail(ctx context.Context, email string) (bool, error)
 
-	Create(context.Context, *entity.User) (*entity.User, error)
-	Update(context.Context, *entity.User) (*entity.User, error)
+	IsExistById(ctx context.Context, userId alias.UserId) (bool, error)
+	IsExistByEmail(ctx context.Context, email string) (bool, error)
 
-	IsExistById(context.Context, alias.UserId) (bool, error)
-	IsExistByEmail(context.Context, string) (bool, error)
+	Create(ctx context.Context, uProps *entity.User) (*entity.User, error)
+	Update(ctx context.Context, uProps *entity.User) (*entity.User, error)
 
-	CheckPassword(context.Context, string, string) (bool, error)
+	CheckPassword(ctx context.Context, email string, password string) (bool, error)
 }
 
 type UsecaseLayer struct {
-	repo user.Repo
+	repoUser user.Repo
 }
 
-func NewUsecaseLayer(repoUser user.Repo) Usecase {
+func NewUsecaseLayer(repoUserProps user.Repo) Usecase {
 	return &UsecaseLayer{
-		repo: repoUser,
+		repoUser: repoUserProps,
 	}
 }
 
-func (uc *UsecaseLayer) GetById(ctx context.Context, id alias.UserId) (*entity.User, error) {
-	u, err := uc.repo.GetById(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return u, nil
+func (uc *UsecaseLayer) GetById(ctx context.Context, userId alias.UserId) (*entity.User, error) {
+	return uc.repoUser.GetById(ctx, userId)
 }
 
 func (uc *UsecaseLayer) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
-	u, err := uc.repo.GetByEmail(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-	return u, nil
+	return uc.repoUser.GetByEmail(ctx, email)
 }
 
-func (uc *UsecaseLayer) GetByPhone(ctx context.Context, phone string) (*entity.User, error) {
-	u, err := uc.repo.GetByPhone(ctx, phone)
-	if err != nil {
-		return nil, err
-	}
-	return u, nil
-}
-
-func (uc *UsecaseLayer) DeleteById(ctx context.Context, id alias.UserId) (bool, error) {
-	wasDeleted, err := uc.repo.DeleteById(ctx, id)
-	return wasDeleted, err
+func (uc *UsecaseLayer) DeleteById(ctx context.Context, userId alias.UserId) (bool, error) {
+	return uc.repoUser.DeleteById(ctx, userId)
 }
 
 func (uc *UsecaseLayer) DeleteByEmail(ctx context.Context, email string) (bool, error) {
-	wasDeleted, err := uc.repo.DeleteByEmail(ctx, email)
-	return wasDeleted, err
+	return uc.repoUser.DeleteByEmail(ctx, email)
 }
 
-func (uc *UsecaseLayer) DeleteByPhone(ctx context.Context, phone string) (bool, error) {
-	wasDeleted, err := uc.repo.DeleteByPhone(ctx, phone)
-	return wasDeleted, err
+func (uc *UsecaseLayer) IsExistById(ctx context.Context, userId alias.UserId) (bool, error) {
+	return uc.repoUser.IsExistById(ctx, userId)
+}
+
+func (uc *UsecaseLayer) IsExistByEmail(ctx context.Context, email string) (bool, error) {
+	return uc.repoUser.IsExistByEmail(ctx, email)
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entity.User, error) {
-	u, err := uc.repo.Create(ctx, uProps)
-	if err != nil {
-		return nil, err
-	}
-	return u, nil
+	return uc.repoUser.Create(ctx, uProps)
 }
 
 func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entity.User, error) {
-	u, err := uc.repo.Update(ctx, uProps)
-	if err != nil {
-		return nil, err
-	}
-	return u, err
+	return uc.repoUser.Update(ctx, uProps)
 }
 
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
 func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, password string) (bool, error) {
-	isEqual, err := uc.repo.CheckPassword(ctx, email, password)
-	return isEqual, err
-}
-
-func (uc *UsecaseLayer) IsExistById(ctx context.Context, id alias.UserId) (bool, error) {
-	isExist, err := uc.repo.IsExistById(ctx, id)
-	return isExist, err
-}
-
-func (uc *UsecaseLayer) IsExistByEmail(ctx context.Context, email string) (bool, error) {
-	isExist, err := uc.repo.IsExistByEmail(ctx, email)
-	return isExist, err
+	return uc.repoUser.CheckPassword(ctx, email, password)
 }

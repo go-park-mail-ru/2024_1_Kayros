@@ -21,14 +21,13 @@ type Delivery struct {
 	ucUser    user.Usecase
 }
 
-func NewDeliveryLayer(sessionUsecase session.Usecase, userUsecase user.Usecase) *Delivery {
+func NewDeliveryLayer(ucSessionProps session.Usecase, ucUserProps user.Usecase) *Delivery {
 	return &Delivery{
-		ucSession: sessionUsecase,
-		ucUser:    userUsecase,
+		ucSession: ucSessionProps,
+		ucUser:    ucUserProps,
 	}
 }
 
-// SignUpUser пока что логгера нет, нужно будет пробрасывать
 func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	email := r.Context().Value("email")
 	if email != nil {
@@ -56,6 +55,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// сюда можно будет добавить контекст, который еще по времени ограничивает
 	isExist, err := d.ucUser.IsExistByEmail(r.Context(), bodyDataDTO.Email)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -97,9 +97,8 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 
-	uDTO := functions.ConvIntoUserDTO(u)
+	uDTO := dto.NewUserDTO(u)
 	w = functions.JsonResponse(w, uDTO)
-	w.WriteHeader(http.StatusOK)
 	return
 }
 
@@ -161,17 +160,16 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Собираем ответ
-		uDTO := functions.ConvIntoUserDTO(u)
+		uDTO := dto.NewUserDTO(u)
 		w = functions.JsonResponse(w, uDTO)
-		w.WriteHeader(http.StatusOK)
 		return
 	}
 	w = functions.ErrorResponse(w, myerrors.BadAuthCredentialsError, http.StatusBadRequest)
 }
 
 func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
-	authKey := r.Context().Value("email")
-	if authKey == nil {
+	email := r.Context().Value("email")
+	if email == nil {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
@@ -191,5 +189,4 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, sessionCookie)
 
 	w = functions.JsonResponse(w, "Сессия успешно завершена")
-	w.WriteHeader(http.StatusOK)
 }

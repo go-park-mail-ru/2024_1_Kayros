@@ -9,8 +9,8 @@ import (
 )
 
 type Repo interface {
-	GetAll(context.Context) ([]*entity.Restaurant, error)
-	GetById(context.Context, alias.RestId) (*entity.Restaurant, error)
+	GetAll(ctx context.Context) ([]*entity.Restaurant, error)
+	GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error)
 }
 
 type RepoLayer struct {
@@ -28,7 +28,6 @@ func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 
 		return nil, err
 	}
-	defer rows.Close()
 	for rows.Next() {
 		rest := &entity.Restaurant{}
 		err = rows.Scan(rest.Id, rest.Name, rest.ShortDescription, rest.ImgUrl)
@@ -40,9 +39,9 @@ func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 	return rests, nil
 }
 
-func (repo *RepoLayer) GetById(ctx context.Context, id alias.RestId) (*entity.Restaurant, error) {
+func (repo *RepoLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
 	rest := &entity.Restaurant{}
-	row := repo.DB.QueryRowContext(ctx, "SELECT id, name, long_description, img_url FROM Restaurant WHERE id=$1", uint64(id))
+	row := repo.DB.QueryRowContext(ctx, "SELECT id, name, long_description, img_url FROM Restaurant WHERE id=$1", uint64(restId))
 	err := row.Scan(rest.Id, rest.Name, rest.LongDescription, rest.ImgUrl)
 	if err != nil {
 		return nil, err

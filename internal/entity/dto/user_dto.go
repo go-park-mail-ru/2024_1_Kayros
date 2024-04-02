@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"2024_1_kayros/internal/entity"
 	"github.com/asaskevich/govalidator"
 )
 
@@ -13,10 +14,18 @@ type UserDTO struct {
 	Password string `json:"-" valid:"user_pwd"`
 }
 
-func (d *UserDTO) Validate() bool {
-	isValid, err := govalidator.ValidateStruct(d)
-	if err != nil {
-		return false
+func (d *UserDTO) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
+}
+
+func NewUserDTO(u *entity.User) *UserDTO {
+	uDTO := &UserDTO{
+		Id:       u.Id,
+		Name:     u.Name,
+		Phone:    u.Phone,
+		Email:    u.Email,
+		ImgUrl:   u.ImgUrl,
+		Password: u.Password,
 	}
-	return isValid
+	return uDTO
 }

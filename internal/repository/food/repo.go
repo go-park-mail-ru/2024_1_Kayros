@@ -9,11 +9,11 @@ import (
 )
 
 type Repo interface {
-	GetByRestId(context.Context, alias.RestId) ([]*entity.Food, error)
-	GetById(context.Context, alias.FoodId) (*entity.Food, error)
-	AddToOrder(context.Context, alias.FoodId, alias.OrderId) (bool, error)
-	UpdateCountInOrder(context.Context, alias.FoodId, alias.OrderId, uint32) (bool, error)
-	DeleteFromOrder(context.Context, alias.FoodId, alias.OrderId) (bool, error)
+	GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error)
+	GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error)
+	AddToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) (bool, error)
+	UpdateCountInOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId, count uint32) (bool, error)
+	DeleteFromOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) (bool, error)
 }
 
 type RepoLayer struct {
@@ -24,13 +24,12 @@ func NewRepoLayer(db *sql.DB) Repo {
 	return &RepoLayer{DB: db}
 }
 
-func (repo *RepoLayer) GetByRestId(ctx context.Context, id alias.RestId) ([]*entity.Food, error) {
+func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
 	var food []*entity.Food
-	rows, err := repo.DB.QueryContext(ctx, "SELECT id, name, img_url, price, weight FROM food WHERE restaurant = $1", uint64(id))
+	rows, err := repo.DB.QueryContext(ctx, "SELECT id, name, img_url, price, weight FROM food WHERE restaurant = $1", uint64(restId))
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	for rows.Next() {
 		item := &entity.Food{}
 		err = rows.Scan(item.Id, item.Name, item.ImgUrl, item.Price, item.Weight)
@@ -42,9 +41,9 @@ func (repo *RepoLayer) GetByRestId(ctx context.Context, id alias.RestId) ([]*ent
 	return food, nil
 }
 
-func (repo *RepoLayer) GetById(ctx context.Context, id alias.FoodId) (*entity.Food, error) {
+func (repo *RepoLayer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {
 	item := &entity.Food{}
-	row := repo.DB.QueryRowContext(ctx, "SELECT id, name, img_url, price, weight FROM food WHERE id=$1", id)
+	row := repo.DB.QueryRowContext(ctx, "SELECT id, name, img_url, price, weight FROM food WHERE id=$1", foodId)
 	err := row.Scan(item.Id, item.Name, item.ImgUrl, item.Price, item.Weight)
 	if err != nil {
 		return nil, err

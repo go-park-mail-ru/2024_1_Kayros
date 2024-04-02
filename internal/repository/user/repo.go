@@ -11,21 +11,21 @@ import (
 
 // Передаем контекст запроса пользователя (! возможно лучше еще переопределить контекстом WithTimeout)
 type Repo interface {
-	GetById(context.Context, alias.UserId) (*entity.User, error)
-	GetByEmail(context.Context, string) (*entity.User, error)
-	GetByPhone(context.Context, string) (*entity.User, error)
+	GetById(ctx context.Context, userId alias.UserId) (*entity.User, error)
+	GetByEmail(ctx context.Context, email string) (*entity.User, error)
+	GetByPhone(ctx context.Context, phone string) (*entity.User, error)
 
-	DeleteById(context.Context, alias.UserId) (bool, error)
-	DeleteByEmail(context.Context, string) (bool, error)
-	DeleteByPhone(context.Context, string) (bool, error)
+	DeleteById(ctx context.Context, userId alias.UserId) (bool, error)
+	DeleteByEmail(ctx context.Context, email string) (bool, error)
+	DeleteByPhone(ctx context.Context, phone string) (bool, error)
 
-	Create(context.Context, *entity.User) (*entity.User, error)
-	Update(context.Context, *entity.User) (*entity.User, error)
+	Create(ctx context.Context, u *entity.User) (*entity.User, error)
+	Update(ctx context.Context, u *entity.User) (*entity.User, error)
 
-	IsExistById(context.Context, alias.UserId) (bool, error)
-	IsExistByEmail(context.Context, string) (bool, error)
+	IsExistById(ctx context.Context, userId alias.UserId) (bool, error)
+	IsExistByEmail(ctx context.Context, email string) (bool, error)
 
-	CheckPassword(context.Context, string, string) (bool, error)
+	CheckPassword(ctx context.Context, email string, password string) (bool, error)
 }
 
 type RepoLayer struct {
@@ -38,9 +38,9 @@ func NewRepoLayer(db *sql.DB) Repo {
 	}
 }
 
-func (repo *RepoLayer) GetById(ctx context.Context, id alias.UserId) (*entity.User, error) {
+func (repo *RepoLayer) GetById(ctx context.Context, userId alias.UserId) (*entity.User, error) {
 	user := &entity.User{}
-	row := repo.database.QueryRowContext(ctx, "SELECT id, name, phone, email, img_url FROM User WHERE id = $1", id)
+	row := repo.database.QueryRowContext(ctx, "SELECT id, name, phone, email, img_url FROM User WHERE id = $1", uint64(userId))
 	err := row.Scan(user.Id, user.Name, user.Phone, user.Email, user.Password, user.ImgUrl)
 	if err != nil {
 		return nil, err
@@ -73,8 +73,8 @@ func (repo *RepoLayer) GetByPhone(ctx context.Context, phone string) (*entity.Us
 	return user, nil
 }
 
-func (repo *RepoLayer) DeleteById(ctx context.Context, id alias.UserId) (bool, error) {
-	row := repo.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE id = $1`, id)
+func (repo *RepoLayer) DeleteById(ctx context.Context, userId alias.UserId) (bool, error) {
+	row := repo.database.QueryRowContext(ctx, `DELETE FROM "User" WHERE id = $1`, uint64(userId))
 
 	err := row.Err()
 	if err != nil {
@@ -172,8 +172,8 @@ func (repo *RepoLayer) CheckPassword(ctx context.Context, email string, password
 	return user.Password == hashPassword, nil
 }
 
-func (repo *RepoLayer) IsExistById(ctx context.Context, id alias.UserId) (bool, error) {
-	_, err := repo.GetById(ctx, id)
+func (repo *RepoLayer) IsExistById(ctx context.Context, userId alias.UserId) (bool, error) {
+	_, err := repo.GetById(ctx, userId)
 	// нужно узнать, выдаст ли оштбку отсутсвтие записи в БД
 	if err != nil {
 		return false, err
