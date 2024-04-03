@@ -58,7 +58,7 @@ func NewConfig() (*Project, error) {
 	cfg := &Project{}
 
 	// нужно будет переписать --> нет смысла подключать целый пакет для чтения конфигурации
-	err := cleanenv.ReadConfig("./config.yml", cfg)
+	err := cleanenv.ReadConfig("./config.yaml", cfg)
 	if err != nil {
 		return nil, fmt.Errorf("Ошибка конфигурации приложения: %w\n", err)
 	}

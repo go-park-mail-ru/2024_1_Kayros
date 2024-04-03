@@ -36,3 +36,22 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
 }
+
+func (d *Delivery) UpdateImage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	email := r.Context().Value("email")
+	if email == nil {
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+
+	// Максимальный размер фотографии 10 Mb
+	err := r.ParseMultipartForm(10 << 20)
+
+	file, _, err := r.FormFile("img")
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
+
+}

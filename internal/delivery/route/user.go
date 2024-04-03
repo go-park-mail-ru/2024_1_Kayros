@@ -17,4 +17,5 @@ func AddUserRouter(db *sql.DB, mux *mux.Router) {
 	deliveryUser := dUser.NewDeliveryLayer(usecaseUser)
 
 	mux.HandleFunc("user", deliveryUser.UserData).Methods("GET").Name("userdata")
+	mux.HandleFunc("user", deliveryUser.UpdateImage).Methods("PUT").Name("user_image")
 }
