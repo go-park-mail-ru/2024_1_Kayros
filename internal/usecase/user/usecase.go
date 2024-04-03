@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"mime/multipart"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/user"
@@ -22,6 +23,7 @@ type Usecase interface {
 	Update(ctx context.Context, uProps *entity.User) (*entity.User, error)
 
 	CheckPassword(ctx context.Context, email string, password string) (bool, error)
+	UploadImageByEmail(ctx context.Context, file multipart.File, handler *multipart.FileHeader, email string) error
 }
 
 type UsecaseLayer struct {
@@ -69,4 +71,8 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
 func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, password string) (bool, error) {
 	return uc.repoUser.CheckPassword(ctx, email, password)
+}
+
+func (uc *UsecaseLayer) UploadImageByEmail(ctx context.Context, file multipart.File, handler *multipart.FileHeader, email string) error {
+	return uc.repoUser.UploadImageByEmail(ctx, file, handler, email)
 }

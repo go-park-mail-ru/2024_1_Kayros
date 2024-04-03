@@ -10,7 +10,6 @@ import (
 	deliveryOrder "2024_1_kayros/internal/delivery/order"
 	deliveryRest "2024_1_kayros/internal/delivery/restaurants"
 	deliveryUser "2024_1_kayros/internal/delivery/user"
-	"2024_1_kayros/internal/middleware"
 	repoFood "2024_1_kayros/internal/repository/food"
 	repoOrder "2024_1_kayros/internal/repository/order"
 	repoRest "2024_1_kayros/internal/repository/restaurants"
@@ -59,7 +58,4 @@ func Setup(db *sql.DB, redis *redis.Client, mux *mux.Router) {
 	mux.HandleFunc("order/food/add/{food_id}", orderHandlers.AddFood).Methods("POST")
 	mux.HandleFunc("order/food/update_count/", orderHandlers.UpdateFoodCount).Methods("PUT")
 	mux.HandleFunc("order/food/delete/{food_id}", orderHandlers.DeleteFoodFromOrder).Methods("PUT")
-
-	handler := middleware.SessionAuthentication(mux, rUser, rSession)
-	handler = middleware.CorsMiddleware(handler)
 }

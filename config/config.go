@@ -43,6 +43,8 @@ type (
 		ConsoleServer int    `env-required:"true" yaml:"console-server" env:"M_CONSOLE_PORT"`
 		SecretKey     string `env-required:"true" yaml:"secret-key" env:"M_SECRET_KEY"`
 		AccessKey     string `env-required:"true" yaml:"access-key" env:"M_ACCESS_KEY"`
+		SslMode       bool   `env-required:"true" yaml:"sslmode" env:"M_SSL_MODE"`
+		Endpoint      string `env-required:"true" yaml:"endpoint" env:"M_ENDPOINT"`
 	}
 
 	Redis struct {

@@ -4,10 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"mime/multipart"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
+	"2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
+	"github.com/minio/minio-go/v7"
+	"github.com/satori/uuid"
 )
 
 // Передаем контекст запроса пользователя (! возможно лучше еще переопределить контекстом WithTimeout)
@@ -25,10 +30,12 @@ type Repo interface {
 	IsExistByEmail(ctx context.Context, email string) (bool, error)
 
 	CheckPassword(ctx context.Context, email string, password string) (bool, error)
+	UploadImageByEmail(ctx context.Context, file multipart.File, handler *multipart.FileHeader, email string) error
 }
 
 type RepoLayer struct {
 	database *sql.DB
+	minio    *minio.Client
 }
 
 func NewRepoLayer(db *sql.DB) Repo {
@@ -190,4 +197,28 @@ func (repo *RepoLayer) IsExistByEmail(ctx context.Context, email string) (bool, 
 		return false, err
 	}
 	return true, nil
+}
+
+func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.File, handler *multipart.FileHeader, email string) error {
+	fileExtension := functions.GetFileExtension(handler.Filename)
+	filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
+	uploadInfo, err := repo.minio.PutObject(ctx, constants.BucketUser, filename, file, handler.Size, minio.PutObjectOptions{ContentType: "application/form-data"})
+	if err != nil {
+		fmt.Printf("File was added %v", uploadInfo)
+		return err
+	}
+
+	imgPath := fmt.Sprintf("/minio-api/%s/%s", constants.BucketUser, filename)
+	res, err := repo.database.ExecContext(ctx, `UPDATE "User" SET img_url = $1 WHERE email = $2`, imgPath, email)
+	if err != nil {
+		return err
+	}
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return errors.New("Фотография пользователя не была добавлена")
+	}
+	return nil
 }

@@ -1,6 +1,8 @@
 package user
 
 import (
+	"log"
+	"mime/multipart"
 	"net/http"
 
 	"2024_1_kayros/internal/entity/dto"
@@ -47,11 +49,29 @@ func (d *Delivery) UpdateImage(w http.ResponseWriter, r *http.Request) {
 
 	// Максимальный размер фотографии 10 Mb
 	err := r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.BigSizeFileError, http.StatusBadRequest)
+		return
+	}
 
-	file, _, err := r.FormFile("img")
+	file, handler, err := r.FormFile("img")
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			log.Println(err.Error())
+		}
+	}(file)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
 
+	err = d.ucUser.UploadImageByEmail(r.Context(), file, handler, email.(string))
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	u, err := d.ucUser.GetByEmail(r.Context(), email.(string))
+	userDTO := dto.NewUser(u)
+	w = functions.JsonResponse(w, userDTO)
 }
