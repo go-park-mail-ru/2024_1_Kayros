@@ -6,8 +6,7 @@ import (
 )
 
 // нужно будет узнать минимальную длину описания и имени
-
-type RestaurantDTO struct {
+type Restaurant struct {
 	Id               uint64 `json:"id" valid:"-"`
 	Name             string `json:"name" valid:"-"`
 	ShortDescription string `json:"short_description" valid:"-"`
@@ -15,16 +14,24 @@ type RestaurantDTO struct {
 	ImgUrl           string `json:"img_url" valid:"url"`
 }
 
-func (d *RestaurantDTO) Validate() (bool, error) {
+func (d *Restaurant) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
 
-func NewRestaurant(r *entity.Restaurant) *RestaurantDTO {
-	return &RestaurantDTO{
+func NewRestaurant(r *entity.Restaurant) *Restaurant {
+	return &Restaurant{
 		Id:               r.Id,
 		Name:             r.Name,
 		ShortDescription: r.ShortDescription,
 		LongDescription:  r.LongDescription,
 		ImgUrl:           r.ImgUrl,
 	}
+}
+
+func NewRestaurantArray(restArray []*entity.Restaurant) []*Restaurant {
+	restArrayDTO := make([]*Restaurant, 0, len(restArray)+1)
+	for i, rest := range restArray {
+		restArrayDTO[i] = NewRestaurant(rest)
+	}
+	return restArrayDTO
 }

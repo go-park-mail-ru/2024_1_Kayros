@@ -10,7 +10,7 @@ import (
 type Usecase interface {
 	GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error)
 	SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error
-	DeleteKey(ctx context.Context, key alias.SessionKey) error
+	DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error)
 }
 
 type UsecaseLayer struct {
@@ -31,6 +31,6 @@ func (uc *UsecaseLayer) SetValue(ctx context.Context, key alias.SessionKey, valu
 	return uc.repoSession.SetValue(ctx, key, value)
 }
 
-func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey) error {
+func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error) {
 	return uc.repoSession.DeleteKey(ctx, key)
 }

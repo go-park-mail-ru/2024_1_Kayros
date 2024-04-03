@@ -12,10 +12,10 @@ import (
 
 type Repo interface {
 	Create(ctx context.Context, userId alias.UserId, dateOrder string) (*entity.Order, error)
-	GetBasketByUserId(ctx context.Context, userId alias.UserId) (*entity.Order, error)
-	GetBasketByUserEmail(ctx context.Context, email string) (*entity.Order, error)
-	GetBasketIdByUserId(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
-	GetBasketIdByUserEmail(ctx context.Context, email string) (alias.OrderId, error)
+	GetOrdersByUserId(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error)
+	GetOrdersByUserEmail(ctx context.Context, email string, status string) ([]*entity.Order, error)
+	GetOrderIdByUserId(ctx context.Context, userId alias.UserId, status string) (alias.OrderId, error)
+	GetOrderIdByUserEmail(ctx context.Context, email string, status string) (alias.OrderId, error)
 	GetFood(ctx context.Context, orderId alias.OrderId) ([]*entity.FoodInOrder, error)
 	Update(ctx context.Context, order *entity.Order) error
 	UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) error
@@ -32,6 +32,7 @@ func NewRepoLayer(dbProps *sql.DB) Repo {
 	return &RepoLayer{db: dbProps}
 }
 
+// нужно еще добавить проверку на то, есть ли такая запись в таблице уже
 func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrder string) (*entity.Order, error) {
 	res, err := repo.db.ExecContext(ctx,
 		`INSERT INTO "Order" (user_id, date_order, status) VALUES ($1, $2, $3)`, uint64(userId), dateOrder, orderStatus.Draft)
@@ -47,56 +48,71 @@ func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrde
 		return nil, errors.New("Заказ не был добавлен")
 	}
 
-	order, err := repo.GetBasketByUserId(ctx, userId)
+	orders, err := repo.GetOrdersByUserId(ctx, userId, orderStatus.Draft)
 	if err != nil {
 		return nil, err
 	}
-	return order, nil
+	return orders[0], nil
 }
 
-func (repo *RepoLayer) GetBasketByUserId(ctx context.Context, userId alias.UserId) (*entity.Order, error) {
-	row := repo.db.QueryRowContext(ctx,
+func (repo *RepoLayer) GetOrdersByUserId(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error) {
+	rows, err := repo.db.QueryContext(ctx,
 		`SELECT id, user_id, date_order, date_receiving, status, address, 
-       				extra_address, sum FROM "Order" WHERE user_id= $1 AND status=$2`, uint64(userId), orderStatus.Draft)
-	var order entity.Order
-	err := row.Scan(&order.Id, &order.UserId, &order.DateOrder, &order.DateReceiving, &order.Status, &order.Address,
-		&order.ExtraAddress, &order.Sum)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
+       				extra_address, sum FROM "Order" WHERE user_id= $1 AND status=$2`, uint64(userId), status)
 	if err != nil {
 		return nil, err
 	}
 
-	order.Food, err = repo.GetFood(ctx, alias.OrderId(order.Id))
-	if err != nil {
-		return nil, err
+	var orders []*entity.Order
+	for rows.Next() {
+		var order entity.Order
+		err = rows.Scan(&order.Id, &order.UserId, &order.DateOrder, &order.DateReceiving, &order.Status, &order.Address,
+			&order.ExtraAddress, &order.Sum)
+		if err != nil {
+			return nil, err
+		}
+
+		var foodArray []*entity.FoodInOrder
+		foodArray, err = repo.GetFood(ctx, alias.OrderId(order.Id))
+		if err != nil {
+			return nil, err
+		}
+		order.Food = foodArray
+		orders = append(orders, &order)
 	}
-	return &order, nil
+
+	return orders, nil
 }
 
-func (repo *RepoLayer) GetBasketByUserEmail(ctx context.Context, email string) (*entity.Order, error) {
-	row := repo.db.QueryRowContext(ctx,
+func (repo *RepoLayer) GetOrdersByUserEmail(ctx context.Context, email string, status string) ([]*entity.Order, error) {
+	rows, err := repo.db.QueryContext(ctx,
 		`SELECT id, user_id, date_order, date_receiving, status, address, 
-       				extra_address, sum FROM "Order" WHERE email= $1 AND status=$2`, email, orderStatus.Draft)
-	var order entity.Order
-	err := row.Scan(&order.Id, &order.UserId, &order.DateOrder, &order.DateReceiving, &order.Status, &order.Address,
-		&order.ExtraAddress, &order.Sum)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
+       				extra_address, sum FROM "Order" WHERE email= $1 AND status=$2`, email, status)
 	if err != nil {
 		return nil, err
 	}
 
-	order.Food, err = repo.GetFood(ctx, alias.OrderId(order.Id))
-	if err != nil {
-		return nil, err
+	var orders []*entity.Order
+	for rows.Next() {
+		var order entity.Order
+		err = rows.Scan(&order.Id, &order.UserId, &order.DateOrder, &order.DateReceiving, &order.Status, &order.Address,
+			&order.ExtraAddress, &order.Sum)
+		if err != nil {
+			return nil, err
+		}
+
+		var foodArray []*entity.FoodInOrder
+		foodArray, err = repo.GetFood(ctx, alias.OrderId(order.Id))
+		if err != nil {
+			return nil, err
+		}
+		order.Food = foodArray
+		orders = append(orders, &order)
 	}
-	return &order, nil
+	return orders, nil
 }
 
-func (repo *RepoLayer) GetBasketIdByUserId(ctx context.Context, userId alias.UserId) (alias.OrderId, error) {
+func (repo *RepoLayer) GetOrderIdByUserId(ctx context.Context, userId alias.UserId, status string) (alias.OrderId, error) {
 	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "Order" WHERE user_id= $1 AND status=$2`, uint64(userId), orderStatus.Draft)
 	var orderId uint64
 	err := row.Scan(&orderId)
@@ -109,7 +125,7 @@ func (repo *RepoLayer) GetBasketIdByUserId(ctx context.Context, userId alias.Use
 	return alias.OrderId(orderId), nil
 }
 
-func (repo *RepoLayer) GetBasketIdByUserEmail(ctx context.Context, email string) (alias.OrderId, error) {
+func (repo *RepoLayer) GetOrderIdByUserEmail(ctx context.Context, email string, status string) (alias.OrderId, error) {
 	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "Order" WHERE email= $1 AND status=$2`, email, orderStatus.Draft)
 	var orderId uint64
 	err := row.Scan(&orderId)
@@ -146,8 +162,8 @@ func (repo *RepoLayer) GetFood(ctx context.Context, orderId alias.OrderId) ([]*e
 
 func (repo *RepoLayer) Update(ctx context.Context, order *entity.Order) error {
 	res, err := repo.db.ExecContext(ctx,
-		`UPDATE "Order" SET date_receiving=$1, address=$2, extra_address=$3 
-               WHERE order_id=$4`, order.DateReceiving, order.Address, order.ExtraAddress)
+		`UPDATE "Order" SET date_receiving=$1, status=$2, address=$3, extra_address=$4, sum=$5 
+               WHERE order_id=$4`, order.DateReceiving, order.Status, order.Address, order.ExtraAddress, order.Sum)
 	if err != nil {
 		return err
 	}

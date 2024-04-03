@@ -9,7 +9,7 @@ import (
 )
 
 type Usecase interface {
-	GetByRest(ctx context.Context, restId alias.RestId) ([]*entity.Food, error)
+	GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error)
 	GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error)
 }
 
@@ -21,7 +21,7 @@ func NewUsecaseLayer(repoFoodProps food.Repo) Usecase {
 	return &UsecaseLayer{repoFood: repoFoodProps}
 }
 
-func (uc *UsecaseLayer) GetByRest(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
+func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
 	return uc.repoFood.GetByRestId(ctx, restId)
 }
 

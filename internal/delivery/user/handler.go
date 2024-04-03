@@ -3,6 +3,7 @@ package user
 import (
 	"net/http"
 
+	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/user"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
@@ -32,7 +33,6 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uDTO := functions.ConvIntoUserDTO(u)
-
+	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
 }

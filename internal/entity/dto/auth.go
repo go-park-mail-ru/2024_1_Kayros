@@ -1,6 +1,8 @@
 package dto
 
-import "github.com/asaskevich/govalidator"
+import (
+	"github.com/asaskevich/govalidator"
+)
 
 // SignIn структура данных, получаемая с формы авторизации
 type SignIn struct {

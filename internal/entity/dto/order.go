@@ -36,3 +36,40 @@ func NewOrder(order *entity.Order) *Order {
 		Food:          foodInOrder,
 	}
 }
+
+func NewOrders(orderArray []*entity.Order) []*Order {
+	orderDTOArray := make([]*Order, 0, len(orderArray)+1)
+	for _, order := range orderArray {
+		food := order.Food
+		foodInOrder := NewFoodArray(food)
+		orderDTO := &Order{
+			Id:            order.Id,
+			UserId:        order.UserId,
+			DateOrder:     order.DateOrder,
+			DateReceiving: order.DateReceiving,
+			Status:        order.Status,
+			Address:       order.Address,
+			ExtraAddress:  order.ExtraAddress,
+			Sum:           order.Sum,
+			Food:          foodInOrder,
+		}
+		orderDTOArray = append(orderDTOArray, orderDTO)
+	}
+	return orderDTOArray
+}
+
+func NewOrderFromDTO(order *Order) *entity.Order {
+	food := order.Food
+	foodInOrder := NewFoodArrayFromDTO(food)
+	return &entity.Order{
+		Id:            order.Id,
+		UserId:        order.UserId,
+		DateOrder:     order.DateOrder,
+		DateReceiving: order.DateReceiving,
+		Status:        order.Status,
+		Address:       order.Address,
+		ExtraAddress:  order.ExtraAddress,
+		Sum:           order.Sum,
+		Food:          foodInOrder,
+	}
+}

@@ -3,6 +3,7 @@ package restaurants
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
@@ -45,6 +46,9 @@ func (repo *RepoLayer) GetById(ctx context.Context, restId alias.RestId) (*entit
 		`SELECT id, name, short_description, long_description, address, img_url FROM "Restaurant" WHERE id=$1`, uint64(restId))
 	rest := entity.Restaurant{}
 	err := row.Scan(&rest.Id, &rest.Name, &rest.LongDescription, &rest.ImgUrl)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"2024_1_kayros/internal/utils/alias"
@@ -11,7 +12,7 @@ import (
 type Repo interface {
 	GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error)
 	SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error
-	DeleteKey(ctx context.Context, key alias.SessionKey) error
+	DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error)
 }
 
 type RepoLayer struct {
@@ -43,10 +44,13 @@ func (repo *RepoLayer) SetValue(ctx context.Context, key alias.SessionKey, value
 	return nil
 }
 
-func (repo *RepoLayer) DeleteKey(ctx context.Context, key alias.SessionKey) error {
+func (repo *RepoLayer) DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error) {
 	err := repo.redis.Del(ctx, string(key)).Err()
-	if err != nil {
-		return err
+	if errors.Is(err, redis.Nil) {
+		return false, nil
 	}
-	return nil
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }

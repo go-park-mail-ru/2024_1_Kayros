@@ -3,10 +3,10 @@ package auth
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
-	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/usecase/user"
@@ -42,14 +42,17 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var bodyDataDTO dto.SignUpDTO
+	var bodyDataDTO dto.SignUp
 	err = json.Unmarshal(requestBody, &bodyDataDTO)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
 
-	isValid := bodyDataDTO.Validate()
+	isValid, err := bodyDataDTO.Validate()
+	if err != nil {
+		log.Println(err.Error())
+	}
 	if !isValid {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
@@ -61,19 +64,12 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-
 	if isExist {
 		w = functions.ErrorResponse(w, myerrors.UserAlreadyExistError, http.StatusBadRequest)
 		return
 	}
 
-	u := &entity.User{
-		Name:     bodyDataDTO.Name,
-		Email:    bodyDataDTO.Email,
-		Password: bodyDataDTO.Password,
-	}
-
-	// получили данные пользователя из БД
+	u := dto.NewUserFromSignUp(&bodyDataDTO)
 	u, err = d.ucUser.Create(r.Context(), u)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -81,7 +77,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionId := uuid.NewV4().String()
-	_, err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId), alias.SessionValue(bodyDataDTO.Email))
+	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId), alias.SessionValue(bodyDataDTO.Email))
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
@@ -97,7 +93,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 
-	uDTO := dto.NewUserDTO(u)
+	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
 	return
 }
@@ -117,14 +113,17 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var bodyDTO dto.SignInDTO
+	var bodyDTO dto.SignIn
 	err = json.Unmarshal(body, &bodyDTO)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
 
-	isValid := bodyDTO.Validate()
+	isValid, err := bodyDTO.Validate()
+	if err != nil {
+		log.Println(err.Error())
+	}
 	if !isValid {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
@@ -153,14 +152,14 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, &cookie)
 
-		_, err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(u.Email))
+		err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(u.Email))
 		if err != nil {
 			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 			return
 		}
 
 		// Собираем ответ
-		uDTO := dto.NewUserDTO(u)
+		uDTO := dto.NewUser(u)
 		w = functions.JsonResponse(w, uDTO)
 		return
 	}
@@ -180,9 +179,13 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = d.ucSession.DeleteKey(r.Context(), alias.SessionKey(sessionCookie.Value))
+	wasDeleted, err := d.ucSession.DeleteKey(r.Context(), alias.SessionKey(sessionCookie.Value))
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	if !wasDeleted {
+		log.Println("Ключа в базе данных не было при удалении")
 	}
 
 	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)

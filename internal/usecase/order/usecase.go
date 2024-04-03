@@ -11,10 +11,10 @@ import (
 )
 
 type Usecase interface {
-	GetBasketByUserEmail(ctx context.Context, email string) (*entity.Order, error)
-	GetBasketByUserId(ctx context.Context, userId alias.UserId) (*entity.Order, error)
-	GetBasketIdByUserId(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
-	GetBasketIdByUserEmail(ctx context.Context, email string) (alias.OrderId, error)
+	GetOrdersByUserEmail(ctx context.Context, email string, status string) ([]*entity.Order, error)
+	GetOrdersByUserId(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error)
+	GetOrderIdByUserId(ctx context.Context, userId alias.UserId, status string) (alias.OrderId, error)
+	GetOrderIdByUserEmail(ctx context.Context, email string, status string) (alias.OrderId, error)
 	Create(ctx context.Context, email string) (*entity.Order, error)
 	Update(ctx context.Context, order *entity.Order) error
 	UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) error
@@ -35,20 +35,20 @@ func NewUsecaseLayer(repoOrderProps order.Repo, repoUserProps user.Repo) Usecase
 	}
 }
 
-func (uc *UsecaseLayer) GetBasketByUserEmail(ctx context.Context, email string) (*entity.Order, error) {
-	return uc.repoOrder.GetBasketByUserEmail(ctx, email)
+func (uc *UsecaseLayer) GetOrdersByUserEmail(ctx context.Context, email string, status string) ([]*entity.Order, error) {
+	return uc.repoOrder.GetOrdersByUserEmail(ctx, email, status)
 }
 
-func (uc *UsecaseLayer) GetBasketByUserId(ctx context.Context, userId alias.UserId) (*entity.Order, error) {
-	return uc.repoOrder.GetBasketByUserId(ctx, userId)
+func (uc *UsecaseLayer) GetOrdersByUserId(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error) {
+	return uc.repoOrder.GetOrdersByUserId(ctx, userId, status)
 }
 
-func (uc *UsecaseLayer) GetBasketIdByUserId(ctx context.Context, userId alias.UserId) (alias.OrderId, error) {
-	return uc.repoOrder.GetBasketIdByUserId(ctx, userId)
+func (uc *UsecaseLayer) GetOrderIdByUserId(ctx context.Context, userId alias.UserId, status string) (alias.OrderId, error) {
+	return uc.repoOrder.GetOrderIdByUserId(ctx, userId, status)
 }
 
-func (uc *UsecaseLayer) GetBasketIdByUserEmail(ctx context.Context, email string) (alias.OrderId, error) {
-	return uc.repoOrder.GetBasketIdByUserEmail(ctx, email)
+func (uc *UsecaseLayer) GetOrderIdByUserEmail(ctx context.Context, email string, status string) (alias.OrderId, error) {
+	return uc.repoOrder.GetOrderIdByUserEmail(ctx, email, status)
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, email string) (*entity.Order, error) {
@@ -57,17 +57,17 @@ func (uc *UsecaseLayer) Create(ctx context.Context, email string) (*entity.Order
 		return nil, err
 	}
 
-	currentTime := time.Now()
-	currentTimeSQL := currentTime.Format("2024-04-02 23:34:54")
-	ord, err := uc.repoOrder.Create(ctx, alias.UserId(u.Id), currentTimeSQL)
+	dateOrder := time.Now()
+	dateOrderForDB := dateOrder.Format("2024-04-02 23:34:54")
+	ord, err := uc.repoOrder.Create(ctx, alias.UserId(u.Id), dateOrderForDB)
 	if err != nil {
 		return nil, err
 	}
 	return ord, err
-
 }
 
 func (uc *UsecaseLayer) Update(ctx context.Context, order *entity.Order) error {
+
 	return uc.repoOrder.Update(ctx, order)
 }
 
