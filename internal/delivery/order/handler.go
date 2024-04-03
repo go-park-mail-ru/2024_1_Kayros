@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
-	orderStatus "2024_1_kayros/internal/utils/constants"
 	"github.com/gorilla/mux"
 
 	"2024_1_kayros/internal/entity/dto"
@@ -15,76 +15,98 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 )
 
-type Delivery struct {
-	ucOrder ucOrder.Usecase
+type OrderHandler struct {
+	uc ucOrder.UseCaseInterface
 }
 
-func NewDeliveryLayer(ucOrderProps ucOrder.Usecase) *Delivery {
-	return &Delivery{ucOrder: ucOrderProps}
+func NewOrderHandler(u ucOrder.UseCaseInterface) *OrderHandler {
+	return &OrderHandler{uc: u}
 }
 
-func (d *Delivery) GetOrders(w http.ResponseWriter, r *http.Request) {
+type FoodOrder struct {
+	FoodId int `json:"food_id"`
+	Count  int `json:"count"`
+}
+
+// GET - ok
+
+func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	email := r.Context().Value("email")
-	if email == nil {
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
-		return
-	}
-
-	status := r.URL.Query().Get("status")
-	if status == "" {
-		status = orderStatus.Draft
-	}
-	basket, err := d.ucOrder.GetOrdersByUserEmail(r.Context(), email.(string), status)
+	email := r.Context().Value("email").(string)
+	order, err := h.uc.GetBasket(r.Context(), email)
 	if err != nil {
-		w = functions.ErrorResponse(w, myerrors.NotFoundError, http.StatusNotFound)
+		w = functions.ErrorResponse(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	basketDTO := dto.NewOrders(basket)
-	w = functions.JsonResponse(w, basketDTO)
+	food := make([]*dto.FoodInOrder, len(order.Food))
+	food = dto.NewFoodArray(food, order.Food)
+	orderDTO := dto.OrderToDTO(order, food)
+	body, err := json.Marshal(orderDTO)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	_, err = w.Write(body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+
 }
 
-// PUT - ok
-func (d *Delivery) Update(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	email := r.Context().Value("email")
-	if email == nil {
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
-		return
-	}
+//PUT - ok
 
+func (h *OrderHandler) Update(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var order *dto.Order
+	email := r.Context().Value("email").(string)
+	basket, err := h.uc.GetBasket(r.Context(), email)
 	body, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
 	if err != nil {
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusUnauthorized)
 		return
 	}
-
-	var orderDTO *dto.Order
-	err = json.Unmarshal(body, &orderDTO)
+	if err = r.Body.Close(); err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusUnauthorized)
+		return
+	}
+	err = json.Unmarshal(body, &order)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-
-	isValid, err := orderDTO.Validate()
+	dateOrder, err := time.Parse("2003-03-03 03:03:03", basket.DateOrder)
+	dateNew, err := time.Parse("2003-03-03 03:03:03", order.DateReceiving)
+	if dateOrder.Before(dateNew) {
+		basket.DateReceiving = order.DateReceiving
+		basket.Address = order.Address
+		basket.ExtraAddress = order.ExtraAddress
+	} else {
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusUnauthorized)
+		return
+	}
+	basket, err = h.uc.Update(r.Context(), basket)
+	if err != nil {
+		w = functions.ErrorResponse(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	food := make([]*dto.FoodInOrder, len(basket.Food))
+	food = dto.NewFoodArray(food, basket.Food)
+	orderDTO := dto.OrderToDTO(basket, food)
+	jsonResponse, err := json.Marshal(orderDTO)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	if !isValid {
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
-		return
-	}
-
-	order := dto.NewOrderFromDTO(orderDTO)
-	err = d.ucOrder.Update(r.Context(), order)
+	_, err = w.Write(jsonResponse)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w, "Данные успешно обновлены")
+	w.WriteHeader(http.StatusOK)
 }
 
 // POST-ok
