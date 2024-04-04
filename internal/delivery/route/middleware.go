@@ -9,17 +9,19 @@ import (
 	ucSession "2024_1_kayros/internal/usecase/session"
 	ucUser "2024_1_kayros/internal/usecase/user"
 	"github.com/gorilla/mux"
+	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
-func AddMiddleware(db *sql.DB, client *redis.Client, mux *mux.Router) {
-	repoUser := rUser.NewRepoLayer(db)
-	repoSession := rSession.NewRepoLayer(client)
+func AddMiddleware(db *sql.DB, redisClient *redis.Client, minioClient *minio.Client, mux *mux.Router, logger *zap.Logger) {
+	repoUser := rUser.NewRepoLayer(db, minioClient, logger)
+	repoSession := rSession.NewRepoLayer(redisClient, logger)
 
-	usecaseUser := ucUser.NewUsecaseLayer(repoUser)
-	usecaseSession := ucSession.NewUsecaseLayer(repoSession)
+	usecaseUser := ucUser.NewUsecaseLayer(repoUser, logger)
+	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
 
 	// цепочка middlewares
-	handler := middleware.SessionAuthenticationMiddleware(mux, usecaseUser, usecaseSession)
-	handler = middleware.CorsMiddleware(handler)
+	handler := middleware.SessionAuthenticationMiddleware(mux, usecaseUser, usecaseSession, logger)
+	handler = middleware.CorsMiddleware(handler, logger)
 }

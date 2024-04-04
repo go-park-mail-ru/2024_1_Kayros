@@ -5,9 +5,10 @@ import (
 
 	"2024_1_kayros/internal/utils/regex"
 	"github.com/asaskevich/govalidator"
+	"go.uber.org/zap"
 )
 
-func InitValidator() {
+func InitValidator(logger *zap.Logger) {
 	govalidator.SetFieldsRequiredByDefault(true)
 
 	// Добавим тег валидации для пароля
@@ -44,4 +45,6 @@ func InitValidator() {
 	govalidator.TagMap["user_phone"] = func(phone string) bool {
 		return regex.RegexPhone.MatchString(phone)
 	}
+
+	logger.Info("Кастомные теги созданы")
 }

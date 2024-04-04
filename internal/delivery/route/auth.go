@@ -9,18 +9,19 @@ import (
 	ucSession "2024_1_kayros/internal/usecase/session"
 	ucUser "2024_1_kayros/internal/usecase/user"
 	"github.com/gorilla/mux"
+	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
-// нужно будет добавить интерфейс к БД и редису
-func AddAuthRouter(db *sql.DB, client *redis.Client, mux *mux.Router) {
-	repoUser := rUser.NewRepoLayer(db)
-	repoSession := rSession.NewRepoLayer(client)
+func AddAuthRouter(db *sql.DB, clientRedis *redis.Client, clientMinio *minio.Client, mux *mux.Router, logger *zap.Logger) {
+	repoUser := rUser.NewRepoLayer(db, clientMinio, logger)
+	repoSession := rSession.NewRepoLayer(clientRedis, logger)
 
-	usecaseUser := ucUser.NewUsecaseLayer(repoUser)
-	usecaseSession := ucSession.NewUsecaseLayer(repoSession)
+	usecaseUser := ucUser.NewUsecaseLayer(repoUser, logger)
+	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
 
-	deliveryAuth := dAuth.NewDeliveryLayer(usecaseSession, usecaseUser)
+	deliveryAuth := dAuth.NewDeliveryLayer(usecaseSession, usecaseUser, logger)
 
 	mux.HandleFunc("signin", deliveryAuth.SignIn).Methods("POST").Name("signin")
 	mux.HandleFunc("signup", deliveryAuth.SignUp).Methods("POST").Name("signup")

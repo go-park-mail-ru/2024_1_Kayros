@@ -8,6 +8,7 @@ import (
 	"2024_1_kayros/internal/repository/order"
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
+	"go.uber.org/zap"
 )
 
 type Usecase interface {
@@ -26,12 +27,14 @@ type Usecase interface {
 type UsecaseLayer struct {
 	repoOrder order.Repo
 	repoUser  user.Repo
+	logger    *zap.Logger
 }
 
-func NewUsecaseLayer(repoOrderProps order.Repo, repoUserProps user.Repo) Usecase {
+func NewUsecaseLayer(repoOrderProps order.Repo, repoUserProps user.Repo, loggerProps *zap.Logger) Usecase {
 	return &UsecaseLayer{
 		repoOrder: repoOrderProps,
 		repoUser:  repoUserProps,
+		logger:    loggerProps,
 	}
 }
 

@@ -2,45 +2,41 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/route"
 	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/services/minio"
 	"2024_1_kayros/services/postgres"
 	"2024_1_kayros/services/redis"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 // Run создает все сервисы приложения и запускает их
-func Run(cfg *config.Project) {
-	functions.InitValidator()
-	// вот тут вот нужно создать редис, минио
-	// ....
-	postgreDB, err := postgres.Init(cfg)
-	if err != nil {
-		log.Printf("Не удалось подключиться к базе данных %s по адресу %s:%d\n%s\n",
-			cfg.Postgres.Database, cfg.Postgres.Host, cfg.Postgres.Port, err)
-		return
-	}
+func Run(cfg *config.Project, logger *zap.Logger) {
+	functions.InitValidator(logger)
 
-	redisDB, err := redis.Init(cfg)
+	postgreDB := postgres.Init(cfg, logger)
+	redisDB := redis.Init(cfg, logger)
+	minioDB := minio.Init(cfg, logger)
 
 	r := mux.NewRouter()
-	route.Setup(postgreDB, redisDB, r)
+	route.Setup(postgreDB, redisDB, minioDB, r, logger)
 
-	srvConfig := cfg.Server
-	srvAddress := srvConfig.Host + ":" + strconv.Itoa(srvConfig.Port)
+	serverConfig := cfg.Server
+	serverAddress := fmt.Sprintf("%s:%d", serverConfig.Host, cfg.Server.Port)
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         srvAddress,
-		WriteTimeout: srvConfig.WriteTimeout, // таймаут на запись данных в ответ на запрос
-		ReadTimeout:  srvConfig.ReadTimeout,  // таймаут на чтение данных из запроса
-		IdleTimeout:  srvConfig.IdleTimeout,  // время поддержания связи между клиентом и сервером
+		Addr:         serverAddress,
+		WriteTimeout: serverConfig.WriteTimeout, // таймаут на запись данных в ответ на запрос
+		ReadTimeout:  serverConfig.ReadTimeout,  // таймаут на чтение данных из запроса
+		IdleTimeout:  serverConfig.IdleTimeout,  // время поддержания связи между клиентом и сервером
 	}
 
 	go func() {
