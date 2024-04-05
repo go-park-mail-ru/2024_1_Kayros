@@ -39,6 +39,7 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 		IdleTimeout:  serverConfig.IdleTimeout,  // время поддержания связи между клиентом и сервером
 	}
 
+	srvConfig := cfg.Server
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			log.Printf("Сервер не может быть запущен.\n%v", err)
@@ -55,7 +56,7 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 	ctx, cancel := context.WithTimeout(context.Background(), srvConfig.ShutdownDuration)
 	defer cancel()
 
-	err = srv.Shutdown(ctx)
+	err := srv.Shutdown(ctx)
 	if err != nil {
 		log.Printf("Сервер экстренно завершил свою работу с ошибкой.\n%v", err)
 		os.Exit(1) //

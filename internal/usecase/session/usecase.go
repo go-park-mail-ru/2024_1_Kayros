@@ -31,7 +31,7 @@ func NewUsecaseLayer(repoSessionProps session.Repo, loggerProps *zap.Logger) Use
 func (uc *UsecaseLayer) GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error) {
 	methodName := cnst.NameMethodSetValue
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	value, err := uc.repoSession.GetValue(ctx, key)
+	value, err := uc.repoSession.GetValue(ctx, key, requestId)
 	if err == nil {
 		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
 	} else {
@@ -43,7 +43,7 @@ func (uc *UsecaseLayer) GetValue(ctx context.Context, key alias.SessionKey) (ali
 func (uc *UsecaseLayer) SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error {
 	methodName := cnst.NameMethodSetValue
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoSession.SetValue(ctx, key, value)
+	err := uc.repoSession.SetValue(ctx, key, value, requestId)
 	if err == nil {
 		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
 	} else {
@@ -55,7 +55,7 @@ func (uc *UsecaseLayer) SetValue(ctx context.Context, key alias.SessionKey, valu
 func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error) {
 	methodName := cnst.NameMethodSetValue
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	wasDeleted, err := uc.repoSession.DeleteKey(ctx, key)
+	wasDeleted, err := uc.repoSession.DeleteKey(ctx, key, requestId)
 	if err == nil {
 		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
 	} else {
