@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
 )
+
+const NoRestError = "Такого ресторана нет"
 
 type Repo interface {
 	GetAll(ctx context.Context) ([]*entity.Restaurant, error)
@@ -44,13 +47,13 @@ func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 func (repo *RepoLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT id, name, short_description, long_description, address, img_url FROM "Restaurant" WHERE id=$1`, uint64(restId))
-	rest := entity.Restaurant{}
+	var rest *entity.Restaurant
 	err := row.Scan(&rest.Id, &rest.Name, &rest.LongDescription, &rest.ImgUrl)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+		return nil, fmt.Errorf(NoRestError)
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &rest, nil
+	return rest, nil
 }

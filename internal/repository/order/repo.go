@@ -4,20 +4,29 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
 	orderStatus "2024_1_kayros/internal/utils/constants"
 )
 
+const (
+	CreateError          = "Не удалось создать заказ"
+	NoBasketError        = "У пользователя нет корзины"
+	NotUpdateError       = "Данные о заказе не были обновлены"
+	NotUpdateStatusError = "Статус заказа не был обновлен"
+	NotAddFood           = "Блюдо не добавлено в заказ"
+	NotDeleteFood        = "Блюдо не удалено из заказа"
+)
+
 type Repo interface {
-	Create(ctx context.Context, userId alias.UserId, dateOrder string) (*entity.Order, error)
-	GetOrdersByUserId(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error)
-	GetOrdersByUserEmail(ctx context.Context, email string, status string) ([]*entity.Order, error)
-	GetOrderIdByUserId(ctx context.Context, userId alias.UserId, status string) (alias.OrderId, error)
-	GetOrderIdByUserEmail(ctx context.Context, email string, status string) (alias.OrderId, error)
+	Create(ctx context.Context, userId alias.UserId, dateOrder string) (alias.OrderId, error)
+	GetOrders(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error)
+	GetBasketId(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
+	GetOrderById(ctx context.Context, orderId alias.OrderId) (*entity.Order, error)
 	GetFood(ctx context.Context, orderId alias.OrderId) ([]*entity.FoodInOrder, error)
-	Update(ctx context.Context, order *entity.Order) error
+	Update(ctx context.Context, order *entity.Order) (alias.OrderId, error)
 	UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) error
 	AddToOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
 	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
@@ -33,90 +42,77 @@ func NewRepoLayer(dbProps *sql.DB) Repo {
 }
 
 // нужно еще добавить проверку на то, есть ли такая запись в таблице уже
-func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrder string) (*entity.Order, error) {
-	res, err := repo.db.ExecContext(ctx,
-		`INSERT INTO "Order" (user_id, date_order, status) VALUES ($1, $2, $3)`, uint64(userId), dateOrder, orderStatus.Draft)
-	if err != nil {
-		return nil, err
-	}
 
+// ok
+func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrder string) (alias.OrderId, error) {
+	res, err := repo.db.ExecContext(ctx,
+		`INSERT INTO Order (user_id, date_order, status) VALUES ($1, $2, $3)`, uint64(userId), dateOrder, orderStatus.Draft)
+	if err != nil {
+		return 0, err
+	}
 	countRows, err := res.RowsAffected()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	if countRows == 0 {
-		return nil, errors.New("Заказ не был добавлен")
+		return 0, fmt.Errorf(CreateError)
 	}
-
-	orders, err := repo.GetOrdersByUserId(ctx, userId, orderStatus.Draft)
+	id, err := res.LastInsertId()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return orders[0], nil
+	return alias.OrderId(id), err
 }
 
-func (repo *RepoLayer) GetOrdersByUserId(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error) {
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, user_id, date_order, date_receiving, status, address, 
-       				extra_address, sum FROM "Order" WHERE user_id= $1 AND status=$2`, uint64(userId), status)
+// ok
+func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error) {
+	rows, err := repo.db.QueryContext(ctx, `SELECT id, user_id, date_order, date_receiving, status, address, 
+       				extra_address, sum FROM Order WHERE user_id= $1 AND status=$2`, uint64(userId), status)
 	if err != nil {
 		return nil, err
 	}
-
 	var orders []*entity.Order
 	for rows.Next() {
-		var order entity.Order
+		var order *entity.Order
 		err = rows.Scan(&order.Id, &order.UserId, &order.DateOrder, &order.DateReceiving, &order.Status, &order.Address,
 			&order.ExtraAddress, &order.Sum)
 		if err != nil {
 			return nil, err
 		}
-
 		var foodArray []*entity.FoodInOrder
 		foodArray, err = repo.GetFood(ctx, alias.OrderId(order.Id))
 		if err != nil {
 			return nil, err
 		}
 		order.Food = foodArray
-		orders = append(orders, &order)
+		orders = append(orders, order)
 	}
-
 	return orders, nil
 }
 
-func (repo *RepoLayer) GetOrdersByUserEmail(ctx context.Context, email string, status string) ([]*entity.Order, error) {
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, user_id, date_order, date_receiving, status, address, 
-       				extra_address, sum FROM "Order" WHERE email= $1 AND status=$2`, email, status)
+// ok
+func (repo *RepoLayer) GetOrderById(ctx context.Context, orderId alias.OrderId) (*entity.Order, error) {
+	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, date_order, date_receiving, status, address, 
+       				extra_address, sum FROM Order WHERE id= $1`, uint64(orderId))
+	var order *entity.Order
+	err := row.Scan(&order.Id, &order.UserId, &order.DateOrder, &order.DateReceiving, &order.Status, &order.Address,
+		&order.ExtraAddress, &order.Sum)
 	if err != nil {
+
 		return nil, err
 	}
-
-	var orders []*entity.Order
-	for rows.Next() {
-		var order entity.Order
-		err = rows.Scan(&order.Id, &order.UserId, &order.DateOrder, &order.DateReceiving, &order.Status, &order.Address,
-			&order.ExtraAddress, &order.Sum)
-		if err != nil {
-			return nil, err
-		}
-
-		var foodArray []*entity.FoodInOrder
-		foodArray, err = repo.GetFood(ctx, alias.OrderId(order.Id))
-		if err != nil {
-			return nil, err
-		}
-		order.Food = foodArray
-		orders = append(orders, &order)
-	}
-	return orders, nil
+	foodArray, err := repo.GetFood(ctx, orderId)
+	order.Food = foodArray
+	return order, nil
 }
 
-func (repo *RepoLayer) GetOrderIdByUserId(ctx context.Context, userId alias.UserId, status string) (alias.OrderId, error) {
-	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "Order" WHERE user_id= $1 AND status=$2`, uint64(userId), orderStatus.Draft)
+// ok
+func (repo *RepoLayer) GetBasketId(ctx context.Context, userId alias.UserId) (alias.OrderId, error) {
+	row := repo.db.QueryRowContext(ctx, "SELECT id FROM Order WHERE user_id= $1 AND status=$2", uint64(userId), orderStatus.Draft)
 	var orderId uint64
 	err := row.Scan(&orderId)
 	if errors.Is(err, sql.ErrNoRows) {
+		//return 0, fmt.Errorf(NoBasketError)
 		return 0, nil
 	}
 	if err != nil {
@@ -125,24 +121,12 @@ func (repo *RepoLayer) GetOrderIdByUserId(ctx context.Context, userId alias.User
 	return alias.OrderId(orderId), nil
 }
 
-func (repo *RepoLayer) GetOrderIdByUserEmail(ctx context.Context, email string, status string) (alias.OrderId, error) {
-	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "Order" WHERE email= $1 AND status=$2`, email, orderStatus.Draft)
-	var orderId uint64
-	err := row.Scan(&orderId)
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, nil
-	}
-	if err != nil {
-		return 0, err
-	}
-	return alias.OrderId(orderId), nil
-}
-
+// ok
 func (repo *RepoLayer) GetFood(ctx context.Context, orderId alias.OrderId) ([]*entity.FoodInOrder, error) {
 	rows, err := repo.db.QueryContext(ctx,
 		`SELECT f.id, f.name, f.weight, f.price, fo.count, f.img_url
-				FROM "FoodOrder" AS fo
-				JOIN "Food" AS f ON fo.food_id = f.id
+				FROM FoodOrder AS fo
+				JOIN Food AS f ON fo.food_id = f.id
 				WHERE fo.order_id = $1`, uint64(orderId))
 	if err != nil {
 		return nil, err
@@ -160,87 +144,126 @@ func (repo *RepoLayer) GetFood(ctx context.Context, orderId alias.OrderId) ([]*e
 	return foodArray, nil
 }
 
-func (repo *RepoLayer) Update(ctx context.Context, order *entity.Order) error {
+// ok
+func (repo *RepoLayer) Update(ctx context.Context, order *entity.Order) (alias.OrderId, error) {
 	res, err := repo.db.ExecContext(ctx,
-		`UPDATE "Order" SET date_receiving=$1, status=$2, address=$3, extra_address=$4, sum=$5 
-               WHERE order_id=$4`, order.DateReceiving, order.Status, order.Address, order.ExtraAddress, order.Sum)
+		`UPDATE Order SET date_receiving=$1, address=$3, extra_address=$4, sum=$5 
+               WHERE order_id=$4`, order.DateReceiving, order.Address, order.ExtraAddress, order.Sum)
 	if err != nil {
-		return err
+		return 0, err
 	}
-
 	countRows, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if countRows == 0 {
-		return errors.New("Данные о заказе не были обновлены")
+		return 0, fmt.Errorf(NotUpdateError)
 	}
-	return nil
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return alias.OrderId(id), err
 }
 
+// ok
 func (repo *RepoLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) error {
 	res, err := repo.db.ExecContext(ctx, `UPDATE "Order" SET status=$1 WHERE order_id=$2`, status, uint64(orderId))
 	if err != nil {
 		return err
 	}
-
 	countRows, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
 	if countRows == 0 {
-		return errors.New("Статус заказа не был обновлён")
+		return fmt.Errorf(NotUpdateStatusError)
 	}
 	return nil
 }
 
+// ok
 func (repo *RepoLayer) AddToOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error {
 	res, err := repo.db.ExecContext(ctx,
 		`INSERT INTO "FoodOrder" (order_id, food_id, count) VALUES ($1, $2, $3)`, uint64(orderId), uint64(foodId), count)
 	if err != nil {
 		return err
 	}
-
 	countRows, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
 	if countRows == 0 {
-		return errors.New("Блюдо не было добавлено в заказ")
+		return fmt.Errorf(NotAddFood)
 	}
-	return err
+
+	var sum uint64
+	row := repo.db.QueryRowContext(ctx,
+		`SELECT sum FROM Order WHERE order_id=$1`, uint64(orderId))
+	if err != nil {
+		return err
+	}
+	err = row.Scan(&sum)
+	if err != nil {
+		return err
+	}
+
+	var price uint64
+	row = repo.db.QueryRowContext(ctx,
+		`SELECT price FROM Food WHERE food_id=$1`, uint64(foodId))
+	if err != nil {
+		return err
+	}
+	err = row.Scan(&price)
+	if err != nil {
+		return err
+	}
+
+	res, err = repo.db.ExecContext(ctx,
+		`UPDATE Order SET sum=$1`, sum+price)
+	if err != nil {
+		return err
+	}
+	countRows, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return fmt.Errorf(NotAddFood)
+	}
+	return nil
 }
 
+// ok
 func (repo *RepoLayer) UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error {
 	res, err := repo.db.ExecContext(ctx,
-		`UPDATE "FoodOrder" SET count=$1 WHERE order_id=$2 AND food_id=$3`, count, uint64(orderId), uint64(foodId))
+		`UPDATE FoodOrder SET count=$1 WHERE order_id=$2 AND food_id=$3`, count, uint64(orderId), uint64(foodId))
 	if err != nil {
 		return err
 	}
-
 	countRows, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
 	if countRows == 0 {
-		return errors.New("Блюдо не было добавлено в заказ")
+		return fmt.Errorf(NotAddFood)
 	}
 	return err
 }
 
+// ok
 func (repo *RepoLayer) DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) error {
 	res, err := repo.db.ExecContext(ctx,
-		`DELETE FROM "FoodOrder" WHERE order_id=$1 AND food_id=$2`, uint64(orderId), uint64(foodId))
+		`DELETE FROM FoodOrder WHERE order_id=$1 AND food_id=$2`, uint64(orderId), uint64(foodId))
 	if err != nil {
 		return err
 	}
-
 	countRows, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
 	if countRows == 0 {
-		return errors.New("Блюдо не было удалено из заказа")
+		return fmt.Errorf(NotDeleteFood)
 	}
 	return err
 }

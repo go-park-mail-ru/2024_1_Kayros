@@ -14,6 +14,7 @@ func Setup(db *sql.DB, redis *redis.Client, mux *mux.Router) {
 	AddAuthRouter(db, redis, mux)
 	AddRestRouter(db, mux)
 	AddUserRouter(db, mux)
+	AddOrderRouter(db, mux)
 
 	AddMiddleware(db, redis, mux)
 }

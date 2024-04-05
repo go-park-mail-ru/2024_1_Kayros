@@ -8,25 +8,29 @@ import (
 	"github.com/gorilla/mux"
 
 	"2024_1_kayros/internal/entity/dto"
+	foodRepo "2024_1_kayros/internal/repository/food"
+	"2024_1_kayros/internal/repository/restaurants"
 	foodUc "2024_1_kayros/internal/usecase/food"
 	restUc "2024_1_kayros/internal/usecase/restaurants"
+	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/internal/utils/myerrors"
 )
 
 type RestaurantAndFoodDTO struct {
-	Id              uint64         `json:"id" valid:"-"`
-	Name            string         `json:"name" valid:"-"`
-	LongDescription string         `json:"long_description" valid:"-"`
-	ImgUrl          string         `json:"img_url" valid:"url"`
-	Food            []*dto.FoodDTO `json:"food"`
+	Id              uint64      `json:"id" valid:"-"`
+	Name            string      `json:"name" valid:"-"`
+	LongDescription string      `json:"long_description" valid:"-"`
+	ImgUrl          string      `json:"img_url" valid:"url"`
+	Food            []*dto.Food `json:"food"`
 }
 
 type RestaurantHandler struct {
-	ucRest restUc.UseCaseInterface
-	ucFood foodUc.UseCaseInterface
+	ucRest restUc.Usecase
+	ucFood foodUc.Usecase
 }
 
-func NewRestaurantHandler(ucr restUc.UseCaseInterface, ucf foodUc.UseCaseInterface) *RestaurantHandler {
+func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase) *RestaurantHandler {
 	return &RestaurantHandler{ucRest: ucr, ucFood: ucf}
 }
 
@@ -34,24 +38,18 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	rests, err := h.ucRest.GetAll(r.Context())
 	if err != nil {
-		w = functions.ErrorResponse(w, err.Error(), http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	var restsDTO []*dto.RestaurantDTO
-	for i := range rests {
-		restsDTO[i].Id = rests[i].Id
-		restsDTO[i].Name = rests[i].Name
-		restsDTO[i].ShortDescription = rests[i].ShortDescription
-		restsDTO[i].ImgUrl = rests[i].ImgUrl
-	}
+	restsDTO := dto.NewRestaurantArray(rests)
 	body, err := json.Marshal(restsDTO)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	_, err = w.Write(body)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -60,37 +58,34 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
-	rest, err := h.ucRest.GetById(r.Context(), id)
-	if err != nil {
-		w = functions.ErrorResponse(w, err.Error(), http.StatusUnauthorized)
+	rest, err := h.ucRest.GetById(r.Context(), alias.RestId(id))
+	if err.Error() == restaurants.NoRestError {
+		w = functions.ErrorResponse(w, restaurants.NoRestError, http.StatusInternalServerError)
 		return
 	}
-	food, err := h.ucFood.GetByRest(r.Context(), uint64(id))
-	var foodDTO []*dto.FoodDTO
-	for i := range food {
-		foodDTO[i].Id = food[i].Id
-		foodDTO[i].Name = food[i].Name
-		foodDTO[i].Description = food[i].Description
-		foodDTO[i].ImgUrl = food[i].ImgUrl
-		foodDTO[i].Weight = food[i].Weight
-		foodDTO[i].Price = food[i].Price
-		foodDTO[i].Restaurant = food[i].Restaurant
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
 	}
-	restDTO := &RestaurantAndFoodDTO{
-		Id:              rest.Id,
-		Name:            rest.Name,
-		LongDescription: rest.LongDescription,
-		ImgUrl:          rest.ImgUrl,
-		Food:            foodDTO,
+	food, err := h.ucFood.GetByRestId(r.Context(), alias.RestId(id))
+	if err.Error() == foodRepo.NoFoodError {
+		w = functions.ErrorResponse(w, foodRepo.NoFoodError, http.StatusInternalServerError)
+		return
 	}
+	if err != nil {
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	restDTO := dto.NewRestaurantAndFood(rest, food)
 	body, err := json.Marshal(restDTO)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	_, err = w.Write(body)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
