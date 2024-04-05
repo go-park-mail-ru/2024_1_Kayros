@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity/dto"
 	repoErrors "2024_1_kayros/internal/repository/order"
@@ -18,11 +19,15 @@ import (
 )
 
 type OrderHandler struct {
-	uc ucOrder.Usecase
+	uc     ucOrder.Usecase
+	logger *zap.Logger
 }
 
-func NewOrderHandler(u ucOrder.Usecase) *OrderHandler {
-	return &OrderHandler{uc: u}
+func NewOrderHandler(u ucOrder.Usecase, loggerProps *zap.Logger) *OrderHandler {
+	return &OrderHandler{
+		uc:     u,
+		logger: loggerProps,
+	}
 }
 
 type FoodOrder struct {

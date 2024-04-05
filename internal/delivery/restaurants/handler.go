@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity/dto"
 	foodRepo "2024_1_kayros/internal/repository/food"
@@ -28,10 +29,15 @@ type RestaurantAndFoodDTO struct {
 type RestaurantHandler struct {
 	ucRest restUc.Usecase
 	ucFood foodUc.Usecase
+	logger *zap.Logger
 }
 
-func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase) *RestaurantHandler {
-	return &RestaurantHandler{ucRest: ucr, ucFood: ucf}
+func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase, loggerProps *zap.Logger) *RestaurantHandler {
+	return &RestaurantHandler{
+		ucRest: ucr,
+		ucFood: ucf,
+		logger: loggerProps,
+	}
 }
 
 func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Request) {

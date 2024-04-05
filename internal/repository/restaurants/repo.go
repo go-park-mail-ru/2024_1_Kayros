@@ -8,6 +8,7 @@ import (
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
+	"go.uber.org/zap"
 )
 
 const NoRestError = "Такого ресторана нет"
@@ -18,11 +19,15 @@ type Repo interface {
 }
 
 type RepoLayer struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.Logger
 }
 
-func NewRepoLayer(dbProps *sql.DB) Repo {
-	return &RepoLayer{db: dbProps}
+func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
+	return &RepoLayer{
+		db:     dbProps,
+		logger: loggerProps,
+	}
 }
 
 func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {

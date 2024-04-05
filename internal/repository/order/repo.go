@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
 	orderStatus "2024_1_kayros/internal/utils/constants"
@@ -34,14 +36,16 @@ type Repo interface {
 }
 
 type RepoLayer struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.Logger
 }
 
-func NewRepoLayer(dbProps *sql.DB) Repo {
-	return &RepoLayer{db: dbProps}
+func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
+	return &RepoLayer{
+		db:     dbProps,
+		logger: loggerProps,
+	}
 }
-
-// нужно еще добавить проверку на то, есть ли такая запись в таблице уже
 
 // ok
 func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrder string) (alias.OrderId, error) {

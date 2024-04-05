@@ -6,6 +6,7 @@ import (
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/food"
 	"2024_1_kayros/internal/utils/alias"
+	"go.uber.org/zap"
 )
 
 type Usecase interface {
@@ -15,10 +16,14 @@ type Usecase interface {
 
 type UsecaseLayer struct {
 	repoFood food.Repo
+	logger   *zap.Logger
 }
 
-func NewUsecaseLayer(repoFoodProps food.Repo) Usecase {
-	return &UsecaseLayer{repoFood: repoFoodProps}
+func NewUsecaseLayer(repoFoodProps food.Repo, loggerProps *zap.Logger) Usecase {
+	return &UsecaseLayer{
+		repoFood: repoFoodProps,
+		logger:   loggerProps,
+	}
 }
 
 func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {

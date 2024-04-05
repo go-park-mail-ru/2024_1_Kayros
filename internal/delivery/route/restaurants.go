@@ -5,7 +5,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"2024_1_kayros/internal/delivery/restaurants"
+	"go.uber.org/zap"
+
+	dRest "2024_1_kayros/internal/delivery/restaurants"
 	rFood "2024_1_kayros/internal/repository/food"
 	rRest "2024_1_kayros/internal/repository/restaurants"
 	ucFood "2024_1_kayros/internal/usecase/food"
@@ -13,12 +15,12 @@ import (
 )
 
 // нужно будет добавить интерфейс к БД и редису
-func AddRestRouter(db *sql.DB, mux *mux.Router) {
-	repoRest := rRest.NewRepoLayer(db)
-	repoFood := rFood.NewRepoLayer(db)
-	usecaseFood := ucFood.NewUsecaseLayer(repoFood)
-	usecaseRest := ucRest.NewUsecaseLayer(repoRest)
-	deliveryRest := delivery.NewRestaurantHandler(usecaseRest, usecaseFood)
+func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
+	repoRest := rRest.NewRepoLayer(db, logger)
+	repoFood := rFood.NewRepoLayer(db, logger)
+	usecaseRest := ucRest.NewUsecaseLayer(repoRest, logger)
+	usecaseFood := ucFood.NewUsecaseLayer(repoFood, logger)
+	deliveryRest := dRest.NewRestaurantHandler(usecaseRest, usecaseFood, logger)
 
 	mux.HandleFunc("restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants-list")
 	mux.HandleFunc("restaurants/{id}", deliveryRest.RestaurantById).Methods("GET").Name("restaurants-detail")

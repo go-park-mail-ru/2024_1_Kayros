@@ -12,6 +12,7 @@ import (
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/internal/utils/constants"
+	"2024_1_kayros/internal/utils/functions"
 )
 
 type Usecase interface {
@@ -31,29 +32,32 @@ type UsecaseLayer struct {
 	logger    *zap.Logger
 }
 
-func NewUsecaseLayer(repoOrderProps order.Repo, repoUserProps user.Repo) Usecase {
+func NewUsecaseLayer(repoOrderProps order.Repo, repoUserProps user.Repo, loggerProps *zap.Logger) Usecase {
 	return &UsecaseLayer{
 		repoOrder: repoOrderProps,
 		repoUser:  repoUserProps,
+		logger:    loggerProps,
 	}
 }
 
 // ok
 func (uc *UsecaseLayer) GetBasketId(ctx context.Context, email string) (alias.OrderId, error) {
-	User, err := uc.repoUser.GetByEmail(ctx, email)
-	if err != nil {
-		return 0, err
-	}
+	methodName := constants.NameMethodGetBasketId
+	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
+	User, err := uc.repoUser.GetByEmail(ctx, email, requestId)
 	id, err := uc.repoOrder.GetBasketId(ctx, alias.UserId(User.Id))
 	if err != nil {
 		return 0, err
 	}
+	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return id, nil
 }
 
 // ok
 func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Order, error) {
-	User, err := uc.repoUser.GetByEmail(ctx, email)
+	methodName := constants.NameMethodGetBasket
+	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
+	User, err := uc.repoUser.GetByEmail(ctx, email, requestId)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +70,9 @@ func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Or
 
 // ok
 func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId, error) {
-	User, err := uc.repoUser.GetByEmail(ctx, email)
+	methodName := constants.NameMethodCreateOrder
+	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
+	User, err := uc.repoUser.GetByEmail(ctx, email, requestId)
 	if err != nil {
 		return 0, err
 	}

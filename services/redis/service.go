@@ -7,9 +7,10 @@ import (
 
 	"2024_1_kayros/config"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
-func Init(cfg *config.Project) (*redis.Client, error) {
+func Init(cfg *config.Project, logger *zap.Logger) *redis.Client {
 	cfgRedis := cfg.Redis
 	redisAddress := fmt.Sprintf("%s:%d", cfgRedis.Host, cfgRedis.Port)
 	r := redis.NewClient(&redis.Options{
@@ -19,14 +20,14 @@ func Init(cfg *config.Project) (*redis.Client, error) {
 		Password: cfgRedis.Password,
 	})
 
-	const maxPingTime = 5 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), maxPingTime)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := r.Ping(ctx).Result()
 	if err != nil {
-		return nil, err
+		logger.Fatal("Не удалось подключиться к Redis", zap.Error(err))
 	}
 
-	return r, nil
+	logger.Info("Redis успешно подключен")
+	return r
 }
