@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	repoErrors "2024_1_kayros/internal/repository/order"
 	ucOrder "2024_1_kayros/internal/usecase/order"
 	"2024_1_kayros/internal/utils/alias"
+	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
 )
@@ -40,8 +42,15 @@ type FoodOrder struct {
 func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	email := r.Context().Value("email").(string)
+	requestId := r.Context().Value("request_id").(string)
+	if email == "" {
+		functions.LogErrorResponse(h.logger, requestId, cnst.NameHandlerUserData, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
 	order, err := h.uc.GetBasket(r.Context(), email)
 	if err.Error() == repoErrors.NoBasketError {
+		functions.LogErrorResponse(h.logger, requestId, cnst.NameHandlerUserData, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, repoErrors.NoBasketError, http.StatusInternalServerError)
 		return
 	}

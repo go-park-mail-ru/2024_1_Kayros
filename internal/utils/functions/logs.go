@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"2024_1_kayros/internal/utils/constants"
 	"go.uber.org/zap"
+
+	"2024_1_kayros/internal/utils/constants"
 )
 
 func LogInfo(logger *zap.Logger, requestId string, methodName string, err error, layer string) {
