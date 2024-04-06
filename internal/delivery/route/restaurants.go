@@ -22,6 +22,6 @@ func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
 	usecaseFood := ucFood.NewUsecaseLayer(repoFood, logger)
 	deliveryRest := dRest.NewRestaurantHandler(usecaseRest, usecaseFood, logger)
 
-	mux.HandleFunc("restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants-list")
-	mux.HandleFunc("restaurants/{id}", deliveryRest.RestaurantById).Methods("GET").Name("restaurants-detail")
+	mux.HandleFunc("/restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants-list")
+	mux.HandleFunc("/restaurants/{id}", deliveryRest.RestaurantById).Methods("GET").Name("restaurants-detail")
 }

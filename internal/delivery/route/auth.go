@@ -23,7 +23,7 @@ func AddAuthRouter(db *sql.DB, clientRedis *redis.Client, clientMinio *minio.Cli
 
 	deliveryAuth := dAuth.NewDeliveryLayer(usecaseSession, usecaseUser, logger)
 
-	mux.HandleFunc("signin", deliveryAuth.SignIn).Methods("POST").Name("signin")
-	mux.HandleFunc("signup", deliveryAuth.SignUp).Methods("POST").Name("signup")
-	mux.HandleFunc("signout", deliveryAuth.SignOut).Methods("POST").Name("signout")
+	mux.HandleFunc("/signin", deliveryAuth.SignIn).Methods("POST").Name("signin")
+	mux.HandleFunc("/signup", deliveryAuth.SignUp).Methods("POST").Name("signup")
+	mux.HandleFunc("/signout", deliveryAuth.SignOut).Methods("POST").Name("signout")
 }

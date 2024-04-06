@@ -14,10 +14,8 @@ func Init(cfg *config.Project, logger *zap.Logger) *redis.Client {
 	cfgRedis := cfg.Redis
 	redisAddress := fmt.Sprintf("%s:%d", cfgRedis.Host, cfgRedis.Port)
 	r := redis.NewClient(&redis.Options{
-		DB:       cfgRedis.Database,
-		Addr:     redisAddress,
-		Username: cfgRedis.User,
-		Password: cfgRedis.Password,
+		DB:   cfgRedis.Database,
+		Addr: redisAddress,
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
