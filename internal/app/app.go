@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/route"
@@ -34,11 +35,11 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 	srv := &http.Server{
 		Handler:      r,
 		Addr:         serverAddress,
-		WriteTimeout: serverConfig.WriteTimeout, // таймаут на запись данных в ответ на запрос
-		ReadTimeout:  serverConfig.ReadTimeout,  // таймаут на чтение данных из запроса
-		IdleTimeout:  serverConfig.IdleTimeout,  // время поддержания связи между клиентом и сервером
+		WriteTimeout: time.Duration(serverConfig.WriteTimeout) * time.Second, // таймаут на запись данных в ответ на запрос
+		ReadTimeout:  time.Duration(serverConfig.ReadTimeout) * time.Second,  // таймаут на чтение данных из запроса
+		IdleTimeout:  time.Duration(serverConfig.IdleTimeout) * time.Second,  // время поддержания связи между клиентом и сервером
 	}
-
+	//log.Fatal(srv.ListenAndServe())
 	srvConfig := cfg.Server
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
@@ -53,7 +54,7 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 	signal.Notify(c, os.Interrupt)
 	<-c
 
-	ctx, cancel := context.WithTimeout(context.Background(), srvConfig.ShutdownDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(srvConfig.ShutdownDuration))
 	defer cancel()
 
 	err := srv.Shutdown(ctx)
@@ -62,6 +63,6 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 		os.Exit(1) //
 	}
 
-	log.Println("Сервер завершил свою работу успешно")
+	log.Println("Сервер завершил свою работу")
 	os.Exit(0)
 }

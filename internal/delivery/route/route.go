@@ -11,8 +11,10 @@ import (
 
 func Setup(db *sql.DB, redis *redis.Client, minio *minio.Client, mux *mux.Router, logger *zap.Logger) {
 	logger.Info("Начало определения хендлеров")
-	mux.PathPrefix("/api/v1")
+	mux = mux.PathPrefix("/api/v1").Subrouter()
 	mux.StrictSlash(true)
+
+	//
 
 	AddAuthRouter(db, redis, minio, mux, logger)
 	AddUserRouter(db, minio, mux, logger)

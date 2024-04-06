@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -41,6 +42,7 @@ func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase, loggerProps *z
 }
 
 func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Request) {
+	fmt.Print("we are in restaurants")
 	w.Header().Set("Content-Type", "application/json")
 	rests, err := h.ucRest.GetAll(r.Context())
 	if err != nil {

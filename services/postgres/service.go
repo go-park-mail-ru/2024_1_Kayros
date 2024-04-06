@@ -34,11 +34,11 @@ func Init(cfg *config.Project, logger *zap.Logger) *sql.DB {
 	// максимальное количество открытых соединений
 	db.SetMaxOpenConns(int(dbConfig.MaxOpenConns))
 	// максимальное количество времени, в течение которого соединение может быть повторно использовано
-	db.SetConnMaxLifetime(dbConfig.ConnMaxLifetime * time.Second)
+	db.SetConnMaxLifetime(time.Duration(dbConfig.ConnMaxLifetime) * time.Second)
 	// максимальное количество соединений в пуле простаивающих соединений
 	db.SetMaxIdleConns(int(dbConfig.MaxIdleConns))
 	// максимальное время, в течение которого соединение может быть бездействующим
-	db.SetConnMaxIdleTime(dbConfig.ConnMaxIdleTime * time.Second)
+	db.SetConnMaxIdleTime(time.Duration(dbConfig.ConnMaxIdleTime) * time.Second)
 
 	logger.Info("PostgreSQL успешно подключен")
 	return db
