@@ -34,7 +34,14 @@ func NewDeliveryLayer(ucSessionProps session.Usecase, ucUserProps user.Usecase, 
 
 func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	requestId := r.Context().Value("request_id").(string)
+	requestId := ""
+	ctxRequestId := r.Context().Value("request_id")
+	if ctxRequestId == nil {
+		err := errors.New("request_id передан не был")
+		functions.LogError(d.logger, requestId, cnst.NameHandlerSignUp, err, cnst.DeliveryLayer)
+	} else {
+		requestId = ctxRequestId.(string)
+	}
 	email := r.Context().Value("email")
 	if email != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)

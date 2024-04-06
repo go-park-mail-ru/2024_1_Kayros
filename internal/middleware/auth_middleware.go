@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 
@@ -32,6 +33,8 @@ func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, 
 			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
 			return
 		}
+
+		log.Println(requestId)
 
 		_, err = ucUser.GetByEmail(ctxData, string(email))
 		if err != nil {

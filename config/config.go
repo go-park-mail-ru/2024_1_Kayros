@@ -56,7 +56,7 @@ type (
 func NewConfig(logger *zap.Logger) *Project {
 	cfg := &Project{}
 
-	err := cleanenv.ReadConfig("../../config/config.yaml", cfg)
+	err := cleanenv.ReadConfig("config/config.yaml", cfg)
 	if err != nil {
 		logger.Fatal("Ошибка чтения конфигурации приложения", zap.Error(err))
 	}
