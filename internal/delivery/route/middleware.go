@@ -2,6 +2,7 @@ package route
 
 import (
 	"database/sql"
+	"net/http"
 
 	"2024_1_kayros/internal/middleware"
 	rSession "2024_1_kayros/internal/repository/session"
@@ -14,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func AddMiddleware(db *sql.DB, redisClient *redis.Client, minioClient *minio.Client, mux *mux.Router, logger *zap.Logger) {
+func AddMiddleware(db *sql.DB, redisClient *redis.Client, minioClient *minio.Client, mux *mux.Router, logger *zap.Logger) http.Handler {
 	repoUser := rUser.NewRepoLayer(db, minioClient, logger)
 	repoSession := rSession.NewRepoLayer(redisClient, logger)
 
@@ -24,4 +25,5 @@ func AddMiddleware(db *sql.DB, redisClient *redis.Client, minioClient *minio.Cli
 	// цепочка middlewares
 	handler := middleware.SessionAuthenticationMiddleware(mux, usecaseUser, usecaseSession, logger)
 	handler = middleware.CorsMiddleware(handler, logger)
+	return handler
 }

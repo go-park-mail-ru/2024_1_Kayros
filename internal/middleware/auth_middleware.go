@@ -2,9 +2,8 @@ package middleware
 
 import (
 	"context"
-	"log"
+	"errors"
 	"net/http"
-	"time"
 
 	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/usecase/user"
@@ -20,30 +19,33 @@ func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := uuid.NewV4().String()
 		sessionCookie, err := r.Cookie("session_id")
+		sessionId := ""
+		if sessionCookie != nil {
+			sessionId = sessionCookie.Value
+		}
+
+		if errors.Is(err, http.ErrNoCookie) {
+			functions.LogInfo(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
+		} else if err != nil {
+			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "request_id", requestId)
+
+		email, err := ucSession.GetValue(ctx, alias.SessionKey(sessionId))
 		if err != nil {
 			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
 			return
 		}
 
-		ctxData, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-
-		email, err := ucSession.GetValue(ctxData, alias.SessionKey(sessionCookie.Value))
+		_, err = ucUser.GetByEmail(ctx, string(email))
 		if err != nil {
 			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
 			return
 		}
 
-		log.Println(requestId)
-
-		_, err = ucUser.GetByEmail(ctxData, string(email))
-		if err != nil {
-			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), "email", email)
-		ctx = context.WithValue(ctx, "request_id", requestId)
+		ctx = context.WithValue(ctx, "email", email)
 		r = r.WithContext(ctx)
 
 		handler.ServeHTTP(w, r)
