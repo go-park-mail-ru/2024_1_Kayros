@@ -42,8 +42,13 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	} else {
 		requestId = ctxRequestId.(string)
 	}
-	email := r.Context().Value("email")
-	if email != nil {
+
+	email := ""
+	ctxEmail := r.Context().Value("email")
+	if ctxEmail != nil {
+		email = ctxEmail.(string)
+	}
+	if email != "" {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
@@ -79,13 +84,13 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	isExist, err := d.ucUser.IsExistByEmail(r.Context(), bodyDataDTO.Email)
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UserAlreadyExistError), http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UserAlreadyExistError, http.StatusUnauthorized)
 		return
 	}
 	if isExist {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UserAlreadyExistError), http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UserAlreadyExistError, http.StatusBadRequest)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UserAlreadyExistError), http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UserAlreadyExistError, http.StatusUnauthorized)
 		return
 	}
 
@@ -122,10 +127,22 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 
 func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	requestId := r.Context().Value("request_id").(string)
-	email := r.Context().Value("email")
-	if email != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignIn, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
+	requestId := ""
+	ctxRequestId := r.Context().Value("request_id")
+	if ctxRequestId == nil {
+		err := errors.New("request_id передан не был")
+		functions.LogError(d.logger, requestId, cnst.NameHandlerSignUp, err, cnst.DeliveryLayer)
+	} else {
+		requestId = ctxRequestId.(string)
+	}
+
+	email := ""
+	ctxEmail := r.Context().Value("email")
+	if ctxEmail != nil {
+		email = ctxEmail.(string)
+	}
+	if email != "" {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
@@ -206,10 +223,22 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 
 func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	requestId := r.Context().Value("request_id").(string)
-	email := r.Context().Value("email")
-	if email == nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
+	requestId := ""
+	ctxRequestId := r.Context().Value("request_id")
+	if ctxRequestId == nil {
+		err := errors.New("request_id передан не был")
+		functions.LogError(d.logger, requestId, cnst.NameHandlerSignUp, err, cnst.DeliveryLayer)
+	} else {
+		requestId = ctxRequestId.(string)
+	}
+
+	email := ""
+	ctxEmail := r.Context().Value("email")
+	if ctxEmail != nil {
+		email = ctxEmail.(string)
+	}
+	if email == "" {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}

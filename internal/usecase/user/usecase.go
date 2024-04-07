@@ -49,9 +49,10 @@ func (uc *UsecaseLayer) GetById(ctx context.Context, userId alias.UserId) (*enti
 	u, err := uc.repoUser.GetById(ctx, userId, requestId)
 	if err == nil {
 		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-		return u, nil
+	} else {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 	}
-	return nil, err
+	return u, err
 }
 
 func (uc *UsecaseLayer) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
@@ -60,6 +61,7 @@ func (uc *UsecaseLayer) GetByEmail(ctx context.Context, email string) (*entity.U
 	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
 	if err == nil {
 		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
+		return u, nil
 	} else {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 	}
@@ -128,7 +130,7 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	u, err := uc.repoUser.GetById(ctx, alias.UserId(uProps.Id), requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, uProps.Email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
@@ -182,13 +184,13 @@ func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, passwor
 		return false, err
 	}
 
-	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return false, err
 	}
 	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return u.Password == hashPassword, nil
+	return uPassword == hashPassword, nil
 }
 
 func (uc *UsecaseLayer) UploadImageByEmail(ctx context.Context, file multipart.File, handler *multipart.FileHeader, email string) error {

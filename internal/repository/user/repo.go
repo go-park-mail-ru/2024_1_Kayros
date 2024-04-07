@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"time"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
@@ -30,6 +31,7 @@ type Repo interface {
 	IsExistByEmail(ctx context.Context, email string, requestId string) (bool, error)
 
 	UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, requestId string) error
+	GetHashedUserPassword(ctx context.Context, email string, requestId string) (string, error)
 }
 
 type RepoLayer struct {
@@ -49,9 +51,9 @@ func NewRepoLayer(db *sql.DB, minioProps *minio.Client, loggerProps *zap.Logger)
 func (repo *RepoLayer) GetById(ctx context.Context, userId alias.UserId, requestId string) (*entity.User, error) {
 	methodName := cnst.NameMethodGetUserById
 	row := repo.database.QueryRowContext(ctx,
-		`SELECT id, name, password, phone, email, address, img_url FROM "User" WHERE id = $1`, uint64(userId))
+		`SELECT id, name, COALESCE(phone, ''), email, COALESCE(address, ''), img_url FROM "user" WHERE id = $1`, uint64(userId))
 	user := entity.User{}
-	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Password, &user.ImgUrl)
+	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Address, &user.ImgUrl)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = errors.New("Вернулось пустое множество данных")
 		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
@@ -61,17 +63,17 @@ func (repo *RepoLayer) GetById(ctx context.Context, userId alias.UserId, request
 		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
 		return nil, err
 	}
-
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был получен из базы данных", user.Id, user.Email)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return &user, nil
 }
 
 func (repo *RepoLayer) GetByEmail(ctx context.Context, email string, requestId string) (*entity.User, error) {
 	methodName := cnst.NameMethodGetUserByEmail
 	row := repo.database.QueryRowContext(ctx,
-		`SELECT id, name, password, phone, email, address, img_url FROM "User" WHERE email = $1`, email)
+		`SELECT id, name, COALESCE(phone, ''), email, COALESCE(address, ''), img_url FROM "user" WHERE email = $1`, email)
 	user := entity.User{}
-	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Password, &user.ImgUrl)
+	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Address, &user.ImgUrl)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = errors.New("Вернулось пустое множество данных")
 		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
@@ -81,97 +83,96 @@ func (repo *RepoLayer) GetByEmail(ctx context.Context, email string, requestId s
 		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
 		return nil, err
 	}
-
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был получен из базы данных", user.Id, user.Email)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return &user, nil
 }
 
 func (repo *RepoLayer) DeleteById(ctx context.Context, userId alias.UserId, requestId string) error {
 	methodName := cnst.NameMethodDeleteUserById
-	res, err := repo.database.ExecContext(ctx, `DELETE FROM "User" WHERE id = $1`, uint64(userId))
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	countRows, err := res.RowsAffected()
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	if countRows == 0 {
-		err = errors.New("Пользователь не был удален")
+	row := repo.database.QueryRowContext(ctx, `DELETE FROM "user" WHERE id = $1 RETURNING id, email`, uint64(userId))
+	var uId uint64
+	var uEmail string
+	err := row.Scan(&uId, &uEmail)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = errors.New("Пользователя с таким Id нет. Удалить не получилось")
 		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return nil
+	}
+	if err != nil {
+		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
 		return err
 	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был удален из базы данных", uId, uEmail)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return nil
 }
 
 func (repo *RepoLayer) DeleteByEmail(ctx context.Context, email string, requestId string) error {
 	methodName := cnst.NameMethodDeleteUserByEmail
-	res, err := repo.database.ExecContext(ctx, `DELETE FROM "User" WHERE email = $1`, email)
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	countRows, err := res.RowsAffected()
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	if countRows == 0 {
-		err = errors.New("Пользователь не был удален")
+	row := repo.database.QueryRowContext(ctx, `DELETE FROM "user" WHERE email = $1 RETURNING id, email`, email)
+	var uId uint64
+	var uEmail string
+	err := row.Scan(&uId, &uEmail)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = errors.New("Пользователя с таким Email нет. Удалить не получилось")
 		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return nil
+	}
+	if err != nil {
+		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
 		return err
 	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был удален из базы данных", uId, uEmail)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return nil
 }
 
 func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword string, requestId string) error {
 	methodName := cnst.NameMethodCreateUser
-	res, err := repo.database.ExecContext(ctx,
-		`INSERT INTO "User" (name, phone, email, password, img_url) VALUES ($1, $2, $3, $4, $5)`,
-		u.Name, u.Phone, u.Email, hashPassword, u.ImgUrl)
+	currentTime := time.Now().UTC()
+	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
+	row := repo.database.QueryRowContext(ctx,
+		`INSERT INTO "user" (name, email, password, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
+		u.Name, u.Email, hashPassword, timeStr, timeStr)
+	var uId uint64
+	var uEmail string
+	err := row.Scan(&uId, &uEmail)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = errors.New("Ошибка получения данных после их добавления в базу данных")
+		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return err
+	}
 	if err != nil {
 		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
 		return err
 	}
-	countRows, err := res.RowsAffected()
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	if countRows == 0 {
-		err = errors.New("Пользователь не был добавлен")
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был добавлен в базу данных", uId, uEmail)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return nil
 }
 
 func (repo *RepoLayer) Update(ctx context.Context, u *entity.User, hashPassword string, requestId string) error {
 	methodName := cnst.NameMethodUpdateUser
-	res, err := repo.database.ExecContext(ctx,
-		`UPDATE "User" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5 WHERE id = $6`,
-		u.Name, u.Phone, u.Email, u.ImgUrl, hashPassword, u.Id)
-
+	currentTime := time.Now().UTC()
+	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
+	row := repo.database.QueryRowContext(ctx,
+		`UPDATE "user" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5, updated_at = $6 WHERE id = $6`,
+		u.Name, u.Phone, u.Email, u.ImgUrl, hashPassword, timeStr, u.Id)
+	var uId uint64
+	var uEmail string
+	err := row.Scan(&uId, &uEmail)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = errors.New("Ошибка получения данных после их обновления в базе данных")
+		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return err
+	}
 	if err != nil {
 		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
 		return err
 	}
-	countRows, err := res.RowsAffected()
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	if countRows == 0 {
-		err = errors.New("Данные о пользователе не были обновлены")
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был обновлен", uId, uEmail)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return nil
 }
 
@@ -187,7 +188,8 @@ func (repo *RepoLayer) IsExistById(ctx context.Context, userId alias.UserId, req
 		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
 		return false, nil
 	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s существует", u.Id, u.Email)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return true, nil
 }
 
@@ -203,8 +205,29 @@ func (repo *RepoLayer) IsExistByEmail(ctx context.Context, email string, request
 		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
 		return false, nil
 	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s существует", u.Id, u.Email)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return true, nil
+}
+
+func (repo *RepoLayer) GetHashedUserPassword(ctx context.Context, email string, requestId string) (string, error) {
+	methodName := cnst.NameMethodGetHashedUserPassword
+	row := repo.database.QueryRowContext(ctx, `SELECT id, password FROM "user" WHERE email = $1`, email)
+	var uId uint64
+	var hashedPassword string
+	err := row.Scan(&uId, &hashedPassword)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = errors.New("Пользователя с таким Email нет. Получить пароль не вышло")
+		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return "", nil
+	}
+	if err != nil {
+		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return "", err
+	}
+	msg := fmt.Sprintf("Получили пароль пользователя с идентификатором %d и почтой %s", uId, email)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
+	return hashedPassword, nil
 }
 
 func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, requestId string) error {
@@ -216,21 +239,21 @@ func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.Fi
 	}
 
 	imgPath := fmt.Sprintf("/minio-api/%s/%s", cnst.BucketUser, filename)
-	res, err := repo.database.ExecContext(ctx, `UPDATE "User" SET img_url = $1 WHERE email = $2`, imgPath, email)
+	row := repo.database.QueryRowContext(ctx, `UPDATE "user" SET img_url = $1 WHERE email = $2 RETURNING id, email, img_url`, imgPath, email)
+	var uId uint64
+	var uEmail string
+	var uImg string
+	err = row.Scan(&uId, &uEmail, uImg)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = errors.New("Ошибка получения данных после их обновления в базе данных")
+		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return err
+	}
 	if err != nil {
 		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
 		return err
 	}
-	countRows, err := res.RowsAffected()
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	if countRows == 0 {
-		err = errors.New("Фотография пользователя не была добавлена")
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s имеет фото по адресу %s", uId, uEmail, uImg)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return nil
 }

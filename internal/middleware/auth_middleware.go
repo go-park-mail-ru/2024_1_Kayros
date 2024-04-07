@@ -25,7 +25,7 @@ func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, 
 		}
 
 		if errors.Is(err, http.ErrNoCookie) {
-			functions.LogInfo(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
+			functions.LogInfo(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err.Error(), cnst.MiddlewareLayer)
 		} else if err != nil {
 			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
 			return
@@ -39,13 +39,16 @@ func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, 
 			return
 		}
 
-		_, err = ucUser.GetByEmail(ctx, string(email))
+		u, err := ucUser.GetByEmail(ctx, string(email))
 		if err != nil {
 			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
 			return
 		}
 
-		ctx = context.WithValue(ctx, "email", email)
+		if u == nil {
+			email = ""
+		}
+		ctx = context.WithValue(ctx, "email", string(email))
 		r = r.WithContext(ctx)
 
 		handler.ServeHTTP(w, r)

@@ -8,8 +8,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func LogInfo(logger *zap.Logger, requestId string, methodName string, err error, layer string) {
-	errorMsg := fmt.Sprintf("Запрос %s. Информация: %v", requestId, err.Error())
+func LogInfo(logger *zap.Logger, requestId string, methodName string, msg string, layer string) {
+	errorMsg := fmt.Sprintf("Запрос %s. Информация: %v", requestId, msg)
 	logger.Info(errorMsg,
 		zap.String("method", methodName),
 		zap.String("request_id", requestId),
@@ -46,7 +46,7 @@ func LogWarn(logger *zap.Logger, requestId string, methodName string, err error,
 }
 
 func LogOk(logger *zap.Logger, requestId string, methodName string, layer string) {
-	infoMsg := fmt.Sprintf("Запрос %s. Успешно выполнился", requestId)
+	infoMsg := fmt.Sprintf("Запрос %s. Завершился без ошибок", requestId)
 	logger.Info(infoMsg,
 		zap.String("method", methodName),
 		zap.String("request_id", requestId),
@@ -55,7 +55,7 @@ func LogOk(logger *zap.Logger, requestId string, methodName string, layer string
 }
 
 func LogOkResponse(logger *zap.Logger, requestId string, methodName string, layer string) {
-	infoMsg := fmt.Sprintf("Запрос %s. Успешно выполнился", requestId)
+	infoMsg := fmt.Sprintf("Запрос %s. Успешно завершился", requestId)
 	logger.Info(infoMsg,
 		zap.String("method", methodName),
 		zap.String("request_id", requestId),
