@@ -28,12 +28,12 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 	minioDB := minio.Init(cfg, logger)
 
 	r := mux.NewRouter()
-	route.Setup(postgreDB, redisDB, minioDB, r, logger)
+	handler := route.Setup(postgreDB, redisDB, minioDB, r, logger)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf("%s:%d", serverConfig.Host, cfg.Server.Port)
 	srv := &http.Server{
-		Handler:      r,
+		Handler:      handler,
 		Addr:         serverAddress,
 		WriteTimeout: time.Duration(serverConfig.WriteTimeout) * time.Second, // таймаут на запись данных в ответ на запрос
 		ReadTimeout:  time.Duration(serverConfig.ReadTimeout) * time.Second,  // таймаут на чтение данных из запроса
