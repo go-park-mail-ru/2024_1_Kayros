@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
-	"go.uber.org/zap"
 )
 
 const NoRestError = "Такого ресторана нет"
@@ -32,7 +33,7 @@ func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
 
 func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
 	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, name, short_description, long_description, address, img_url FROM "Restaurant"`)
+		`SELECT id, name, short_description, address, img_url FROM "Restaurant"`)
 	if err != nil {
 		return nil, err
 	}
@@ -40,25 +41,27 @@ func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 	var rests []*entity.Restaurant
 	for rows.Next() {
 		rest := entity.Restaurant{}
-		err = rows.Scan(&rest.Id, &rest.Name, &rest.ShortDescription, &rest.ImgUrl)
+		err = rows.Scan(&rest.Id, &rest.Name, &rest.ShortDescription, &rest.Address, &rest.ImgUrl)
 		if err != nil {
 			return nil, err
 		}
 		rests = append(rests, &rest)
 	}
+	fmt.Println(rests)
 	return rests, nil
 }
 
 func (repo *RepoLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
 	row := repo.db.QueryRowContext(ctx,
-		`SELECT id, name, short_description, long_description, address, img_url FROM "Restaurant" WHERE id=$1`, uint64(restId))
-	var rest *entity.Restaurant
-	err := row.Scan(&rest.Id, &rest.Name, &rest.LongDescription, &rest.ImgUrl)
+		`SELECT id, name, long_description, address, img_url FROM "Restaurant" WHERE id=$1`, uint(restId))
+	rest := &entity.Restaurant{}
+	err := row.Scan(&rest.Id, &rest.Name, &rest.LongDescription, &rest.Address, &rest.ImgUrl)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf(NoRestError)
 	}
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("ok repo getbyid")
 	return rest, nil
 }

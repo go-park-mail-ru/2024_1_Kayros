@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"2024_1_kayros/internal/entity"
 	"github.com/asaskevich/govalidator"
+
+	"2024_1_kayros/internal/entity"
 )
 
 // нужно будет узнать минимальную длину описания и имени
@@ -11,6 +12,7 @@ type Restaurant struct {
 	Name             string `json:"name" valid:"-"`
 	ShortDescription string `json:"short_description" valid:"-"`
 	LongDescription  string `json:"long_description" valid:"-"`
+	Address          string `json:"address" valid:"-"`
 	ImgUrl           string `json:"img_url" valid:"url"`
 }
 
@@ -24,12 +26,13 @@ func NewRestaurant(r *entity.Restaurant) *Restaurant {
 		Name:             r.Name,
 		ShortDescription: r.ShortDescription,
 		LongDescription:  r.LongDescription,
+		Address:          r.Address,
 		ImgUrl:           r.ImgUrl,
 	}
 }
 
 func NewRestaurantArray(restArray []*entity.Restaurant) []*Restaurant {
-	restArrayDTO := make([]*Restaurant, 0, len(restArray)+1)
+	restArrayDTO := make([]*Restaurant, len(restArray))
 	for i, rest := range restArray {
 		restArrayDTO[i] = NewRestaurant(rest)
 	}

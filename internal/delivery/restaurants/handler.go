@@ -46,41 +46,47 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	rests, err := h.ucRest.GetAll(r.Context())
 	if err != nil {
+		fmt.Print(err.Error())
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+	fmt.Print("we take restaurants")
 	restsDTO := dto.NewRestaurantArray(rests)
 	body, err := json.Marshal(restsDTO)
 	if err != nil {
+		fmt.Print(err.Error())
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	_, err = w.Write(body)
 	if err != nil {
+		fmt.Print(err.Error())
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(http.StatusOK)
+		return
 	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
 	rest, err := h.ucRest.GetById(r.Context(), alias.RestId(id))
-	if err.Error() == restaurants.NoRestError {
-		w = functions.ErrorResponse(w, restaurants.NoRestError, http.StatusInternalServerError)
-		return
-	}
+	fmt.Println("ok delivery rest_id=", rest.Id)
 	if err != nil {
+		if err.Error() == restaurants.NoRestError {
+			w = functions.ErrorResponse(w, restaurants.NoRestError, http.StatusInternalServerError)
+			return
+		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	food, err := h.ucFood.GetByRestId(r.Context(), alias.RestId(id))
-	if err.Error() == foodRepo.NoFoodError {
-		w = functions.ErrorResponse(w, foodRepo.NoFoodError, http.StatusInternalServerError)
-		return
-	}
 	if err != nil {
+		if err.Error() == foodRepo.NoFoodError {
+			fmt.Println()
+			w = functions.ErrorResponse(w, foodRepo.NoFoodError, http.StatusInternalServerError)
+			return
+		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}

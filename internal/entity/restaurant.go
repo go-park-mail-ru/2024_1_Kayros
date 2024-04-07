@@ -5,5 +5,6 @@ type Restaurant struct {
 	Name             string
 	ShortDescription string
 	LongDescription  string
+	Address          string
 	ImgUrl           string
 }

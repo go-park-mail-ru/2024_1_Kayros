@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
-	"go.uber.org/zap"
 )
 
 const NoFoodError = "Такого блюда нет"
@@ -42,7 +43,7 @@ func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]
 	for rows.Next() {
 		item := entity.Food{}
 		err = rows.Scan(&item.Id, &item.Name, &item.Description, &item.RestaurantId,
-			&item.CategoryId, &item.ImgUrl, &item.Price, &item.Weight)
+			&item.CategoryId, &item.Weight, &item.Price, &item.ImgUrl)
 		if err != nil {
 			return nil, err
 		}

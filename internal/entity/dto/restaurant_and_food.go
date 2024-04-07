@@ -1,8 +1,11 @@
 package dto
 
 import (
-	"2024_1_kayros/internal/entity"
+	"fmt"
+
 	"github.com/asaskevich/govalidator"
+
+	"2024_1_kayros/internal/entity"
 )
 
 type RestaurantAndFood struct {
@@ -19,6 +22,7 @@ func (d *RestaurantAndFood) Validate() (bool, error) {
 }
 
 func NewRestaurantAndFood(r *entity.Restaurant, foodArray []*entity.Food) *RestaurantAndFood {
+	fmt.Println("dto")
 	return &RestaurantAndFood{
 		Id:               r.Id,
 		Name:             r.Name,

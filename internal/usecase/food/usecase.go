@@ -2,11 +2,13 @@ package food
 
 import (
 	"context"
+	"fmt"
+
+	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/food"
 	"2024_1_kayros/internal/utils/alias"
-	"go.uber.org/zap"
 )
 
 type Usecase interface {
@@ -27,7 +29,9 @@ func NewUsecaseLayer(repoFoodProps food.Repo, loggerProps *zap.Logger) Usecase {
 }
 
 func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
-	return uc.repoFood.GetByRestId(ctx, restId)
+	Food, err := uc.repoFood.GetByRestId(ctx, restId)
+	fmt.Println(Food)
+	return Food, err
 }
 
 func (uc *UsecaseLayer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {

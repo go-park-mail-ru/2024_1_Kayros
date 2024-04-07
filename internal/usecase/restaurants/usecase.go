@@ -3,10 +3,11 @@ package rest
 import (
 	"context"
 
+	"go.uber.org/zap"
+
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/restaurants"
 	"2024_1_kayros/internal/utils/alias"
-	"go.uber.org/zap"
 )
 
 type Usecase interface {
