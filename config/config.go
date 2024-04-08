@@ -20,6 +20,7 @@ type (
 		ReadTimeout      uint16 `yaml:"read-timeout"    env:"SRV_READ_TM"`
 		IdleTimeout      uint16 `yaml:"idle-timeout"    env:"SRV_IDLE_TM"`
 		ShutdownDuration uint16 `yaml:"shutdown-duration"    env:"SRV_SHUTDOWN_DUR"`
+		CsrfSecretKey    string `yaml:"csrf_secret_key" env:"CSRF_SECRET KEY"`
 	}
 
 	Postgres struct {
@@ -45,11 +46,12 @@ type (
 	}
 
 	Redis struct {
-		Host     string `yaml:"host"    env:"R_HOST"`
-		Port     uint16 `yaml:"port" env:"R_PORT"`
-		Database int    `yaml:"database" env:"R_DB"`
-		User     string `yaml:"user" env:"R_USER"`
-		Password string `yaml:"password" env:"R_PASSWORD"`
+		Host            string `yaml:"host"    env:"R_HOST"`
+		Port            uint16 `yaml:"port" env:"R_PORT"`
+		DatabaseSession int    `yaml:"database-session" env:"R_DB"`
+		DatabaseCsrf    int    `yaml:"database-csrf" env:"R_DB"`
+		User            string `yaml:"user" env:"R_USER"`
+		Password        string `yaml:"password" env:"R_PASSWORD"`
 	}
 )
 
