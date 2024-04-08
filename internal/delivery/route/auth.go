@@ -3,6 +3,7 @@ package route
 import (
 	"database/sql"
 
+	"2024_1_kayros/config"
 	dAuth "2024_1_kayros/internal/delivery/auth"
 	rSession "2024_1_kayros/internal/repository/session"
 	rUser "2024_1_kayros/internal/repository/user"
@@ -14,14 +15,16 @@ import (
 	"go.uber.org/zap"
 )
 
-func AddAuthRouter(db *sql.DB, clientRedis *redis.Client, clientMinio *minio.Client, mux *mux.Router, logger *zap.Logger) {
+func AddAuthRouter(cfg *config.Project, db *sql.DB, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, clientMinio *minio.Client, mux *mux.Router, logger *zap.Logger) {
 	repoUser := rUser.NewRepoLayer(db, clientMinio, logger)
-	repoSession := rSession.NewRepoLayer(clientRedis, logger)
+	repoSession := rSession.NewRepoLayer(clientRedisSession, logger)
+	repoCsrf := rSession.NewRepoLayer(clientRedisCsrf, logger)
 
 	usecaseUser := ucUser.NewUsecaseLayer(repoUser, logger)
 	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
+	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrf, logger)
 
-	deliveryAuth := dAuth.NewDeliveryLayer(usecaseSession, usecaseUser, logger)
+	deliveryAuth := dAuth.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, usecaseCsrf, logger)
 
 	mux.HandleFunc("/signin", deliveryAuth.SignIn).Methods("POST").Name("signin")
 	mux.HandleFunc("/signup", deliveryAuth.SignUp).Methods("POST").Name("signup")

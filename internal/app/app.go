@@ -24,11 +24,12 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 	functions.InitValidator(logger)
 
 	postgreDB := postgres.Init(cfg, logger)
-	redisDB := redis.Init(cfg, logger)
+	redisSessionDB := redis.Init(cfg, logger, cfg.Redis.DatabaseSession)
+	redisCsrfDB := redis.Init(cfg, logger, cfg.Redis.DatabaseCsrf)
 	minioDB := minio.Init(cfg, logger)
 
 	r := mux.NewRouter()
-	handler := route.Setup(postgreDB, redisDB, minioDB, r, logger)
+	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf("%s:%d", serverConfig.Host, cfg.Server.Port)

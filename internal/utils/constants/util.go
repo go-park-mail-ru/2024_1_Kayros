@@ -1,5 +1,10 @@
 package constants
 
+const (
+	SessionCookieName = "session_id"
+	CsrfCookieName    = "csrf_token"
+)
+
 // Статусы заказа
 const (
 	Draft    = "draft"
@@ -70,4 +75,5 @@ const (
 const (
 	NameSessionAuthenticationMiddleware = "SessionAuthenticationMiddleware"
 	NameCorsMiddleware                  = "CorsMiddleware"
+	NameCsrfMiddleware                  = "CorsMiddleware"
 )

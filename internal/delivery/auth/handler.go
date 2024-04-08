@@ -5,8 +5,10 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
+	"2024_1_kayros/config"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/usecase/user"
@@ -21,14 +23,18 @@ import (
 type Delivery struct {
 	ucSession session.Usecase
 	ucUser    user.Usecase
+	ucCsrf    session.Usecase
 	logger    *zap.Logger
+	cfg       *config.Project
 }
 
-func NewDeliveryLayer(ucSessionProps session.Usecase, ucUserProps user.Usecase, loggerProps *zap.Logger) *Delivery {
+func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, ucCsrfProps session.Usecase, loggerProps *zap.Logger) *Delivery {
 	return &Delivery{
 		ucSession: ucSessionProps,
 		ucUser:    ucUserProps,
+		ucCsrf:    ucCsrfProps,
 		logger:    loggerProps,
+		cfg:       cfgProps,
 	}
 }
 
@@ -109,17 +115,29 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-
-	// собираем Cookie
 	expiration := time.Now().Add(14 * 24 * time.Hour)
-	cookie := http.Cookie{
-		Name:     "session_id",
+	sessionCookie := http.Cookie{
+		Name:     cnst.SessionCookieName,
 		Value:    sessionId,
 		Expires:  expiration,
 		HttpOnly: false,
 	}
-	http.SetCookie(w, &cookie)
 
+	csrfToken := genCsrfToken(d.cfg.CsrfSecretKey, alias.SessionKey(sessionId), strconv.Itoa(int(u.Id)))
+	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	csrfCookie := http.Cookie{
+		Name:     cnst.CsrfCookieName,
+		Value:    csrfToken,
+		Expires:  expiration,
+		HttpOnly: false,
+	}
+	http.SetCookie(w, &sessionCookie)
+	http.SetCookie(w, &csrfCookie)
 	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerSignUp, cnst.DeliveryLayer)
@@ -204,7 +222,6 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 			HttpOnly: false,
 		}
 		http.SetCookie(w, &cookie)
-
 		err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(u.Email))
 		if err != nil {
 			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignIn, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
@@ -212,6 +229,20 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		csrfToken := genCsrfToken(d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()), strconv.Itoa(int(u.Id)))
+		err = d.ucSession.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
+		if err != nil {
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
+		csrfCookie := http.Cookie{
+			Name:     cnst.CsrfCookieName,
+			Value:    csrfToken,
+			Expires:  expiration,
+			HttpOnly: false,
+		}
+		http.SetCookie(w, &csrfCookie)
 		// Собираем ответ
 		uDTO := dto.NewUser(u)
 		w = functions.JsonResponse(w, uDTO)
@@ -265,4 +296,13 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 
 	w = functions.JsonResponse(w, "Сессия успешно завершена")
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerSignUp, cnst.DeliveryLayer)
+}
+
+func genCsrfToken(secretKey string, sessionId alias.SessionKey, payload string) string {
+	// Создание csrf_token
+	message := string(sessionId) + "!" + payload
+	messageHashByte := functions.HashData([]byte(secretKey), []byte(message))
+	messageHash := string(messageHashByte)
+	csrfToken := messageHash + "." + message
+	return csrfToken
 }
