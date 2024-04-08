@@ -243,7 +243,7 @@ func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.Fi
 	var uId uint64
 	var uEmail string
 	var uImg string
-	err = row.Scan(&uId, &uEmail, uImg)
+	err = row.Scan(&uId, &uEmail, &uImg)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = errors.New("Ошибка получения данных после их обновления в базе данных")
 		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
