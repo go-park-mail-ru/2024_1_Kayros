@@ -50,7 +50,7 @@ func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
 // ok
 func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrder string) (alias.OrderId, error) {
 	res, err := repo.db.ExecContext(ctx,
-		`INSERT INTO order (user_id, date_order, status) VALUES ($1, $2, $3)`, uint64(userId), dateOrder, orderStatus.Draft)
+		`INSERT INTO "order" (user_id, created_at, updated_at, status) VALUES ($1, $2, $2, $3) RETURNING id`, uint64(userId), dateOrder, orderStatus.Draft)
 	if err != nil {
 		return 0, err
 	}

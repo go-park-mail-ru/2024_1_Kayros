@@ -37,7 +37,10 @@ func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *con
 		if csrfCookie != nil {
 			csrfToken = csrfCookie.Value
 		}
-		if errors.Is(err, http.ErrNoCookie) {
+		if errors.Is(err, http.ErrNoCookie) && (r.RequestURI == "/api/v1/signin" || r.RequestURI == "/api/v1/signup") {
+			handler.ServeHTTP(w, r)
+			return
+		} else if err != nil {
 			err := errors.New(myerrors.UnauthorizedError)
 			functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
 			w = functions.JsonResponse(w, myerrors.UnauthorizedError)
@@ -55,14 +58,7 @@ func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *con
 			return
 		}
 		value, err := ucCsrfTokens.GetValue(r.Context(), alias.SessionKey(csrfToken))
-		if err != nil {
-			err := errors.New(myerrors.UnauthorizedError)
-			functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
-			w = functions.JsonResponse(w, myerrors.UnauthorizedError)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		if value == "" {
+		if err != nil || value == "" {
 			err := errors.New(myerrors.UnauthorizedError)
 			functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
 			w = functions.JsonResponse(w, myerrors.UnauthorizedError)

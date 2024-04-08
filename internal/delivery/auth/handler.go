@@ -124,7 +124,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	csrfToken := genCsrfToken(d.cfg.CsrfSecretKey, alias.SessionKey(sessionId), strconv.Itoa(int(u.Id)))
-	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
+	err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -216,7 +216,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 		sessionId := uuid.NewV4()
 		expiration := time.Now().Add(14 * 24 * time.Hour)
 		cookie := http.Cookie{
-			Name:     "session_id",
+			Name:     cnst.SessionCookieName,
 			Value:    sessionId.String(),
 			Expires:  expiration,
 			HttpOnly: false,
@@ -230,7 +230,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 
 		csrfToken := genCsrfToken(d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()), strconv.Itoa(int(u.Id)))
-		err = d.ucSession.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
+		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
 		if err != nil {
 			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -293,6 +293,25 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 
 	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
 	http.SetCookie(w, sessionCookie)
+
+	//
+
+	csrfCookie, err := r.Cookie("csrf_token")
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, err, http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+
+	wasDeleted, err = d.ucSession.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value))
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	if !wasDeleted {
+		functions.LogWarn(d.logger, requestId, cnst.NameHandlerSignOut, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
+	}
 
 	w = functions.JsonResponse(w, "Сессия успешно завершена")
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerSignUp, cnst.DeliveryLayer)
