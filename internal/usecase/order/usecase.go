@@ -44,9 +44,19 @@ func NewUsecaseLayer(repoOrderProps order.Repo, repoUserProps user.Repo, loggerP
 func (uc *UsecaseLayer) GetBasketId(ctx context.Context, email string) (alias.OrderId, error) {
 	methodName := constants.NameMethodGetBasketId
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	User, err := uc.repoUser.GetByEmail(ctx, email, requestId)
-	id, err := uc.repoOrder.GetBasketId(ctx, alias.UserId(User.Id))
+	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
 	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return 0, err
+	}
+	if u == nil {
+		functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
+		return 0, nil
+	}
+
+	id, err := uc.repoOrder.GetBasketId(ctx, alias.UserId(u.Id))
+	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return 0, err
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
@@ -57,14 +67,25 @@ func (uc *UsecaseLayer) GetBasketId(ctx context.Context, email string) (alias.Or
 func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Order, error) {
 	methodName := constants.NameMethodGetBasket
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	User, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
 	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(User.Id), constants.Draft)
+	if u == nil {
+		functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
+		return nil, nil
+	}
+
+	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Draft)
 	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
+	if len(orders) == 0 {
+		return nil, nil
+	}
+	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return orders[0], nil
 }
 
@@ -72,28 +93,38 @@ func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Or
 func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId, error) {
 	methodName := constants.NameMethodCreateOrder
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	User, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
 	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return 0, err
 	}
-	dateOrder := time.Now()
-	dateOrderForDB := dateOrder.Format("2024-04-02 23:34:54")
-	id, err := uc.repoOrder.Create(ctx, alias.UserId(User.Id), dateOrderForDB)
+
+	dateOrder := time.Now().UTC()
+	dateOrderForDB := dateOrder.Format("2006-01-02 15:04:05-07:00")
+	id, err := uc.repoOrder.Create(ctx, alias.UserId(u.Id), dateOrderForDB)
 	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return 0, err
 	}
+	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return id, err
 }
 
 func (uc *UsecaseLayer) Update(ctx context.Context, order *entity.Order) (*entity.Order, error) {
+	methodName := constants.NameMethodUpdateOrder
+	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	id, err := uc.repoOrder.Update(ctx, order)
 	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
+
 	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, id)
 	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
+	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return updatedOrder, nil
 }
 

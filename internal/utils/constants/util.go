@@ -38,6 +38,7 @@ const (
 	NameMethodGetBasket             = "GetBasket"
 	NameMethodCreateOrder           = "CreateOrder"
 	NameMethodGetHashedUserPassword = "GetHashedUserPassword"
+	NameMethodUpdateOrder           = "UpdateOrder"
 )
 
 // Название методов Session для логгера

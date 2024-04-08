@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
-	"time"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
@@ -24,13 +23,13 @@ type Repo interface {
 	DeleteById(ctx context.Context, userId alias.UserId, requestId string) error
 	DeleteByEmail(ctx context.Context, email string, requestId string) error
 
-	Create(ctx context.Context, u *entity.User, hashPassword string, requestId string) error
-	Update(ctx context.Context, u *entity.User, hashPassword string, requestId string) error
+	Create(ctx context.Context, u *entity.User, hashPassword string, timeStr string, requestId string) error
+	Update(ctx context.Context, u *entity.User, hashPassword string, timeStr string, requestId string) error
 
 	IsExistById(ctx context.Context, userId alias.UserId, requestId string) (bool, error)
 	IsExistByEmail(ctx context.Context, email string, requestId string) (bool, error)
 
-	UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, requestId string) error
+	UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, timeStr string, requestId string) error
 	GetHashedUserPassword(ctx context.Context, email string, requestId string) (string, error)
 }
 
@@ -128,10 +127,8 @@ func (repo *RepoLayer) DeleteByEmail(ctx context.Context, email string, requestI
 	return nil
 }
 
-func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword string, requestId string) error {
+func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword string, timeStr string, requestId string) error {
 	methodName := cnst.NameMethodCreateUser
-	currentTime := time.Now().UTC()
-	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
 	row := repo.database.QueryRowContext(ctx,
 		`INSERT INTO "user" (name, email, password, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
 		u.Name, u.Email, hashPassword, timeStr, timeStr)
@@ -152,10 +149,8 @@ func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword 
 	return nil
 }
 
-func (repo *RepoLayer) Update(ctx context.Context, u *entity.User, hashPassword string, requestId string) error {
+func (repo *RepoLayer) Update(ctx context.Context, u *entity.User, hashPassword string, timeStr string, requestId string) error {
 	methodName := cnst.NameMethodUpdateUser
-	currentTime := time.Now().UTC()
-	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
 	row := repo.database.QueryRowContext(ctx,
 		`UPDATE "user" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5, updated_at = $6 WHERE id = $6`,
 		u.Name, u.Phone, u.Email, u.ImgUrl, hashPassword, timeStr, u.Id)
@@ -230,7 +225,7 @@ func (repo *RepoLayer) GetHashedUserPassword(ctx context.Context, email string, 
 	return hashedPassword, nil
 }
 
-func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, requestId string) error {
+func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, timeStr string, requestId string) error {
 	methodName := cnst.NameMethodUploadImageByEmail
 	_, err := repo.minio.PutObject(ctx, cnst.BucketUser, filename, file, filesize, minio.PutObjectOptions{ContentType: "application/form-data"})
 	if err != nil {
@@ -239,7 +234,7 @@ func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.Fi
 	}
 
 	imgPath := fmt.Sprintf("/minio-api/%s/%s", cnst.BucketUser, filename)
-	row := repo.database.QueryRowContext(ctx, `UPDATE "user" SET img_url = $1 WHERE email = $2 RETURNING id, email, img_url`, imgPath, email)
+	row := repo.database.QueryRowContext(ctx, `UPDATE "user" SET img_url = $1, updated_at = $2 WHERE email = $3 RETURNING id, email, img_url`, imgPath, timeStr, email)
 	var uId uint64
 	var uEmail string
 	var uImg string

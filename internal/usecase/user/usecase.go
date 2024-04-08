@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
+	"time"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/user"
@@ -125,7 +126,10 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	err = uc.repoUser.Create(ctx, uProps, hashPassword, requestId)
+
+	currentTime := time.Now().UTC()
+	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
+	err = uc.repoUser.Create(ctx, uProps, hashPassword, timeStr, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
@@ -159,7 +163,9 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 			return nil, err
 		}
 	}
-	err = uc.repoUser.Update(ctx, uProps, hashPassword, requestId)
+	currentTime := time.Now().UTC()
+	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
+	err = uc.repoUser.Update(ctx, uProps, hashPassword, timeStr, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
@@ -198,7 +204,9 @@ func (uc *UsecaseLayer) UploadImageByEmail(ctx context.Context, file multipart.F
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	fileExtension := functions.GetFileExtension(handler.Filename)
 	filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
-	err := uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, requestId)
+	currentTime := time.Now().UTC()
+	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
+	err := uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, timeStr, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return err

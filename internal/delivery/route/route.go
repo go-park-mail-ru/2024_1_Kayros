@@ -16,7 +16,7 @@ func Setup(db *sql.DB, redis *redis.Client, minio *minio.Client, mux *mux.Router
 	mux.StrictSlash(true)
 
 	AddAuthRouter(db, redis, minio, mux, logger) // протестировано
-	AddUserRouter(db, minio, mux, logger)
+	AddUserRouter(db, minio, mux, logger)        // протестировано
 	AddRestRouter(db, mux, logger)
 	AddOrderRouter(db, minio, mux, logger)
 
