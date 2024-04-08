@@ -23,7 +23,8 @@ func AddMiddleware(db *sql.DB, redisClient *redis.Client, minioClient *minio.Cli
 	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
 
 	// цепочка middlewares
-	handler := middleware.SessionAuthenticationMiddleware(mux, usecaseUser, usecaseSession, logger)
+	handler := middleware.CsrfMiddleware(mux, logger) // вызовется последним
+	handler = middleware.SessionAuthenticationMiddleware(handler, usecaseUser, usecaseSession, logger)
 	handler = middleware.CorsMiddleware(handler, logger)
 	return handler
 }

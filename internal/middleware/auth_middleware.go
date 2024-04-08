@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// SessionAuthentication добавляет в контекст почту пользователя, которого получилось аутентифицировать
+// SessionAuthenticationMiddleware добавляет в контекст email пользователя, которого получилось аутентифицировать, а также request_id
 func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, ucSession session.Usecase, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := uuid.NewV4().String()

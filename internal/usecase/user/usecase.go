@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"mime/multipart"
 	"time"
@@ -120,12 +121,15 @@ func (uc *UsecaseLayer) IsExistByEmail(ctx context.Context, email string) (bool,
 func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entity.User, error) {
 	methodName := cnst.NameMethodCreateUser
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	hashPassword, err := functions.HashData(uProps.Password)
+	salt := make([]byte, 8)
+	_, err := rand.Read(salt)
 	if err != nil {
 		functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
+	hashPasswordBytes := functions.HashData(salt, uProps.Password)
+	hashPassword := string(hashPasswordBytes)
 
 	currentTime := time.Now().UTC()
 	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
@@ -134,6 +138,7 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
+
 	u, err := uc.repoUser.GetByEmail(ctx, uProps.Email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
@@ -146,7 +151,12 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entity.User, error) {
 	methodName := cnst.NameMethodUpdateUser
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	u, err := uc.repoUser.GetById(ctx, alias.UserId(uProps.Id), requestId)
+	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, uProps.Email, requestId)
+	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return nil, err
+	}
+	uCardNumber, err := uc.repoUser.GetHashedCardNumber(ctx, uProps.Email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
@@ -154,23 +164,52 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 
 	var hashPassword string
 	if uProps.Password == "" {
-		hashPassword = u.Password
+		hashPassword = uPassword
 	} else {
-		hashPassword, err = functions.HashData(uProps.Password)
+		salt := make([]byte, 8)
+		_, err := rand.Read(salt)
+		if err != nil {
+			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
+			functions.LogUsecaseFail(uc.logger, requestId, methodName)
+			return nil, err
+		}
+		hashPasswordByte := functions.HashData(salt, uProps.Password)
+		hashPassword = string(hashPasswordByte)
 		if err != nil {
 			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
 			functions.LogUsecaseFail(uc.logger, requestId, methodName)
 			return nil, err
 		}
 	}
+
+	var hashСardNumber string
+	if uProps.CardNumber == "" {
+		hashСardNumber = uCardNumber
+	} else {
+		salt := make([]byte, 8)
+		_, err := rand.Read(salt)
+		if err != nil {
+			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
+			functions.LogUsecaseFail(uc.logger, requestId, methodName)
+			return nil, err
+		}
+		hashCardNumberByte := functions.HashData(salt, uProps.CardNumber)
+		hashСardNumber = string(hashCardNumberByte)
+		if err != nil {
+			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
+			functions.LogUsecaseFail(uc.logger, requestId, methodName)
+			return nil, err
+		}
+	}
+
 	currentTime := time.Now().UTC()
 	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
-	err = uc.repoUser.Update(ctx, uProps, hashPassword, timeStr, requestId)
+	err = uc.repoUser.Update(ctx, uProps, hashPassword, hashСardNumber, timeStr, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	u, err = uc.repoUser.GetById(ctx, alias.UserId(uProps.Id), requestId)
+	u, err := uc.repoUser.GetById(ctx, alias.UserId(uProps.Id), requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
@@ -183,18 +222,16 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, password string) (bool, error) {
 	methodName := cnst.NameMethodCheckPassword
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	hashPassword, err := functions.HashData(password)
-	if err != nil {
-		functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return false, err
-	}
-
 	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return false, err
 	}
+
+	salt := uPassword[0:8]
+	hashPasswordBytes := functions.HashData([]byte(salt), password)
+	hashPassword := string(hashPasswordBytes)
+
 	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
 	return uPassword == hashPassword, nil
 }
