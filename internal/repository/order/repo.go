@@ -49,19 +49,12 @@ func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
 
 // ok
 func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrder string) (alias.OrderId, error) {
-	res, err := repo.db.ExecContext(ctx,
-		`INSERT INTO order (user_id, date_order, status) VALUES ($1, $2, $3)`, uint64(userId), dateOrder, orderStatus.Draft)
-	if err != nil {
-		return 0, err
-	}
-	countRows, err := res.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-	if countRows == 0 {
-		return 0, fmt.Errorf(CreateError)
-	}
-	id, err := res.LastInsertId()
+	fmt.Println(dateOrder)
+	row := repo.db.QueryRowContext(ctx,
+		`INSERT INTO "order" (user_id, created_at, updated_at, status) VALUES ($1, $2, $2, $3) RETURNING id`, uint64(userId), dateOrder, orderStatus.Draft)
+	var id uint64
+	err := row.Scan(&id)
+	fmt.Println(id)
 	if err != nil {
 		return 0, err
 	}
@@ -71,7 +64,7 @@ func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId, dateOrde
 // ok
 func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error) {
 	rows, err := repo.db.QueryContext(ctx, `SELECT id, user_id, created_at, received_at, status, address, 
-       				extra_address, sum FROM order WHERE user_id= $1 AND status=$2`, uint64(userId), status)
+       				extra_address, sum FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), status)
 	fmt.Println("in repo", err)
 	if err != nil {
 		fmt.Println(err)
@@ -100,7 +93,7 @@ func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, statu
 // ok
 func (repo *RepoLayer) GetOrderById(ctx context.Context, orderId alias.OrderId) (*entity.Order, error) {
 	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, created_at, received_at, status, address, 
-       				extra_address, sum FROM order WHERE id= $1`, uint64(orderId))
+       				extra_address, sum FROM "order" WHERE id= $1`, uint64(orderId))
 	var order entity.OrderDB
 	err := row.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.ReceivedAt, &order.Status, &order.Address,
 		&order.ExtraAddress, &order.Sum)
@@ -119,7 +112,7 @@ func (repo *RepoLayer) GetOrderById(ctx context.Context, orderId alias.OrderId) 
 
 // ok
 func (repo *RepoLayer) GetBasketId(ctx context.Context, userId alias.UserId) (alias.OrderId, error) {
-	row := repo.db.QueryRowContext(ctx, `SELECT id FROM order WHERE user_id= $1 AND status=$2`, uint64(userId), orderStatus.Draft)
+	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), orderStatus.Draft)
 	var orderId uint64
 	err := row.Scan(&orderId)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -158,7 +151,7 @@ func (repo *RepoLayer) GetFood(ctx context.Context, orderId alias.OrderId) ([]*e
 // ok
 func (repo *RepoLayer) UpdateAddress(ctx context.Context, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error) {
 	row := repo.db.QueryRowContext(ctx,
-		`UPDATE order SET address=$1, extra_address=$2
+		`UPDATE "order" SET address=$1, extra_address=$2
                WHERE id=$3 RETURNING id`, address, extraAddress, uint64(orderId))
 	var id uint64
 	err := row.Scan(&id)
@@ -170,7 +163,7 @@ func (repo *RepoLayer) UpdateAddress(ctx context.Context, address string, extraA
 
 // ok
 func (repo *RepoLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) (alias.OrderId, error) {
-	row := repo.db.QueryRowContext(ctx, `UPDATE order SET status=$1 WHERE id=$2 RETURNING id`, status, uint64(orderId))
+	row := repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1 WHERE id=$2 RETURNING id`, status, uint64(orderId))
 	var id uint64
 	err := row.Scan(&id)
 	if err != nil {
@@ -182,7 +175,7 @@ func (repo *RepoLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, 
 func (repo *RepoLayer) GetOrderSum(ctx context.Context, orderId alias.OrderId) (uint32, error) {
 	var sum uint32
 	row := repo.db.QueryRowContext(ctx,
-		`SELECT sum FROM order WHERE id=$1`, uint64(orderId))
+		`SELECT sum FROM "order" WHERE id=$1`, uint64(orderId))
 	err := row.Scan(&sum)
 	if err != nil {
 		return 0, err
@@ -214,7 +207,7 @@ func (repo *RepoLayer) GetFoodCount(ctx context.Context, foodId alias.FoodId, or
 
 func (repo *RepoLayer) UpdateSum(ctx context.Context, sum uint32, orderId alias.OrderId) error {
 	res, err := repo.db.ExecContext(ctx,
-		`UPDATE order SET sum=$1 WHERE id=$2`, sum, uint64(orderId))
+		`UPDATE "order" SET sum=$1 WHERE id=$2`, sum, uint64(orderId))
 	if err != nil {
 		return err
 	}

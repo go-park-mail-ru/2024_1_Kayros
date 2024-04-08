@@ -60,7 +60,7 @@ func (uc *UsecaseLayer) GetBasketId(ctx context.Context, email string) (alias.Or
 		return 0, err
 	}
 	if id == 0 {
-		return 0, fmt.Errorf("Корзина пуста")
+		return 0, nil
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return id, nil
@@ -105,12 +105,12 @@ func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return 0, err
 	}
-
 	dateOrder := time.Now().UTC()
-	dateOrderForDB := dateOrder.Format("2006-01-02 15:04:05-07:00")
+	dateOrderForDB := dateOrder.Format("2006-01-02T15:04:05Z07:00")
+	fmt.Println("uc ", dateOrderForDB, u.Id)
 	id, err := uc.repoOrder.Create(ctx, alias.UserId(u.Id), dateOrderForDB)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		functions.LogError(uc.logger, requestId, methodName, err, constants.UsecaseLayer)
 		return 0, err
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)

@@ -33,7 +33,7 @@ func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
 
 func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
 	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, name, short_description, address, img_url FROM "Restaurant"`)
+		`SELECT id, name, short_description, address, img_url FROM restaurant`)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (repo *RepoLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 
 func (repo *RepoLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
 	row := repo.db.QueryRowContext(ctx,
-		`SELECT id, name, long_description, address, img_url FROM "Restaurant" WHERE id=$1`, uint(restId))
+		`SELECT id, name, long_description, address, img_url FROM restaurant WHERE id=$1`, uint(restId))
 	rest := &entity.Restaurant{}
 	err := row.Scan(&rest.Id, &rest.Name, &rest.LongDescription, &rest.Address, &rest.ImgUrl)
 	if errors.Is(err, sql.ErrNoRows) {
