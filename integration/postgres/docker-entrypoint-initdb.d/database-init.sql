@@ -13,13 +13,13 @@ CREATE TABLE IF NOT EXISTS "user"
     card_number TEXT CONSTRAINT user_card_number CHECK (LENGTH(card_number) = 19) NULL,
     created_at  TIMESTAMPTZ CONSTRAINT user_time_create NOT NULL,
     updated_at  TIMESTAMPTZ CONSTRAINT user_time_last_updated NOT NULL
-);
+    );
 
 CREATE TABLE IF NOT EXISTS category
 (
     id   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT CONSTRAINT category_name_length CHECK (LENGTH(name) BETWEEN 2 AND 30) UNIQUE NOT NULL
-);
+    );
 
 CREATE TABLE IF NOT EXISTS restaurant
 (
@@ -49,12 +49,12 @@ CREATE TABLE IF NOT EXISTS "order"
     created_at     TIMESTAMPTZ CONSTRAINT user_time_create NOT NULL,
     updated_at     TIMESTAMPTZ CONSTRAINT user_time_last_updated NOT NULL,
     received_at    TIMESTAMPTZ CONSTRAINT user_time_received NULL
-);
+    );
 
 -- БЖУ хранятся в МГ
 CREATE TABLE IF NOT EXISTS food(
-    id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name          TEXT CONSTRAINT food_name_length CHECK (LENGTH(name) BETWEEN 2 AND 60) NOT NULL,
+                                   id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                                   name          TEXT CONSTRAINT food_name_length CHECK (LENGTH(name) BETWEEN 2 AND 60) NOT NULL,
     description   TEXT CONSTRAINT food_description_length CHECK (LENGTH(description) BETWEEN 10 AND 100) NULL,
     restaurant_id INTEGER CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0) REFERENCES restaurant (id) ON DELETE CASCADE,
     category_id   INTEGER CONSTRAINT foreign_key_cat CHECK (category_id > 0) REFERENCES category (id) ON DELETE CASCADE,
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS food(
     carbohydrates INTEGER CONSTRAINT non_negative_carb CHECK (carbohydrates >= 0) NULL,
     img_url       TEXT CONSTRAINT restaurant_img_url CHECK(LENGTH(img_url) <= 60) DEFAULT 'http://localhost:9000/foods/default.jpg' NOT NULL,
     CONSTRAINT unique_food_in_rests UNIQUE (name, restaurant_id)
-);
+    );
 
 CREATE TABLE IF NOT EXISTS food_order
 (
@@ -75,4 +75,4 @@ CREATE TABLE IF NOT EXISTS food_order
     created_at  TIMESTAMPTZ CONSTRAINT time_create NOT NULL,
     updated_at  TIMESTAMPTZ CONSTRAINT last_updated NOT NULL,
     PRIMARY KEY (food_id, order_id)
-);
+    );

@@ -34,11 +34,15 @@ const (
 	NameMethodIsExistByEmail        = "IsExistByEmail"
 	NameMethodCheckPassword         = "CheckPassword"
 	NameMethodUploadImageByEmail    = "UploadImageByEmail"
-	NameMethodGetBasketId           = "GetBasketId"
-	NameMethodGetBasket             = "GetBasket"
-	NameMethodCreateOrder           = "CreateOrder"
 	NameMethodGetHashedUserPassword = "GetHashedUserPassword"
 	NameMethodUpdateOrder           = "UpdateOrder"
+)
+
+const (
+	NameMethodGetBasketId = "GetBasketId"
+	NameMethodGetBasket   = "GetBasket"
+	NameMethodCreateOrder = "CreateOrder"
+	NamePayOrder          = "Pay"
 )
 
 // Название методов Session для логгера

@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
+	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/repository/order"
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
@@ -19,8 +20,8 @@ type Usecase interface {
 	GetBasketId(ctx context.Context, email string) (alias.OrderId, error)
 	GetBasket(ctx context.Context, email string) (*entity.Order, error)
 	Create(ctx context.Context, email string) (alias.OrderId, error)
-	Update(ctx context.Context, order *entity.Order) (*entity.Order, error)
-	UpdateStatus(ctx context.Context, orderId alias.OrderId, currentStatus string, newStatus string) error
+	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) (*entity.Order, error)
+	Pay(ctx context.Context, requestId string, orderId alias.OrderId, currentStatus string) (*entity.Order, error)
 	AddFoodToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) error
 	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
 	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) error
@@ -50,14 +51,16 @@ func (uc *UsecaseLayer) GetBasketId(ctx context.Context, email string) (alias.Or
 		return 0, err
 	}
 	if u == nil {
-		functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
-		return 0, nil
+		functions.LogError(uc.logger, requestId, methodName, fmt.Errorf("No user"), constants.UsecaseLayer)
+		return 0, err
 	}
-
 	id, err := uc.repoOrder.GetBasketId(ctx, alias.UserId(u.Id))
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		functions.LogError(uc.logger, requestId, methodName, err, constants.UsecaseLayer)
 		return 0, err
+	}
+	if id == 0 {
+		return 0, fmt.Errorf("Корзина пуста")
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return id, nil
@@ -65,25 +68,29 @@ func (uc *UsecaseLayer) GetBasketId(ctx context.Context, email string) (alias.Or
 
 // ok
 func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Order, error) {
+	fmt.Println("uc order")
 	methodName := constants.NameMethodGetBasket
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
+	fmt.Println("uc getbasket", email)
 	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	fmt.Println("user_id, status", u.Id, constants.Draft)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	if u == nil {
 		functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
-		return nil, nil
+		return nil, err
 	}
-
 	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Draft)
 	if err != nil {
+		fmt.Println("uc, err with orders: ", err)
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	if len(orders) == 0 {
-		return nil, nil
+		functions.LogError(uc.logger, requestId, methodName, fmt.Errorf(order.NoBasketError), constants.UsecaseLayer)
+		return nil, fmt.Errorf(order.NoBasketError)
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return orders[0], nil
@@ -110,15 +117,15 @@ func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId
 	return id, err
 }
 
-func (uc *UsecaseLayer) Update(ctx context.Context, order *entity.Order) (*entity.Order, error) {
+func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) (*entity.Order, error) {
 	methodName := constants.NameMethodUpdateOrder
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	id, err := uc.repoOrder.Update(ctx, order)
+	id, err := uc.repoOrder.UpdateAddress(ctx, FullAddress.Address, FullAddress.ExtraAddress, orderId)
+	fmt.Println(id, err)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-
 	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, id)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
@@ -128,11 +135,24 @@ func (uc *UsecaseLayer) Update(ctx context.Context, order *entity.Order) (*entit
 	return updatedOrder, nil
 }
 
-func (uc *UsecaseLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, currentStatus string, newStatus string) error {
-	if currentStatus == constants.Draft && newStatus == constants.Payed {
-		return uc.repoOrder.UpdateStatus(ctx, orderId, newStatus)
+func (uc *UsecaseLayer) Pay(ctx context.Context, requestId string, orderId alias.OrderId, currentStatus string) (*entity.Order, error) {
+	if currentStatus != constants.Draft {
+		return nil, fmt.Errorf("Заказ уже оплачен")
 	}
-	return fmt.Errorf("Статус заказа не был обновлен")
+	id, err := uc.repoOrder.UpdateStatus(ctx, orderId, constants.Payed)
+	fmt.Println(id, err)
+	if err != nil {
+		functions.LogError(uc.logger, requestId, constants.NamePayOrder, err, constants.UsecaseLayer)
+		return nil, err
+	}
+	payedOrder, err := uc.repoOrder.GetOrderById(ctx, id)
+	fmt.Println(payedOrder.Id, payedOrder.Status, err)
+	if err != nil {
+		functions.LogError(uc.logger, requestId, constants.NamePayOrder, err, constants.UsecaseLayer)
+		return nil, err
+	}
+	functions.LogOk(uc.logger, requestId, constants.NamePayOrder, constants.UsecaseLayer)
+	return payedOrder, nil
 }
 
 func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) error {
