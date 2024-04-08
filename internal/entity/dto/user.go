@@ -6,13 +6,14 @@ import (
 )
 
 type User struct {
-	Id       uint64 `json:"id" valid:"-"`
-	Name     string `json:"name" valid:"user_name"`
-	Phone    string `json:"phone" valid:"user_phone"`
-	Email    string `json:"email" valid:"user_email"`
-	Address  string `json:"address" valid:"-"` // нужно добавить валидацию для адреса
-	ImgUrl   string `json:"img_url" valid:"url"`
-	Password string `json:"-" valid:"user_pwd, omitempty"`
+	Id         uint64 `json:"id" valid:"-"`
+	Name       string `json:"name" valid:"user_name"`
+	Phone      string `json:"phone" valid:"user_phone"`
+	Email      string `json:"email" valid:"user_email"`
+	Address    string `json:"address" valid:"-"` // нужно добавить валидацию для адреса
+	ImgUrl     string `json:"img_url" valid:"url"`
+	CardNumber string `json:"-" valid:"user_card_number, omitempty"`
+	Password   string `json:"-" valid:"user_pwd, omitempty"`
 }
 
 func (d *User) Validate() (bool, error) {

@@ -10,11 +10,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func Init(cfg *config.Project, logger *zap.Logger) *redis.Client {
+func Init(cfg *config.Project, logger *zap.Logger, dbNum int) *redis.Client {
 	cfgRedis := cfg.Redis
 	redisAddress := fmt.Sprintf("%s:%d", cfgRedis.Host, cfgRedis.Port)
 	r := redis.NewClient(&redis.Options{
-		DB:   cfgRedis.Database,
+		DB:   dbNum,
 		Addr: redisAddress,
 	})
 

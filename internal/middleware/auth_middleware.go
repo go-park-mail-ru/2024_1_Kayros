@@ -15,7 +15,7 @@ import (
 	"2024_1_kayros/internal/utils/functions"
 )
 
-// SessionAuthentication добавляет в контекст почту пользователя, которого получилось аутентифицировать
+// SessionAuthenticationMiddleware добавляет в контекст email пользователя, которого получилось аутентифицировать, а также request_id
 func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, ucSession session.Usecase, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := uuid.NewV4().String()
@@ -29,6 +29,7 @@ func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, 
 			functions.LogInfo(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err.Error(), cnst.MiddlewareLayer)
 		} else if err != nil {
 			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
+			handler.ServeHTTP(w, r)
 			return
 		}
 
@@ -37,12 +38,14 @@ func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, 
 		email, err := ucSession.GetValue(ctx, alias.SessionKey(sessionId))
 		if err != nil {
 			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
+			handler.ServeHTTP(w, r)
 			return
 		}
 		u, err := ucUser.GetByEmail(ctx, string(email))
 
 		if err != nil {
 			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
+			handler.ServeHTTP(w, r)
 			return
 		}
 		if u == nil {
