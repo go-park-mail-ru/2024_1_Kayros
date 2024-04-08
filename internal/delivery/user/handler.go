@@ -28,15 +28,27 @@ func NewDeliveryLayer(ucUserProps user.Usecase, loggerProps *zap.Logger) *Delive
 
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	requestId := r.Context().Value("request_id").(string)
-	email := r.Context().Value("email")
-	if email == nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUserData, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
+	requestId := ""
+	ctxRequestId := r.Context().Value("request_id")
+	if ctxRequestId == nil {
+		err := errors.New("request_id передан не был")
+		functions.LogError(d.logger, requestId, cnst.NameHandlerSignUp, err, cnst.DeliveryLayer)
+	} else {
+		requestId = ctxRequestId.(string)
+	}
+
+	email := ""
+	ctxEmail := r.Context().Value("email")
+	if ctxEmail != nil {
+		email = ctxEmail.(string)
+	}
+	if email == "" {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
 
-	u, err := d.ucUser.GetByEmail(r.Context(), email.(string))
+	u, err := d.ucUser.GetByEmail(r.Context(), email)
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUserData, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)

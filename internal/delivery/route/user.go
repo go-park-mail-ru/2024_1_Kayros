@@ -18,6 +18,6 @@ func AddUserRouter(db *sql.DB, minio *minio.Client, mux *mux.Router, logger *zap
 	usecaseUser := ucUser.NewUsecaseLayer(repoUser, logger)
 	deliveryUser := dUser.NewDeliveryLayer(usecaseUser, logger)
 
-	mux.HandleFunc("user", deliveryUser.UserData).Methods("GET").Name("userdata")
-	mux.HandleFunc("user", deliveryUser.UploadImage).Methods("PUT").Name("user_image")
+	mux.HandleFunc("/user", deliveryUser.UserData).Methods("GET").Name("userdata")
+	mux.HandleFunc("/user/image", deliveryUser.UploadImage).Methods("POST").Name("user_image")
 }
