@@ -301,7 +301,7 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 func genCsrfToken(secretKey string, sessionId alias.SessionKey, payload string) string {
 	// Создание csrf_token
 	message := string(sessionId) + "!" + payload
-	messageHashByte := functions.HashData([]byte(secretKey), []byte(message))
+	messageHashByte := functions.HashData([]byte(secretKey), message)
 	messageHash := string(messageHashByte)
 	csrfToken := messageHash + "." + message
 	return csrfToken
