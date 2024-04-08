@@ -76,7 +76,6 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("dto and marshal ok")
 	_, err = w.Write(body)
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -189,9 +188,10 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	email := r.Context().Value("email").(string)
 	//передаем почту и статус, чтоб найти id заказа-корзины
 	//res uint
-	fmt.Println("in order handler adding food for ", email)
 	basketId, err := h.uc.GetBasketId(r.Context(), email)
-	fmt.Println("to besket# ", basketId)
+	if basketId == 0 {
+		err = nil
+	}
 	if err != nil {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
