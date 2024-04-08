@@ -12,7 +12,7 @@ type User struct {
 	Email    string `json:"email" valid:"user_email"`
 	Address  string `json:"address" valid:"-"` // нужно добавить валидацию для адреса
 	ImgUrl   string `json:"img_url" valid:"url"`
-	Password string `json:"-" valid:"user_pwd"`
+	Password string `json:"-" valid:"user_pwd, omitempty"`
 }
 
 func (d *User) Validate() (bool, error) {

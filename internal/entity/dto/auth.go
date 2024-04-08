@@ -7,7 +7,7 @@ import (
 // SignIn структура данных, получаемая с формы авторизации
 type SignIn struct {
 	Email    string `json:"email" valid:"user_email"`
-	Password string `json:"-" valid:"user_pwd"`
+	Password string `json:"password" valid:"user_pwd"`
 }
 
 func (d *SignIn) Validate() (bool, error) {
@@ -18,7 +18,7 @@ func (d *SignIn) Validate() (bool, error) {
 type SignUp struct {
 	Email    string `json:"email" valid:"user_email"`
 	Name     string `json:"name" valid:"user_name"`
-	Password string `json:"-" valid:"user_pwd"`
+	Password string `json:"password" valid:"user_pwd"`
 }
 
 func (d *SignUp) Validate() (bool, error) {

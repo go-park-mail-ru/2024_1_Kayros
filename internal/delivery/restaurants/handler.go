@@ -50,7 +50,7 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	fmt.Print("we take restaurants")
+	fmt.Print("we take rests")
 	restsDTO := dto.NewRestaurantArray(rests)
 	body, err := json.Marshal(restsDTO)
 	if err != nil {

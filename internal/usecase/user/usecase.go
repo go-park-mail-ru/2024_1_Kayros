@@ -4,14 +4,16 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
+	"time"
+
+	"github.com/satori/uuid"
+	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
-	"github.com/satori/uuid"
-	"go.uber.org/zap"
 )
 
 type Usecase interface {
@@ -49,18 +51,23 @@ func (uc *UsecaseLayer) GetById(ctx context.Context, userId alias.UserId) (*enti
 	u, err := uc.repoUser.GetById(ctx, userId, requestId)
 	if err == nil {
 		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-		return u, nil
+	} else {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 	}
-	return nil, err
+	return u, err
 }
 
 func (uc *UsecaseLayer) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
 	methodName := cnst.NameMethodGetUserByEmail
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
+	fmt.Println("we are in getuser")
 	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
 	if err == nil {
+		fmt.Println("we get user")
 		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
+		return u, nil
 	} else {
+		fmt.Println("we have truble with user", err)
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 	}
 	return u, err
@@ -123,12 +130,15 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	err = uc.repoUser.Create(ctx, uProps, hashPassword, requestId)
+
+	currentTime := time.Now().UTC()
+	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
+	err = uc.repoUser.Create(ctx, uProps, hashPassword, timeStr, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	u, err := uc.repoUser.GetById(ctx, alias.UserId(uProps.Id), requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, uProps.Email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
@@ -157,7 +167,9 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 			return nil, err
 		}
 	}
-	err = uc.repoUser.Update(ctx, uProps, hashPassword, requestId)
+	currentTime := time.Now().UTC()
+	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
+	err = uc.repoUser.Update(ctx, uProps, hashPassword, timeStr, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
@@ -182,13 +194,13 @@ func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, passwor
 		return false, err
 	}
 
-	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return false, err
 	}
 	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return u.Password == hashPassword, nil
+	return uPassword == hashPassword, nil
 }
 
 func (uc *UsecaseLayer) UploadImageByEmail(ctx context.Context, file multipart.File, handler *multipart.FileHeader, email string) error {
@@ -196,7 +208,9 @@ func (uc *UsecaseLayer) UploadImageByEmail(ctx context.Context, file multipart.F
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	fileExtension := functions.GetFileExtension(handler.Filename)
 	filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
-	err := uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, requestId)
+	currentTime := time.Now().UTC()
+	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
+	err := uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, timeStr, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return err

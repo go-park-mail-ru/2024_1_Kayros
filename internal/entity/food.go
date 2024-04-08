@@ -5,7 +5,7 @@ type Food struct {
 	Name         string
 	Description  string
 	RestaurantId uint64
-	CategoryId   uint64
+	Category     string
 	Weight       uint64
 	Price        uint64
 	ImgUrl       string

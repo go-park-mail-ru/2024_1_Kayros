@@ -15,9 +15,9 @@ func Setup(db *sql.DB, redis *redis.Client, minio *minio.Client, mux *mux.Router
 	mux = mux.PathPrefix("/api/v1").Subrouter()
 	mux.StrictSlash(true)
 
-	AddAuthRouter(db, redis, minio, mux, logger)
-	AddUserRouter(db, minio, mux, logger)
-	AddRestRouter(db, mux, logger)
+	AddAuthRouter(db, redis, minio, mux, logger) // протестировано
+	AddUserRouter(db, minio, mux, logger)        // протестировано
+	AddRestRouter(db, mux, logger)               // протестировано
 	AddOrderRouter(db, minio, mux, logger)
 
 	handler := AddMiddleware(db, redis, minio, mux, logger)

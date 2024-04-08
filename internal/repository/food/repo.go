@@ -33,8 +33,8 @@ func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
 
 func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
 	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, name, description, restaurant_id, category_id, weight, price, img_url 
-				FROM "Food" WHERE restaurant_id = $1`, uint64(restId))
+		`SELECT f.id, f.name, description, restaurant_id, ca.name, weight, price, img_url FROM food as f 
+    JOIN category as ca ON f.category_id=ca.id WHERE restaurant_id = $1`, uint64(restId))
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]
 	for rows.Next() {
 		item := entity.Food{}
 		err = rows.Scan(&item.Id, &item.Name, &item.Description, &item.RestaurantId,
-			&item.CategoryId, &item.Weight, &item.Price, &item.ImgUrl)
+			&item.Category, &item.Weight, &item.Price, &item.ImgUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -55,11 +55,11 @@ func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]
 func (repo *RepoLayer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT id, name, description, restaurant_id, category_id, weight, price, img_url 
-				FROM "Food" WHERE id=$1`, uint64(foodId))
+				FROM food WHERE id=$1`, uint64(foodId))
 
 	var item *entity.Food
 	err := row.Scan(&item.Id, &item.Name, &item.Description, &item.RestaurantId,
-		&item.CategoryId, &item.ImgUrl, &item.Price, &item.Weight)
+		&item.Category, &item.ImgUrl, &item.Price, &item.Weight)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf(NoFoodError)
 	}

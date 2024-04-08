@@ -24,19 +24,21 @@ const (
 // USECASE && REPOSITORY
 // Название методов User для логгера
 const (
-	NameMethodGetUserById        = "GetUserById"
-	NameMethodGetUserByEmail     = "GetUserByEmail"
-	NameMethodDeleteUserById     = "DeleteUserById"
-	NameMethodDeleteUserByEmail  = "DeleteUserByEmail"
-	NameMethodCreateUser         = "CreateUser"
-	NameMethodUpdateUser         = "UpdateUser"
-	NameMethodIsExistById        = "IsExistById"
-	NameMethodIsExistByEmail     = "IsExistByEmail"
-	NameMethodCheckPassword      = "CheckPassword"
-	NameMethodUploadImageByEmail = "UploadImageByEmail"
-	NameMethodGetBasketId        = "GetBasketId"
-	NameMethodGetBasket          = "GetBasket"
-	NameMethodCreateOrder        = "CreateOrder"
+	NameMethodGetUserById           = "GetUserById"
+	NameMethodGetUserByEmail        = "GetUserByEmail"
+	NameMethodDeleteUserById        = "DeleteUserById"
+	NameMethodDeleteUserByEmail     = "DeleteUserByEmail"
+	NameMethodCreateUser            = "CreateUser"
+	NameMethodUpdateUser            = "UpdateUser"
+	NameMethodIsExistById           = "IsExistById"
+	NameMethodIsExistByEmail        = "IsExistByEmail"
+	NameMethodCheckPassword         = "CheckPassword"
+	NameMethodUploadImageByEmail    = "UploadImageByEmail"
+	NameMethodGetBasketId           = "GetBasketId"
+	NameMethodGetBasket             = "GetBasket"
+	NameMethodCreateOrder           = "CreateOrder"
+	NameMethodGetHashedUserPassword = "GetHashedUserPassword"
+	NameMethodUpdateOrder           = "UpdateOrder"
 )
 
 // Название методов Session для логгера
