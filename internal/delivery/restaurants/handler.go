@@ -44,7 +44,6 @@ func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase, loggerProps *z
 }
 
 func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Request) {
-	fmt.Print("we are in restaurants")
 	w.Header().Set("Content-Type", "application/json")
 	requestId := ""
 	ctxRequestId := r.Context().Value("request_id")
@@ -78,6 +77,7 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
 	requestId := ""

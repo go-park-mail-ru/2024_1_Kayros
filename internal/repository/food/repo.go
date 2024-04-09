@@ -36,12 +36,12 @@ func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
 func (repo *RepoLayer) GetByRestId(ctx context.Context, requestId string, restId alias.RestId) ([]*entity.Food, error) {
 	rows, err := repo.db.QueryContext(ctx,
 		`SELECT c.name, f.id, f.name, description, restaurant_id, weight, price, img_url FROM food as f 
-    JOIN category as c ON f.category_id=c.id WHERE restaurant_id = $1`, uint64(restId))
+    JOIN category as c ON f.category_id=c.id WHERE restaurant_id = $1 ORDER BY category_id`, uint64(restId))
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetFoodByRest, err, constants.RepoLayer)
 		return nil, err
 	}
-	var food []*entity.Food
+	food := []*entity.Food{}
 	for rows.Next() {
 		item := entity.Food{}
 		err = rows.Scan(&item.Category, &item.Id, &item.Name, &item.Description, &item.RestaurantId,

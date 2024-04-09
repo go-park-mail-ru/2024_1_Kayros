@@ -2,7 +2,6 @@ package food
 
 import (
 	"context"
-	"fmt"
 
 	"go.uber.org/zap"
 
@@ -38,25 +37,23 @@ func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	var categories []*entity.Category
-	category := &entity.Category{
-		Name: dishes[0].Category,
-		Food: []*entity.Food{dishes[0]},
-	}
-	for i := 1; i < len(dishes); i++ {
-		fmt.Println(i, dishes[i])
-		if dishes[i].Category != dishes[i-1].Category {
-			fmt.Println(i, "категория сменилась", category)
-			categories = append(categories, category)
-			for _, v := range categories {
-				fmt.Println(v.Name)
-			}
-			category = &entity.Category{
-				Name: dishes[i].Category,
-				Food: []*entity.Food{},
-			}
+	categories := []*entity.Category{}
+	if len(dishes) > 0 {
+		category := &entity.Category{
+			Name: dishes[0].Category,
+			Food: []*entity.Food{dishes[0]},
 		}
-		category.Food = append(category.Food, dishes[i])
+		categories = append(categories, category)
+		for i := 1; i < len(dishes); i++ {
+			if dishes[i].Category != dishes[i-1].Category {
+				category = &entity.Category{
+					Name: dishes[i].Category,
+					Food: []*entity.Food{},
+				}
+				categories = append(categories, category)
+			}
+			category.Food = append(category.Food, dishes[i])
+		}
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return categories, nil

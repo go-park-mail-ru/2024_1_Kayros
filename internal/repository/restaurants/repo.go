@@ -58,7 +58,7 @@ func (repo *RepoLayer) GetAll(ctx context.Context, requestId string) ([]*entity.
 func (repo *RepoLayer) GetById(ctx context.Context, requestId string, restId alias.RestId) (*entity.Restaurant, error) {
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT id, name, long_description, address, img_url FROM restaurant WHERE id=$1`, uint(restId))
-	rest := &entity.Restaurant{}
+	rest := entity.Restaurant{}
 	err := row.Scan(&rest.Id, &rest.Name, &rest.LongDescription, &rest.Address, &rest.ImgUrl)
 	if errors.Is(err, sql.ErrNoRows) {
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetRestById, err, constants.RepoLayer)
@@ -69,5 +69,5 @@ func (repo *RepoLayer) GetById(ctx context.Context, requestId string, restId ali
 		return nil, err
 	}
 	fmt.Println("ok repo getbyid")
-	return rest, nil
+	return &rest, nil
 }
