@@ -6,6 +6,7 @@ import (
 )
 
 func ErrorResponse(w http.ResponseWriter, messageError string, codeStatus int) http.ResponseWriter {
+	w.Header().Set("Content-Type", "application/json")
 	errObject := map[string]string{"detail": messageError}
 	body, err := json.Marshal(errObject)
 	if err != nil {

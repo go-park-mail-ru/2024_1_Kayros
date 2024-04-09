@@ -277,7 +277,7 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionCookie, err := r.Cookie("session_id")
+	sessionCookie, err := r.Cookie(cnst.SessionCookieName)
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, err, http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
@@ -299,14 +299,14 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 
 	//
 
-	csrfCookie, err := r.Cookie("csrf_token")
+	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, err, http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
 
-	wasDeleted, err = d.ucSession.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value))
+	wasDeleted, err = d.ucCsrf.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value))
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -315,6 +315,8 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 	if !wasDeleted {
 		functions.LogWarn(d.logger, requestId, cnst.NameHandlerSignOut, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
 	}
+	csrfCookie.Expires = time.Now().AddDate(0, 0, -1)
+	http.SetCookie(w, csrfCookie)
 
 	w = functions.JsonResponse(w, map[string]string{"detail": "Сессия успешно завершена"})
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerSignUp, cnst.DeliveryLayer)
