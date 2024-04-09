@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
 	"2024_1_kayros/config"
@@ -123,21 +122,23 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: false,
 	}
 
-	csrfToken := genCsrfToken(d.cfg.CsrfSecretKey, alias.SessionKey(sessionId), strconv.Itoa(int(u.Id)))
-	err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
-	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	csrfCookie := http.Cookie{
-		Name:     cnst.CsrfCookieName,
-		Value:    csrfToken,
-		Expires:  expiration,
-		HttpOnly: false,
+	csrfToken, err := genCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId))
+	if err == nil {
+		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
+		if err != nil {
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
+		csrfCookie := http.Cookie{
+			Name:     cnst.CsrfCookieName,
+			Value:    csrfToken,
+			Expires:  expiration,
+			HttpOnly: false,
+		}
+		http.SetCookie(w, &csrfCookie)
 	}
 	http.SetCookie(w, &sessionCookie)
-	http.SetCookie(w, &csrfCookie)
 	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerSignUp, cnst.DeliveryLayer)
@@ -229,20 +230,22 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		csrfToken := genCsrfToken(d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()), strconv.Itoa(int(u.Id)))
-		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
-		if err != nil {
-			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
-			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-			return
+		csrfToken, err := genCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
+		if err == nil {
+			err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
+			if err != nil {
+				functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+				w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+				return
+			}
+			csrfCookie := http.Cookie{
+				Name:     cnst.CsrfCookieName,
+				Value:    csrfToken,
+				Expires:  expiration,
+				HttpOnly: false,
+			}
+			http.SetCookie(w, &csrfCookie)
 		}
-		csrfCookie := http.Cookie{
-			Name:     cnst.CsrfCookieName,
-			Value:    csrfToken,
-			Expires:  expiration,
-			HttpOnly: false,
-		}
-		http.SetCookie(w, &csrfCookie)
 		// Собираем ответ
 		uDTO := dto.NewUser(u)
 		w = functions.JsonResponse(w, uDTO)
@@ -313,14 +316,17 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 		functions.LogWarn(d.logger, requestId, cnst.NameHandlerSignOut, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
 	}
 
-	w = functions.JsonResponse(w, "Сессия успешно завершена")
+	w = functions.JsonResponse(w, map[string]string{"detail": "Сессия успешно завершена"})
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerSignUp, cnst.DeliveryLayer)
 }
 
-func genCsrfToken(secretKey string, sessionId alias.SessionKey) string {
+func genCsrfToken(logger *zap.Logger, requestId string, methodName string, secretKey string, sessionId alias.SessionKey) (string, error) {
 	// Создание csrf_token
-	messageHashByte := functions.HashData([]byte(secretKey), string(sessionId))
-	messageHash := string(messageHashByte)
-	csrfToken := messageHash + "." + message
-	return csrfToken
+	hashData, err := functions.HashCsrf(secretKey, string(sessionId))
+	if err != nil {
+		functions.LogError(logger, requestId, methodName, err, cnst.DeliveryLayer)
+		return "", err
+	}
+	csrfToken := hashData + "." + string(sessionId)
+	return csrfToken, nil
 }
