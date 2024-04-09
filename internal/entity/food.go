@@ -1,5 +1,10 @@
 package entity
 
+type Category struct {
+	Name string
+	Food []*Food
+}
+
 type Food struct {
 	Id           uint64
 	Name         string
