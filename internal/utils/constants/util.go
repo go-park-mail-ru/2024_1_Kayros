@@ -44,10 +44,26 @@ const (
 )
 
 const (
-	NameMethodGetBasketId = "GetBasketId"
-	NameMethodGetBasket   = "GetBasket"
-	NameMethodCreateOrder = "CreateOrder"
-	NamePayOrder          = "Pay"
+	NameMethodGetFoodByRest      = "GetFoodByRest"
+	NameMethodGetFoodById        = "GetFoodById"
+	NameMethodGetBasketId        = "GetBasketId"
+	NameMethodGetBasket          = "GetBasket"
+	NameMethodCreateOrder        = "CreateOrder"
+	NameMethodGetOrders          = "GetOrders"
+	NameMethodGetOrderById       = "GetOrderById"
+	NameMethodPayOrder           = "Pay"
+	NameMethodGetAllRests        = "GetAllRestaurants"
+	NameMethodGetRestById        = "GetRestById"
+	NameMethodAddToOrder         = "AddFoodToOrder"
+	NameMethodUpdateCountInOrder = "UpdateCountInOrder"
+	NameMethodDeleteFromOrder    = "DeleteFromOrder"
+	NameMethodUpdateSum          = "UpdateSum"
+	NameMethodGetFoodCount       = "GetFoodCount"
+	NameMethodGetFoodPrice       = "GetFoodPrice"
+	NameMethodGetOrderSum        = "GetOrderSum"
+	NameMethodUpdateStatus       = "UpdateStatus"
+	NameMethodUpdateAddress      = "UpdateAddress"
+	NameMethodGetFood            = "GetFood"
 )
 
 // Название методов Session для логгера

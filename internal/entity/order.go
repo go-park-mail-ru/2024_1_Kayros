@@ -18,13 +18,13 @@ type Order struct {
 type OrderDB struct {
 	Id           uint64
 	UserId       uint64
-	CreatedAt    sql.NullString
+	CreatedAt    string
 	UpdatedAt    sql.NullString
 	ReceivedAt   sql.NullString
 	Status       string
-	Address      string
+	Address      sql.NullString
 	ExtraAddress sql.NullString
-	Sum          uint64
+	Sum          sql.NullInt64
 	Food         []*FoodInOrder
 }
 
@@ -32,13 +32,13 @@ func ToOrder(oDB *OrderDB) *Order {
 	return &Order{
 		Id:           oDB.Id,
 		UserId:       oDB.UserId,
-		CreatedAt:    String(oDB.CreatedAt),
+		CreatedAt:    oDB.CreatedAt,
 		UpdatedAt:    String(oDB.UpdatedAt),
 		ReceivedAt:   String(oDB.ReceivedAt),
 		Status:       oDB.Status,
-		Address:      oDB.Address,
+		Address:      String(oDB.ExtraAddress),
 		ExtraAddress: String(oDB.ExtraAddress),
-		Sum:          oDB.Sum,
+		Sum:          Int(oDB.Sum),
 		Food:         oDB.Food,
 	}
 }
@@ -48,4 +48,11 @@ func String(element sql.NullString) string {
 		return element.String
 	}
 	return ""
+}
+
+func Int(element sql.NullInt64) uint64 {
+	if element.Valid {
+		return uint64(element.Int64)
+	}
+	return 0
 }

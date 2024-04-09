@@ -8,6 +8,8 @@ import (
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/restaurants"
 	"2024_1_kayros/internal/utils/alias"
+	"2024_1_kayros/internal/utils/constants"
+	"2024_1_kayros/internal/utils/functions"
 )
 
 type Usecase interface {
@@ -27,9 +29,25 @@ func NewUsecaseLayer(repoRestProps restaurants.Repo, loggerProps *zap.Logger) Us
 }
 
 func (uc *UsecaseLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
-	return uc.repoRest.GetAll(ctx)
+	methodName := constants.NameMethodGetAllRests
+	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
+	rests, err := uc.repoRest.GetAll(ctx, requestId)
+	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return nil, err
+	}
+	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
+	return rests, nil
 }
 
 func (uc *UsecaseLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
-	return uc.repoRest.GetById(ctx, restId)
+	methodName := constants.NameMethodGetRestById
+	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
+	rest, err := uc.repoRest.GetById(ctx, requestId, restId)
+	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return nil, err
+	}
+	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
+	return rest, nil
 }

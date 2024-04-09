@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 	foodUc "2024_1_kayros/internal/usecase/food"
 	restUc "2024_1_kayros/internal/usecase/restaurants"
 	"2024_1_kayros/internal/utils/alias"
+	"2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
 )
@@ -44,35 +46,51 @@ func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase, loggerProps *z
 func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Request) {
 	fmt.Print("we are in restaurants")
 	w.Header().Set("Content-Type", "application/json")
+	requestId := ""
+	ctxRequestId := r.Context().Value("request_id")
+	if ctxRequestId == nil {
+		err := errors.New("request_id передан не был")
+		functions.LogError(h.logger, requestId, constants.NameMethodGetAllRests, err, constants.DeliveryLayer)
+	} else {
+		requestId = ctxRequestId.(string)
+	}
 	rests, err := h.ucRest.GetAll(r.Context())
 	if err != nil {
-		fmt.Print(err.Error())
+		functions.LogError(h.logger, requestId, constants.NameMethodGetAllRests, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	fmt.Print("we take rests")
 	restsDTO := dto.NewRestaurantArray(rests)
 	body, err := json.Marshal(restsDTO)
 	if err != nil {
-		fmt.Print(err.Error())
+		functions.LogError(h.logger, requestId, constants.NameMethodGetAllRests, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	_, err = w.Write(body)
 	if err != nil {
-		fmt.Print(err.Error())
+		functions.LogError(h.logger, requestId, constants.NameMethodGetAllRests, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+	functions.LogOk(h.logger, requestId, constants.NameMethodGetAllRests, constants.DeliveryLayer)
 }
 
 func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
+	requestId := ""
+	ctxRequestId := r.Context().Value("request_id")
+	if ctxRequestId == nil {
+		err := errors.New("request_id передан не был")
+		functions.LogError(h.logger, requestId, constants.NameMethodGetRestById, err, constants.DeliveryLayer)
+	} else {
+		requestId = ctxRequestId.(string)
+	}
 	rest, err := h.ucRest.GetById(r.Context(), alias.RestId(id))
-	fmt.Println("ok delivery rest_id=", rest.Id)
 	if err != nil {
+		functions.LogError(h.logger, requestId, constants.NameMethodGetRestById, err, constants.DeliveryLayer)
 		if err.Error() == restaurants.NoRestError {
 			w = functions.ErrorResponse(w, restaurants.NoRestError, http.StatusInternalServerError)
 			return
@@ -80,8 +98,9 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	food, err := h.ucFood.GetByRestId(r.Context(), alias.RestId(id))
+	categories, err := h.ucFood.GetByRestId(r.Context(), alias.RestId(id))
 	if err != nil {
+		functions.LogError(h.logger, requestId, constants.NameMethodGetFoodByRest, err, constants.DeliveryLayer)
 		if err.Error() == foodRepo.NoFoodError {
 			fmt.Println()
 			w = functions.ErrorResponse(w, foodRepo.NoFoodError, http.StatusInternalServerError)
@@ -90,17 +109,19 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	restDTO := dto.NewRestaurantAndFood(rest, food)
+	restDTO := dto.NewRestaurantAndFood(rest, categories)
 	body, err := json.Marshal(restDTO)
 	if err != nil {
+		functions.LogError(h.logger, requestId, constants.NameMethodGetRestById, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	_, err = w.Write(body)
 	if err != nil {
+		functions.LogError(h.logger, requestId, constants.NameMethodGetRestById, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
-	} else {
-		w.WriteHeader(http.StatusOK)
 	}
+	w.WriteHeader(http.StatusOK)
+	functions.LogOk(h.logger, requestId, constants.NameMethodGetRestById, constants.DeliveryLayer)
 }

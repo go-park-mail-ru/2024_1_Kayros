@@ -1,8 +1,6 @@
 package dto
 
 import (
-	"fmt"
-
 	"github.com/asaskevich/govalidator"
 
 	"2024_1_kayros/internal/entity"
@@ -36,6 +34,30 @@ func (d *FoodInOrder) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
 
+func NewFood(f *entity.Food) *Food {
+	return &Food{
+		Id:          f.Id,
+		Name:        f.Name,
+		Description: f.Description,
+		Restaurant:  f.RestaurantId,
+		ImgUrl:      f.ImgUrl,
+		Weight:      f.Weight,
+		Price:       f.Price,
+		Category:    f.Category,
+	}
+}
+
+func NewFoodInCategoryArr(food []*entity.Food) []*Food {
+	if len(food) == 0 {
+		return make([]*Food, 0)
+	}
+	foodList := make([]*Food, len(food))
+	for i, f := range food {
+		foodList[i] = NewFood(f)
+	}
+	return foodList
+}
+
 func NewFoodInOrder(f *entity.FoodInOrder) *FoodInOrder {
 	return &FoodInOrder{
 		Id:     f.Id,
@@ -55,7 +77,6 @@ func NewFoodArray(orderFood []*entity.FoodInOrder) []*FoodInOrder {
 	for i, food := range orderFood {
 		foodList[i] = NewFoodInOrder(food)
 	}
-	fmt.Println(foodList[0], len(foodList))
 	return foodList
 }
 
