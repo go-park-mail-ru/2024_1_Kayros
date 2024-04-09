@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -23,8 +22,7 @@ func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *con
 		if requestIdCtx != nil {
 			requestId = requestIdCtx.(string)
 		}
-		em := r.Context().Value("email")
-		fmt.Print(em)
+
 		// Будем запрещать доступ к не идемпотентным запросам без валидной сессии
 		reqMethod := r.Method
 		mutatingMethods := []string{"POST", "PUT", "DELETE"}

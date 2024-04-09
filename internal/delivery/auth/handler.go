@@ -15,6 +15,7 @@ import (
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/sanitizer"
 	"github.com/satori/uuid"
 	"go.uber.org/zap"
 )
@@ -139,6 +140,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &csrfCookie)
 	}
 	http.SetCookie(w, &sessionCookie)
+	u = sanitizer.User(u)
 	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerSignUp, cnst.DeliveryLayer)
@@ -247,6 +249,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, &csrfCookie)
 		}
 		// Собираем ответ
+		u = sanitizer.User(u)
 		uDTO := dto.NewUser(u)
 		w = functions.JsonResponse(w, uDTO)
 		return
