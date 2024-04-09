@@ -83,5 +83,6 @@ func csrfTokenIsValid(csrfToken string, secretKey string) bool {
 	parts := strings.Split(csrfToken, ".")
 	msg := parts[1]
 	newToken := functions.HashData([]byte(secretKey), msg)
-	return string(newToken) == csrfToken
+	token := string(newToken)
+	return token == parts[0]
 }

@@ -1,6 +1,7 @@
 package user
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"fmt"
@@ -132,8 +133,7 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	hashPasswordBytes := functions.HashData(salt, uProps.Password)
-	hashPassword := string(hashPasswordBytes)
+	hashPassword := functions.HashData(salt, uProps.Password)
 
 	currentTime := time.Now().UTC()
 	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
@@ -166,7 +166,7 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 		return nil, err
 	}
 
-	var hashPassword string
+	var hashPassword []byte
 	if uProps.Password == "" {
 		hashPassword = uPassword
 	} else {
@@ -177,18 +177,12 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 			functions.LogUsecaseFail(uc.logger, requestId, methodName)
 			return nil, err
 		}
-		hashPasswordByte := functions.HashData(salt, uProps.Password)
-		hashPassword = string(hashPasswordByte)
-		if err != nil {
-			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-			functions.LogUsecaseFail(uc.logger, requestId, methodName)
-			return nil, err
-		}
+		hashPassword = functions.HashData(salt, uProps.Password)
 	}
 
-	var hashСardNumber string
+	var hashCardNumber []byte
 	if uProps.CardNumber == "" {
-		hashСardNumber = uCardNumber
+		hashCardNumber = uCardNumber
 	} else {
 		salt := make([]byte, 8)
 		_, err := rand.Read(salt)
@@ -197,18 +191,12 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 			functions.LogUsecaseFail(uc.logger, requestId, methodName)
 			return nil, err
 		}
-		hashCardNumberByte := functions.HashData(salt, uProps.CardNumber)
-		hashСardNumber = string(hashCardNumberByte)
-		if err != nil {
-			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-			functions.LogUsecaseFail(uc.logger, requestId, methodName)
-			return nil, err
-		}
+		hashCardNumber = functions.HashData(salt, uProps.CardNumber)
 	}
 
 	currentTime := time.Now().UTC()
 	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
-	err = uc.repoUser.Update(ctx, uProps, hashPassword, hashСardNumber, timeStr, requestId)
+	err = uc.repoUser.Update(ctx, uProps, hashPassword, hashCardNumber, timeStr, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
@@ -233,11 +221,10 @@ func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, passwor
 	}
 
 	salt := uPassword[0:8]
-	hashPasswordBytes := functions.HashData([]byte(salt), password)
-	hashPassword := string(hashPasswordBytes)
+	hashPassword := functions.HashData(salt, password)
 
 	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return uPassword == hashPassword, nil
+	return bytes.Equal(uPassword, hashPassword), nil
 }
 
 func (uc *UsecaseLayer) UploadImageByEmail(ctx context.Context, file multipart.File, handler *multipart.FileHeader, email string) error {

@@ -1,16 +1,16 @@
 -- Заполнение БД данными
 INSERT INTO "user" (name, email, password, address, created_at, updated_at)
-VALUES ('Иван', 'ivan@example.com', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+VALUES ('Иван', 'ivan@example.com', E'\\x6AAA04147C1662A5D5608B40030CD4163F0ABAB80BF1B4F37863278237FB3F429DFA3527143F96DBB01971553A70EAF79D592B5BAFB4D229DF16EA67833D69F7',
         'ул. Ленина, д. 1', current_timestamp, current_timestamp),
-       ('Анна', 'anna@example.com', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+       ('Анна', 'anna@example.com', E'\\x6AAA04147C1662A5D5608B40030CD4163F0ABAB80BF1B4F37863278237FB3F429DFA3527143F96DBB01971553A70EAF79D592B5BAFB4D229DF16EA67833D69F7',
         'пр. Победы, д. 10', current_timestamp, current_timestamp),
-       ('Петр', 'petr@example.com', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+       ('Петр', 'petr@example.com', E'\\x6AAA04147C1662A5D5608B40030CD4163F0ABAB80BF1B4F37863278237FB3F429DFA3527143F96DBB01971553A70EAF79D592B5BAFB4D229DF16EA67833D69F7',
         'ул. Мира, д. 5', current_timestamp, current_timestamp),
-       ('Мария', 'maria@example.com', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+       ('Мария', 'maria@example.com', E'\\x6AAA04147C1662A5D5608B40030CD4163F0ABAB80BF1B4F37863278237FB3F429DFA3527143F96DBB01971553A70EAF79D592B5BAFB4D229DF16EA67833D69F7',
         'пр. Ленинградский, д. 15', current_timestamp, current_timestamp),
-       ('Алексей', 'alex@example.com', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+       ('Алексей', 'alex@example.com', E'\\x6AAA04147C1662A5D5608B40030CD4163F0ABAB80BF1B4F37863278237FB3F429DFA3527143F96DBB01971553A70EAF79D592B5BAFB4D229DF16EA67833D69F7',
         'ул. Советская, д. 25', current_timestamp, current_timestamp),
-       ('Елена', 'elena@example.com', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+       ('Елена', 'elena@example.com', E'\\x6AAA04147C1662A5D5608B40030CD4163F0ABAB80BF1B4F37863278237FB3F429DFA3527143F96DBB01971553A70EAF79D592B5BAFB4D229DF16EA67833D69F7',
         'пр. Гагарина, д. 30', current_timestamp, current_timestamp);
 
 -- Вставка данных в таблицу "Category"
