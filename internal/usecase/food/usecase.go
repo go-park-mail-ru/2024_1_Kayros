@@ -52,6 +52,7 @@ func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([
 				fmt.Println(v.Name)
 			}
 			category = &entity.Category{
+
 				Name: dishes[i].Category,
 				Food: []*entity.Food{},
 			}
