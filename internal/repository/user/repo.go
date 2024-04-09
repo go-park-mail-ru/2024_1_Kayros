@@ -24,15 +24,15 @@ type Repo interface {
 	DeleteById(ctx context.Context, userId alias.UserId, requestId string) error
 	DeleteByEmail(ctx context.Context, email string, requestId string) error
 
-	Create(ctx context.Context, u *entity.User, hashPassword string, timeStr string, requestId string) error
-	Update(ctx context.Context, u *entity.User, hashPassword string, hashCardNumber string, timeStr string, requestId string) error
+	Create(ctx context.Context, u *entity.User, hashPassword []byte, timeStr string, requestId string) error
+	Update(ctx context.Context, u *entity.User, hashPassword []byte, hashCardNumber []byte, timeStr string, requestId string) error
 
 	IsExistById(ctx context.Context, userId alias.UserId, requestId string) (bool, error)
 	IsExistByEmail(ctx context.Context, email string, requestId string) (bool, error)
 
 	UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, timeStr string, requestId string) error
-	GetHashedUserPassword(ctx context.Context, email string, requestId string) (string, error)
-	GetHashedCardNumber(ctx context.Context, email string, requestId string) (string, error)
+	GetHashedUserPassword(ctx context.Context, email string, requestId string) ([]byte, error)
+	GetHashedCardNumber(ctx context.Context, email string, requestId string) ([]byte, error)
 }
 
 type RepoLayer struct {
@@ -129,7 +129,7 @@ func (repo *RepoLayer) DeleteByEmail(ctx context.Context, email string, requestI
 	return nil
 }
 
-func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword string, timeStr string, requestId string) error {
+func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword []byte, timeStr string, requestId string) error {
 	methodName := cnst.NameMethodCreateUser
 	row := repo.database.QueryRowContext(ctx,
 		`INSERT INTO "user" (name, email, password, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
@@ -151,7 +151,7 @@ func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword 
 	return nil
 }
 
-func (repo *RepoLayer) Update(ctx context.Context, u *entity.User, hashPassword string, hashCardNumber string, timeStr string, requestId string) error {
+func (repo *RepoLayer) Update(ctx context.Context, u *entity.User, hashPassword []byte, hashCardNumber []byte, timeStr string, requestId string) error {
 	methodName := cnst.NameMethodUpdateUser
 	row := repo.database.QueryRowContext(ctx,
 		`UPDATE "user" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5, card_number = $6, updated_at = $6 WHERE id = $6`,
@@ -207,40 +207,40 @@ func (repo *RepoLayer) IsExistByEmail(ctx context.Context, email string, request
 	return true, nil
 }
 
-func (repo *RepoLayer) GetHashedUserPassword(ctx context.Context, email string, requestId string) (string, error) {
+func (repo *RepoLayer) GetHashedUserPassword(ctx context.Context, email string, requestId string) ([]byte, error) {
 	methodName := cnst.NameMethodGetHashedUserPassword
 	row := repo.database.QueryRowContext(ctx, `SELECT id, password FROM "user" WHERE email = $1`, email)
 	var uId uint64
-	var hashedPassword string
+	var hashedPassword []byte
 	err := row.Scan(&uId, &hashedPassword)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = errors.New("Пользователя с таким Email нет. Получить пароль не вышло")
 		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return "", nil
+		return []byte{}, nil
 	}
 	if err != nil {
 		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return "", err
+		return []byte{}, err
 	}
 	msg := fmt.Sprintf("Получили пароль пользователя с идентификатором %d и почтой %s", uId, email)
 	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return hashedPassword, nil
 }
 
-func (repo *RepoLayer) GetHashedCardNumber(ctx context.Context, email string, requestId string) (string, error) {
+func (repo *RepoLayer) GetHashedCardNumber(ctx context.Context, email string, requestId string) ([]byte, error) {
 	methodName := cnst.NameMethodGetHashedUserPassword
 	row := repo.database.QueryRowContext(ctx, `SELECT id, card_number FROM "user" WHERE email = $1`, email)
 	var uId uint64
-	var hashedCardNumber string
+	var hashedCardNumber []byte
 	err := row.Scan(&uId, &hashedCardNumber)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = errors.New("Пользователя с таким Email нет. Получить пароль не вышло")
 		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return "", nil
+		return []byte{}, nil
 	}
 	if err != nil {
 		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return "", err
+		return []byte{}, err
 	}
 	msg := fmt.Sprintf("Получили пароль пользователя с идентификатором %d и почтой %s", uId, email)
 	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)

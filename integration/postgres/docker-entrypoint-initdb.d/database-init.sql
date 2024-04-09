@@ -7,10 +7,10 @@ CREATE TABLE IF NOT EXISTS "user"
     name        TEXT CONSTRAINT user_name_length CHECK (LENGTH(name) BETWEEN 2 AND 20) NOT NULL,
     email       TEXT CONSTRAINT user_email_domain CHECK (LENGTH(email) BETWEEN 6 AND 50) UNIQUE NOT NULL,
     phone       TEXT CONSTRAINT user_phone_domain CHECK (LENGTH(phone) = 18 OR phone IS NULL) NULL, -- формат |+7 (989) 232 12 12|
-    password    TEXT CONSTRAINT user_password_length CHECK (LENGTH(password) = 64) NOT NULL,
+    password    BYTEA CONSTRAINT user_password_length CHECK (LENGTH(password) = 64) NOT NULL,
     address     TEXT CONSTRAINT user_address_length CHECK ((LENGTH(address) BETWEEN 14 AND 100) OR address IS NULL) NULL,     -- |ул. Мира, д. 4| (самое короткое название улицы в Москве 4 символа)
     img_url     TEXT CONSTRAINT user_img_url CHECK(LENGTH(img_url) <= 60) DEFAULT '/minio-api/users/default.jpg' NOT NULL,
-    card_number TEXT CONSTRAINT user_card_number CHECK CHECK (LENGTH(password) = 64) NULL,
+    card_number BYTEA CONSTRAINT user_card_number CHECK (LENGTH(password) = 64) NULL,
     created_at  TIMESTAMPTZ CONSTRAINT user_time_create NOT NULL,
     updated_at  TIMESTAMPTZ CONSTRAINT user_time_last_updated NOT NULL
     );
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS restaurant
     address           TEXT CONSTRAINT rest_address CHECK (LENGTH(address) BETWEEN 14 AND 100) UNIQUE NOT NULL,
     img_url           TEXT CONSTRAINT restaurant_img_url CHECK(LENGTH(img_url) <= 60) DEFAULT '/minio-api/restaurants/default.jpg' NOT NULL,
     CONSTRAINT rest_unique UNIQUE (name, address)
-);
+    );
 
 -- Нужно будет удалить из отношение restaurant поле address
 -- CREATE TABLE IF NOT EXISTS restaurant_address (

@@ -11,6 +11,7 @@ import (
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/sanitizer"
 	"go.uber.org/zap"
 )
 
@@ -54,6 +55,8 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+
+	u = sanitizer.User(u)
 	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
 
@@ -116,6 +119,8 @@ func (d *Delivery) UploadImage(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+	
+	u = sanitizer.User(u)
 	userDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, userDTO)
 

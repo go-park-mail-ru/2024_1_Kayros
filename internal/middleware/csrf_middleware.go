@@ -27,43 +27,49 @@ func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *con
 		reqMethod := r.Method
 		mutatingMethods := []string{"POST", "PUT", "DELETE"}
 		rMethodIsMut := contains(mutatingMethods, reqMethod)
-		if !rMethodIsMut {
-			handler.ServeHTTP(w, r)
-			return
-		}
+		if rMethodIsMut {
+			csrfToken := ""
+			csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
+			if csrfCookie != nil {
+				csrfToken = csrfCookie.Value
+			}
+			if errors.Is(err, http.ErrNoCookie) && (r.RequestURI == "/api/v1/signin" || r.RequestURI == "/api/v1/signup") {
+				handler.ServeHTTP(w, r)
+				return
+			} else if err != nil {
+				err := errors.New(myerrors.UnauthorizedError)
+				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusForbidden)
+				return
+			}
 
-		csrfToken := ""
-		csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
-		if csrfCookie != nil {
-			csrfToken = csrfCookie.Value
-		}
-		if errors.Is(err, http.ErrNoCookie) && (r.RequestURI == "/api/v1/signin" || r.RequestURI == "/api/v1/signup") {
-			handler.ServeHTTP(w, r)
-			return
-		} else if err != nil {
-			err := errors.New(myerrors.UnauthorizedError)
-			functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
-			w = functions.JsonResponse(w, myerrors.UnauthorizedError)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
+			sessionCookie, err := r.Cookie("session_id")
+			sessionId := ""
+			if sessionCookie != nil {
+				sessionId = sessionCookie.Value
+			}
+			if err != nil {
+				err := errors.New(myerrors.UnauthorizedError)
+				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusForbidden)
+				return
+			}
 
-		secretKey := cfg.Server.CsrfSecretKey
-		isValid := csrfTokenIsValid(csrfToken, secretKey)
-		if !isValid {
-			err := errors.New(myerrors.UnauthorizedError)
-			functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
-			w = functions.JsonResponse(w, myerrors.UnauthorizedError)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		value, err := ucCsrfTokens.GetValue(r.Context(), alias.SessionKey(csrfToken))
-		if err != nil || value == "" {
-			err := errors.New(myerrors.UnauthorizedError)
-			functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
-			w = functions.JsonResponse(w, myerrors.UnauthorizedError)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
+			secretKey := cfg.Server.CsrfSecretKey
+			isValid := csrfTokenIsValid(logger, requestId, csrfToken, secretKey, sessionId)
+			if !isValid {
+				err := errors.New(myerrors.UnauthorizedError)
+				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusForbidden)
+				return
+			}
+			value, err := ucCsrfTokens.GetValue(r.Context(), alias.SessionKey(csrfToken))
+			if err != nil || value == "" {
+				err := errors.New(myerrors.UnauthorizedError)
+				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusForbidden)
+				return
+			}
 		}
 		handler.ServeHTTP(w, r)
 	})
@@ -79,9 +85,16 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func csrfTokenIsValid(csrfToken string, secretKey string) bool {
+func csrfTokenIsValid(logger *zap.Logger, requestId string, csrfToken string, secretKey string, sessionId string) bool {
+	methodName := "csrfTokenIsValid"
+	hashData, err := functions.HashCsrf(secretKey, sessionId)
+	if err != nil {
+		functions.LogError(logger, requestId, methodName, err, cnst.MiddlewareLayer)
+		return false
+	}
 	parts := strings.Split(csrfToken, ".")
-	msg := parts[1]
-	newToken := functions.HashData([]byte(secretKey), msg)
-	return string(newToken) == csrfToken
+	if len(parts) != 2 {
+		return false
+	}
+	return hashData == parts[0]
 }

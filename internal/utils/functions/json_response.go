@@ -7,6 +7,7 @@ import (
 )
 
 func JsonResponse(w http.ResponseWriter, data interface{}) http.ResponseWriter {
+	w.Header().Set("Content-Type", "application/json")
 	body, err := json.Marshal(data)
 	fmt.Println(err)
 	if err != nil {
