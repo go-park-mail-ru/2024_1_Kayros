@@ -1,0 +1,448 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Resto - Delivery Club",
+    "description": "Сервис доставки еды из ресторанов \"Resto\" ",
+    "version": "1.0.11"
+  },
+  "servers": [
+    {
+      "url": "https://petstore3.swagger.io/api/v3"
+    }
+  ],
+  "tags": [
+    {
+      "name": "restaurants",
+      "description": "Рестораны"
+    },
+    {
+      "name": "user",
+      "description": "Действия с пользователями"
+    }
+  ],
+  "paths": {
+    "/restaurants": {
+      "get": {
+        "tags": [
+          "restaurants"
+        ],
+        "summary": "Возвращает список ресторанов",
+        "description": "Список ресторанов с информацией о них. Поиск будет позволять вводить один символ для поиска, поскольку есть рестораны, чье название является аббревиатурой.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Поиск по названию ресторана",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список ресторанов найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Restaurant"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Произошла неожиданная ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnexpectedServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/signup": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Регистрация",
+        "description": "Регистрация пользователя в системе. После регистрации пользователю устанавливается кука session_id, с помощью которой он в дальнейшем получает доступ к ресурсу.",
+        "requestBody": {
+          "description": "Данные пользователя для регистрации",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно зарегистрирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Были переданы некорректные данные для регистрации",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RegistrationData"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JsonUnmarshallError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JsonMarshallError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неудачная попытка зарегистрироваться",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadPermission"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Произошла неожиданная ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnexpectedServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/signin": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Авторизация",
+        "description": "Авторизация пользователя в системе. После авторизации устанавливается кука session_id, с помощью которой он в дальнейшем получает доступ к ресурсу.",
+        "requestBody": {
+          "description": "Данные пользователя для авторизации",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Пользователь предоставил неверные данные для входа в аккаунт",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BadCredentials"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JsonUnmarshallError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JsonMarshallError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BadResponseBody"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неудачная попытка зарегистрироваться",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadPermission"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Произошла неожиданная ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnexpectedServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/signout": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Деавторизация",
+        "description": "Выход пользователя из системы. Удаляется кука session_id из браузера. Данные доступны пользователю в режиме чтения.",
+        "requestBody": {
+          "description": "Пустое тело ответа специально, поскольку данные передавать не надо",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно деавторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Пользователь не может деавторизоваться",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrongUUID"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неудачная попытка покинуть систему",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadPermission"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Произошла неожиданная ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnexpectedServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UnexpectedServerError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Внутренняя ошибка сервера"
+          }
+        }
+      },
+      "JsonUnmarshallError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Ошибка при десериализации тела запроса"
+          }
+        }
+      },
+      "JsonMarshallError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Ошибка при сериализации тела ответа"
+          }
+        }
+      },
+      "BadResponseBody": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Ошибка при формировании тела ответа"
+          }
+        }
+      },
+      "BadPermission": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Не хватает прав для доступа"
+          }
+        }
+      },
+      "BadCredentials": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Предоставлены неверные учетные данные"
+          }
+        }
+      },
+      "WrongUUID": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Ошибка при получении ключа сессии"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "john@email.com"
+          },
+          "password": {
+            "type": "string",
+            "example": 12345
+          }
+        }
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Пользователь успешно завершил сессию"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "required": [
+          "email",
+          "name",
+          "password"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "phone": {
+            "type": "string",
+            "example": 89892341289
+          },
+          "email": {
+            "type": "string",
+            "example": "john@email.com"
+          },
+          "name": {
+            "type": "string",
+            "example": "John"
+          },
+          "password": {
+            "type": "string",
+            "example": 12345
+          }
+        }
+      },
+      "RegistrationData": {
+        "type": "object",
+        "required": [
+          "email",
+          "name",
+          "password"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string",
+            "example": 89892341289
+          },
+          "email": {
+            "type": "string",
+            "example": "john@email.com"
+          },
+          "name": {
+            "type": "string",
+            "example": "John"
+          },
+          "password": {
+            "type": "string",
+            "example": 12345
+          }
+        }
+      },
+      "Restaurant": {
+        "required": [
+          "name",
+          "imgUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "name": {
+            "type": "string",
+            "example": "BRO&N"
+          },
+          "imgUrl": {
+            "type": "string",
+            "example": "http://localhost:9000/restaurants/img/rest1.jpg"
+          },
+          "description": {
+            "type": "string",
+            "example": "Ресторан классической итальянской кухни"
+          }
+        }
+      }
+    }
+  }
+}

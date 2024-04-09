@@ -17,8 +17,11 @@
 
 [Жиленков Илья](https://github.com/ilyushkaaa) - _Backend_
 
-- _UX_
+[Бирюков Иван](https://github.com/Ivan-Bir) - UX
+
 
 ## Ссылки
 
 [Фронтенд проекта](https://github.com/frontend-park-mail-ru/2024_1_Kayros)
+
+[Деплой](https://resto-go.ru)
