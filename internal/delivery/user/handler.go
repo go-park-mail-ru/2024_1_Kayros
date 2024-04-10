@@ -119,6 +119,11 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	}(file)
 
 	u := dto.GetUserFromUpdate(r)
+	if u == nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.BadCredentialsError), http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
 	userUpdated, err := d.ucUser.Update(r.Context(), email, file, handler, u)
 	if err != nil && strings.Contains(err.Error(), "user_email_key") {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.UserAlreadyExistError), http.StatusBadRequest, cnst.DeliveryLayer)
