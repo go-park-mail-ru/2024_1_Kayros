@@ -49,6 +49,7 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	} else {
 		requestId = ctxRequestId.(string)
 	}
+
 	email := ""
 	ctxEmail := r.Context().Value("email")
 	if ctxEmail != nil {
@@ -62,27 +63,15 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	order, err := h.uc.GetBasket(r.Context(), email)
 	if err != nil {
 		if err.Error() == repoErrors.NoBasketError {
-			functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.NoBasketError), http.StatusOK, constants.DeliveryLayer)
-			w = functions.ErrorResponse(w, repoErrors.NoBasketError, http.StatusUnauthorized)
+			functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.NoBasketError), http.StatusNotFound, constants.DeliveryLayer)
+			w = functions.ErrorResponse(w, repoErrors.NoBasketError, http.StatusNotFound)
 			return
 		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	orderDTO := dto.NewOrder(order)
-	body, err := json.Marshal(orderDTO)
-	if err != nil {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(body)
-	if err != nil {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	w = functions.JsonResponse(w, orderDTO)
 	functions.LogOk(h.logger, requestId, constants.NameMethodGetBasket, constants.DeliveryLayer)
 }
 
@@ -223,31 +212,36 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	vars := mux.Vars(r)
-	foodId, _ := strconv.Atoi(vars["food_id"])
 	requestId := ""
 	ctxRequestId := r.Context().Value("request_id")
 	if ctxRequestId == nil {
 		err := errors.New("request_id передан не был")
-		functions.LogError(h.logger, requestId, constants.NameHandlerSignUp, err, constants.DeliveryLayer)
+		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
 	} else {
 		requestId = ctxRequestId.(string)
 	}
+	vars := mux.Vars(r)
+	foodId, err := strconv.Atoi(vars["food_id"])
+	if err != nil {
+		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.NotFoundError, http.StatusNotFound)
+		return
+	}
+
 	email := ""
 	ctxEmail := r.Context().Value("email")
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
 	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
+		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodAddFood, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
-	//передаем почту и статус, чтоб найти id заказа-корзины
-	//res uint
+
 	basketId, err := h.uc.GetBasketId(r.Context(), email)
 	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodAddToOrder, err, constants.DeliveryLayer)
+		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
@@ -256,12 +250,12 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		//создаем заказ-корзину
 		basketId, err = h.uc.Create(r.Context(), email)
 		if err != nil {
-			functions.LogError(h.logger, requestId, constants.NameMethodAddToOrder, err, constants.DeliveryLayer)
+			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
 			if err.Error() == repoErrors.CreateError {
 				w = functions.ErrorResponse(w, repoErrors.CreateError, http.StatusInternalServerError)
-				return
+			} else {
+				w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 			}
-			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -269,16 +263,23 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	err = h.uc.AddFoodToOrder(r.Context(), alias.FoodId(foodId), basketId)
 	if err != nil {
 		if err.Error() == repoErrors.NotAddFood {
-			functions.LogError(h.logger, requestId, constants.NameMethodAddToOrder, fmt.Errorf(repoErrors.NotAddFood), constants.DeliveryLayer)
+			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, fmt.Errorf(repoErrors.NotAddFood), constants.DeliveryLayer)
 			w = functions.ErrorResponse(w, repoErrors.NotAddFood, http.StatusInternalServerError)
 			return
 		}
-		functions.LogError(h.logger, requestId, constants.NameMethodAddToOrder, err, constants.DeliveryLayer)
+		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	functions.LogOk(h.logger, requestId, constants.NameMethodAddToOrder, constants.DeliveryLayer)
+	order, err := h.uc.GetBasket(r.Context(), email)
+	if err != nil {
+		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.NoBasketError), http.StatusNotFound, constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	orderDTO := dto.NewOrder(order)
+	w = functions.JsonResponse(w, orderDTO)
+	functions.LogOk(h.logger, requestId, constants.NameMethodAddFood, constants.DeliveryLayer)
 }
 
 //PUT - ok

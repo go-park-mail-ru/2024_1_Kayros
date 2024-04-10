@@ -88,6 +88,7 @@ func (d *Delivery) UploadImage(w http.ResponseWriter, r *http.Request) {
 	// Максимальный размер фотографии 10 Mb
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
+		functions.LogError(d.logger, requestId, cnst.NameHandlerUploadImage, err, cnst.DeliveryLayer)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.BigSizeFileError), http.StatusBadRequest, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.BigSizeFileError, http.StatusBadRequest)
 		return
@@ -119,7 +120,7 @@ func (d *Delivery) UploadImage(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	
+
 	u = sanitizer.User(u)
 	userDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, userDTO)

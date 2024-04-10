@@ -54,7 +54,7 @@ const (
 	NameMethodPayOrder           = "Pay"
 	NameMethodGetAllRests        = "GetAllRestaurants"
 	NameMethodGetRestById        = "GetRestById"
-	NameMethodAddToOrder         = "AddFoodToOrder"
+	NameMethodAddFood            = "AddFood"
 	NameMethodUpdateCountInOrder = "UpdateCountInOrder"
 	NameMethodDeleteFromOrder    = "DeleteFromOrder"
 	NameMethodUpdateSum          = "UpdateSum"

@@ -71,7 +71,7 @@ func (repo *RepoLayer) GetOrders(ctx context.Context, requestId string, userId a
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrders, err, constants.RepoLayer)
 		return nil, err
 	}
-	var orders []*entity.Order
+	orders := []*entity.Order{}
 	for rows.Next() {
 		var order entity.OrderDB
 		err = rows.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.ReceivedAt, &order.Status, &order.Address,

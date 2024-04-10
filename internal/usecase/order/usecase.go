@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -84,7 +85,8 @@ func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Or
 		return nil, err
 	}
 	if len(orders) == 0 {
-		functions.LogError(uc.logger, requestId, methodName, fmt.Errorf(order.NoBasketError), constants.UsecaseLayer)
+		err = errors.New(order.NoBasketError)
+		functions.LogError(uc.logger, requestId, methodName, err, constants.UsecaseLayer)
 		return nil, err
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)

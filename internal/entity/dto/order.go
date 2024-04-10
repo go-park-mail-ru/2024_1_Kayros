@@ -1,8 +1,6 @@
 package dto
 
 import (
-	"fmt"
-
 	"github.com/asaskevich/govalidator"
 
 	"2024_1_kayros/internal/entity"
@@ -31,14 +29,11 @@ func (d *Order) Validate() (bool, error) {
 }
 
 func NewOrder(order *entity.Order) *Order {
-	var food []*entity.FoodInOrder
-	fmt.Println("dto food len", len(order.Food))
+	food := []*entity.FoodInOrder{}
 	if len(order.Food) > 0 {
 		food = order.Food
 	}
-	fmt.Println(food)
 	foodInOrder := NewFoodArray(food)
-	fmt.Println(foodInOrder)
 	return &Order{
 		Id:           order.Id,
 		UserId:       order.UserId,
