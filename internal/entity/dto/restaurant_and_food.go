@@ -7,6 +7,7 @@ import (
 )
 
 type Category struct {
+	Id   uint64  `json:"id" valid:"-"`
 	Name string  `json:"name" valid:"-"`
 	Food []*Food `json:"food" valid:"-"`
 }
@@ -26,6 +27,7 @@ func (d *RestaurantAndFood) Validate() (bool, error) {
 
 func NewCategory(c *entity.Category) *Category {
 	return &Category{
+		Id:   uint64(c.Id),
 		Name: c.Name,
 		Food: NewFoodInCategoryArr(c.Food),
 	}

@@ -39,14 +39,18 @@ func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([
 	}
 	categories := []*entity.Category{}
 	if len(dishes) > 0 {
+		id := 1
 		category := &entity.Category{
+			Id:   alias.CategoryId(id),
 			Name: dishes[0].Category,
 			Food: []*entity.Food{dishes[0]},
 		}
 		categories = append(categories, category)
 		for i := 1; i < len(dishes); i++ {
 			if dishes[i].Category != dishes[i-1].Category {
+				id++
 				category = &entity.Category{
+					Id:   alias.CategoryId(id),
 					Name: dishes[i].Category,
 					Food: []*entity.Food{},
 				}

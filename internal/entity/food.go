@@ -1,6 +1,9 @@
 package entity
 
+import "2024_1_kayros/internal/utils/alias"
+
 type Category struct {
+	Id   alias.CategoryId
 	Name string
 	Food []*Food
 }
