@@ -60,10 +60,9 @@ func (repo *RepoLayer) GetById(ctx context.Context, requestId string, foodId ali
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT id, name, description, restaurant_id, category_id, weight, price, img_url 
 				FROM food WHERE id=$1`, uint64(foodId))
-
-	var item *entity.Food
+	var item entity.Food
 	err := row.Scan(&item.Id, &item.Name, &item.Description, &item.RestaurantId,
-		&item.Category, &item.ImgUrl, &item.Price, &item.Weight)
+		&item.Category, &item.Weight, &item.Price, &item.ImgUrl)
 	if errors.Is(err, sql.ErrNoRows) {
 		functions.LogWarn(repo.logger, requestId, constants.NameMethodGetFoodByRest, fmt.Errorf(NoFoodError), constants.RepoLayer)
 		return nil, fmt.Errorf(NoFoodError)
@@ -73,5 +72,5 @@ func (repo *RepoLayer) GetById(ctx context.Context, requestId string, foodId ali
 		return nil, err
 	}
 	functions.LogOk(repo.logger, requestId, constants.NameMethodGetFoodByRest, constants.RepoLayer)
-	return item, nil
+	return &item, nil
 }

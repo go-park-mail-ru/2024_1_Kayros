@@ -227,12 +227,16 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	}
 	vars := mux.Vars(r)
 	foodId, err := strconv.Atoi(vars["food_id"])
+	if foodId <= 0 {
+		functions.LogInfo(h.logger, requestId, constants.NameMethodAddFood, "BadCredentials: food_id <= 0", constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.NotFoundError, http.StatusNotFound)
 		return
 	}
-
 	email := ""
 	ctxEmail := r.Context().Value("email")
 	if ctxEmail != nil {

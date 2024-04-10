@@ -10,6 +10,7 @@ import (
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
+	"2024_1_kayros/internal/repository/food"
 	"2024_1_kayros/internal/repository/order"
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
@@ -31,13 +32,15 @@ type Usecase interface {
 type UsecaseLayer struct {
 	repoOrder order.Repo
 	repoUser  user.Repo
+	repoFood  food.Repo
 	logger    *zap.Logger
 }
 
-func NewUsecaseLayer(repoOrderProps order.Repo, repoUserProps user.Repo, loggerProps *zap.Logger) Usecase {
+func NewUsecaseLayer(repoOrderProps order.Repo, repoFoodProps food.Repo, repoUserProps user.Repo, loggerProps *zap.Logger) Usecase {
 	return &UsecaseLayer{
 		repoOrder: repoOrderProps,
 		repoUser:  repoUserProps,
+		repoFood:  repoFoodProps,
 		logger:    loggerProps,
 	}
 }
@@ -153,7 +156,22 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) error {
 	methodName := constants.NameMethodAddToOrder
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoOrder.AddToOrder(ctx, requestId, orderId, foodId, 1)
+	inputFood, err := uc.repoFood.GetById(ctx, requestId, foodId)
+	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return err
+	}
+	fmt.Println(inputFood.RestaurantId)
+	Order, err := uc.repoOrder.GetOrderById(ctx, requestId, orderId)
+	fmt.Println(Order.Food[0].RestaurantId)
+	if inputFood.RestaurantId != Order.Food[0].RestaurantId {
+		err = uc.repoOrder.CleanBasket(ctx, requestId, orderId)
+		if err != nil {
+			functions.LogUsecaseFail(uc.logger, requestId, methodName)
+			return err
+		}
+	}
+	err = uc.repoOrder.AddToOrder(ctx, requestId, orderId, foodId, 1)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return err

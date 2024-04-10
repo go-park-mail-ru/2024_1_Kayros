@@ -18,12 +18,13 @@ type Food struct {
 }
 
 type FoodInOrder struct {
-	Id     uint64 `json:"id" valid:"-"`
-	Name   string `json:"name" valid:"-"`
-	ImgUrl string `json:"img_url" valid:"-"`
-	Weight uint64 `json:"weight" valid:"-"`
-	Price  uint64 `json:"price" valid:"-"`
-	Count  uint64 `json:"count" valid:"-"`
+	Id           uint64 `json:"id" valid:"-"`
+	Name         string `json:"name" valid:"-"`
+	ImgUrl       string `json:"img_url" valid:"-"`
+	Weight       uint64 `json:"weight" valid:"-"`
+	Price        uint64 `json:"price" valid:"-"`
+	Count        uint64 `json:"count" valid:"-"`
+	RestaurantId uint64 `json:"restaurant_id" valid:"-"`
 }
 
 func (d *Food) Validate() (bool, error) {
@@ -60,12 +61,13 @@ func NewFoodInCategoryArr(food []*entity.Food) []*Food {
 
 func NewFoodInOrder(f *entity.FoodInOrder) *FoodInOrder {
 	return &FoodInOrder{
-		Id:     f.Id,
-		Name:   f.Name,
-		ImgUrl: f.ImgUrl,
-		Weight: f.Weight,
-		Price:  f.Price,
-		Count:  f.Count,
+		Id:           f.Id,
+		Name:         f.Name,
+		ImgUrl:       f.ImgUrl,
+		Weight:       f.Weight,
+		Price:        f.Price,
+		Count:        f.Count,
+		RestaurantId: f.RestaurantId,
 	}
 }
 
@@ -89,6 +91,7 @@ func NewFoodArrayFromDTO(orderFood []*FoodInOrder) []*entity.FoodInOrder {
 		foodList[i].Weight = food.Weight
 		foodList[i].Price = food.Price
 		foodList[i].Count = food.Count
+		foodList[i].RestaurantId = food.RestaurantId
 	}
 	return foodList
 }
