@@ -24,8 +24,8 @@ type Usecase interface {
 	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) (*entity.Order, error)
 	Pay(ctx context.Context, orderId alias.OrderId, currentStatus string) (*entity.Order, error)
 	AddFoodToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) error
-	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
-	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) error
+	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error)
+	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) (*entity.Order, error)
 }
 
 type UsecaseLayer struct {
@@ -162,26 +162,36 @@ func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId,
 	return err
 }
 
-func (uc *UsecaseLayer) UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error {
+func (uc *UsecaseLayer) UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error) {
 	methodName := constants.NameMethodUpdateCountInOrder
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	err := uc.repoOrder.UpdateCountInOrder(ctx, requestId, orderId, foodId, count)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return err
+		return nil, err
+	}
+	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, requestId, orderId)
+	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return nil, err
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
-	return err
+	return updatedOrder, nil
 }
 
-func (uc *UsecaseLayer) DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) error {
+func (uc *UsecaseLayer) DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) (*entity.Order, error) {
 	methodName := constants.NameMethodDeleteFromOrder
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	err := uc.repoOrder.DeleteFromOrder(ctx, requestId, orderId, foodId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return err
+		return nil, err
+	}
+	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, requestId, orderId)
+	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return nil, err
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
-	return err
+	return updatedOrder, nil
 }

@@ -343,18 +343,20 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-	err = h.uc.UpdateCountInOrder(r.Context(), basketId, alias.FoodId(item.FoodId), uint32(item.Count))
+	order, err := h.uc.UpdateCountInOrder(r.Context(), basketId, alias.FoodId(item.FoodId), uint32(item.Count))
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
-		if err.Error() == repoErrors.NotAddFood {
+		if errors.Is(err, fmt.Errorf(repoErrors.NotAddFood)) {
 			w = functions.ErrorResponse(w, repoErrors.NotAddFood, http.StatusInternalServerError)
 			return
 		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	orderDTO := dto.NewOrder(order)
+	w = functions.JsonResponse(w, orderDTO)
 	functions.LogOk(h.logger, requestId, constants.NameMethodUpdateCountInOrder, constants.DeliveryLayer)
+	w.WriteHeader(http.StatusOK)
 }
 
 //DELETE - ok
@@ -386,7 +388,7 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	err = h.uc.DeleteFromOrder(r.Context(), basketId, alias.FoodId(foodId))
+	order, err := h.uc.DeleteFromOrder(r.Context(), basketId, alias.FoodId(foodId))
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodDeleteFromOrder, err, constants.DeliveryLayer)
 		if err.Error() == repoErrors.NotDeleteFood {
@@ -396,6 +398,8 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+	orderDTO := dto.NewOrder(order)
+	w = functions.JsonResponse(w, orderDTO)
 	w.WriteHeader(http.StatusOK)
 	functions.LogOk(h.logger, requestId, constants.NameMethodDeleteFromOrder, constants.DeliveryLayer)
 }
