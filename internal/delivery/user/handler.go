@@ -114,7 +114,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				errorMsg := fmt.Sprintf("Запрос %s. Ошибка закрытия файла", requestId)
 				d.logger.Error(errorMsg, zap.Error(err))
-			}сд
+			}
 		}
 	}(file)
 
