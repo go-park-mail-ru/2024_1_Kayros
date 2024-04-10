@@ -52,7 +52,6 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 
 	email := ""
 	ctxEmail := r.Context().Value("email")
-	fmt.Println(email)
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
@@ -182,7 +181,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	if len(basket.Food) == 0 {
+	if len(basket.Food) == 0 || basket.Id == 0 {
 		functions.LogWarn(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.EmptyError), constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, repoErrors.EmptyError, http.StatusOK)
 		return
@@ -316,6 +315,11 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+	if basketId == 0 {
+		functions.LogWarn(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.EmptyError), constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, repoErrors.EmptyError, http.StatusOK)
+		return
+	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
@@ -334,18 +338,25 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-	err = h.uc.UpdateCountInOrder(r.Context(), basketId, alias.FoodId(item.FoodId), uint32(item.Count))
+	if item.FoodId <= 0 || item.Count <= 0 {
+		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, fmt.Errorf("id или кол-во ды отрицательное"), constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
+	order, err := h.uc.UpdateCountInOrder(r.Context(), basketId, alias.FoodId(item.FoodId), uint32(item.Count))
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
-		if err.Error() == repoErrors.NotAddFood {
+		if errors.Is(err, fmt.Errorf(repoErrors.NotAddFood)) {
 			w = functions.ErrorResponse(w, repoErrors.NotAddFood, http.StatusInternalServerError)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	orderDTO := dto.NewOrder(order)
+	w = functions.JsonResponse(w, orderDTO)
 	functions.LogOk(h.logger, requestId, constants.NameMethodUpdateCountInOrder, constants.DeliveryLayer)
+	w.WriteHeader(http.StatusOK)
 }
 
 //DELETE - ok
@@ -377,7 +388,7 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	err = h.uc.DeleteFromOrder(r.Context(), basketId, alias.FoodId(foodId))
+	order, err := h.uc.DeleteFromOrder(r.Context(), basketId, alias.FoodId(foodId))
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodDeleteFromOrder, err, constants.DeliveryLayer)
 		if err.Error() == repoErrors.NotDeleteFood {
@@ -387,6 +398,8 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+	orderDTO := dto.NewOrder(order)
+	w = functions.JsonResponse(w, orderDTO)
 	w.WriteHeader(http.StatusOK)
 	functions.LogOk(h.logger, requestId, constants.NameMethodDeleteFromOrder, constants.DeliveryLayer)
 }
