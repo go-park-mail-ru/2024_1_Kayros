@@ -52,6 +52,7 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 
 	email := ""
 	ctxEmail := r.Context().Value("email")
+	fmt.Println(email)
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
@@ -63,7 +64,7 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	order, err := h.uc.GetBasket(r.Context(), email)
 	if err != nil {
 		if err.Error() == repoErrors.NoBasketError {
-			functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.NoBasketError), http.StatusNotFound, constants.DeliveryLayer)
+			functions.LogInfo(h.logger, requestId, constants.NameMethodGetBasket, repoErrors.NoBasketError, constants.DeliveryLayer)
 			w = functions.ErrorResponse(w, repoErrors.NoBasketError, http.StatusNotFound)
 			return
 		}
@@ -181,10 +182,15 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+	if len(basket.Food) == 0 {
+		functions.LogWarn(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.EmptyError), constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, repoErrors.EmptyError, http.StatusOK)
+		return
+	}
 	payedOrder, err := h.uc.Pay(r.Context(), alias.OrderId(basket.Id), basket.Status)
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodPayOrder, err, constants.DeliveryLayer)
-		if err.Error() == repoErrors.NotUpdateStatusError {
+		if errors.Is(err, fmt.Errorf(repoErrors.NotUpdateStatusError)) {
 			w = functions.ErrorResponse(w, repoErrors.NotUpdateStatusError, http.StatusInternalServerError)
 			return
 		}
@@ -268,7 +274,7 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, err.Error(), http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	order, err := h.uc.GetBasket(r.Context(), email)
