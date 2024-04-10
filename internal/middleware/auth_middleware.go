@@ -42,7 +42,6 @@ func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, 
 			return
 		}
 		u, err := ucUser.GetByEmail(ctx, string(email))
-
 		if err != nil {
 			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
 			handler.ServeHTTP(w, r)

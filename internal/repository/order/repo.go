@@ -17,6 +17,7 @@ import (
 
 const (
 	CreateError          = "Не удалось создать заказ"
+	EmptyError           = "Добавьте что-нибудь в корзину"
 	NoBasketError        = "У Вас нет корзины"
 	NotUpdateError       = "Данные о заказе не были обновлены"
 	NotUpdateStatusError = "Заказ не оплачен"
@@ -157,6 +158,7 @@ func (repo *RepoLayer) GetFood(ctx context.Context, requestId string, orderId al
 }
 
 func (repo *RepoLayer) UpdateAddress(ctx context.Context, requestId string, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error) {
+	fmt.Println("repo", address, extraAddress)
 	row := repo.db.QueryRowContext(ctx,
 		`UPDATE "order" SET address=$1, extra_address=$2
                WHERE id=$3 RETURNING id`, address, extraAddress, uint64(orderId))
@@ -183,7 +185,7 @@ func (repo *RepoLayer) UpdateStatus(ctx context.Context, requestId string, order
 }
 
 func (repo *RepoLayer) GetOrderSum(ctx context.Context, requestId string, orderId alias.OrderId) (uint32, error) {
-	var sum uint32
+	var sum sql.NullInt32
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT sum FROM "order" WHERE id=$1`, uint64(orderId))
 	err := row.Scan(&sum)
@@ -192,7 +194,10 @@ func (repo *RepoLayer) GetOrderSum(ctx context.Context, requestId string, orderI
 		return 0, err
 	}
 	functions.LogOk(repo.logger, requestId, constants.NameMethodGetOrderSum, constants.RepoLayer)
-	return sum, nil
+	if sum.Valid {
+		return uint32(sum.Int32), nil
+	}
+	return 0, nil
 }
 
 func (repo *RepoLayer) GetFoodPrice(ctx context.Context, requestId string, foodId alias.FoodId) (uint32, error) {
@@ -244,7 +249,7 @@ func (repo *RepoLayer) UpdateSum(ctx context.Context, requestId string, sum uint
 func (repo *RepoLayer) AddToOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId, count uint32) error {
 	///////////////
 	res, err := repo.db.ExecContext(ctx,
-		`INSERT INTO food_order (order_id, food_id, count,  created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`, uint64(orderId), uint64(foodId), count, time.Now())
+		`INSERT INTO food_order (order_id, food_id, count,  created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`, uint64(orderId), uint64(foodId), count, time.Now(), time.Now())
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodAddToOrder, err, constants.RepoLayer)
 		return err
