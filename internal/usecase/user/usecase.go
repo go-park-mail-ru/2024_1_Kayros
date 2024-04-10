@@ -193,14 +193,33 @@ func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart
 		hashCardNumber = functions.HashData(salt, uPropsUpdate.CardNumber)
 	}
 
-	fileExtension := functions.GetFileExtension(handler.Filename)
-	filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
 	currentTime := time.Now().UTC()
 	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
-	err = uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, timeStr, requestId)
-	if err != nil {
+	if file != nil && handler != nil {
+		fileExtension := functions.GetFileExtension(handler.Filename)
+		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
+		err = uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, timeStr, requestId)
+		if err != nil {
+			functions.LogUsecaseFail(uc.logger, requestId, methodName)
+			return nil, err
+		}
+	}
+	uOldData, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	if err != nil || uOldData == nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
+	}
+	if uPropsUpdate.Name == "" {
+		uPropsUpdate.Name = uOldData.Name
+	}
+	if uPropsUpdate.Phone == "" {
+		uPropsUpdate.Phone = uOldData.Phone
+	}
+	if uPropsUpdate.Email == "" {
+		uPropsUpdate.Email = uOldData.Email
+	}
+	if uPropsUpdate.ImgUrl == "" {
+		uPropsUpdate.ImgUrl = uOldData.ImgUrl
 	}
 
 	err = uc.repoUser.Update(ctx, email, uPropsUpdate, hashPassword, hashCardNumber, timeStr, requestId)

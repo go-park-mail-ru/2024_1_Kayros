@@ -109,10 +109,12 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("img")
 	defer func(file multipart.File) {
-		err := file.Close()
-		if err != nil {
-			errorMsg := fmt.Sprintf("Запрос %s. Ошибка закрытия файла", requestId)
-			d.logger.Error(errorMsg, zap.Error(err))
+		if file != nil {
+			err := file.Close()
+			if err != nil {
+				errorMsg := fmt.Sprintf("Запрос %s. Ошибка закрытия файла", requestId)
+				d.logger.Error(errorMsg, zap.Error(err))
+			}сд
 		}
 	}(file)
 
