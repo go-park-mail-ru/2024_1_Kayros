@@ -80,8 +80,9 @@ const (
 // DELIVERY
 // Название методов User для логгера
 const (
-	NameHandlerUserData    = "UserData"
-	NameHandlerUploadImage = "UploadImage"
+	NameHandlerUserData      = "UserData"
+	NameHandlerUpdateUser    = "UpdateUser"
+	NameHandlerUpdateAddress = "UpdateAddress"
 )
 
 // Название методов auth для логгера

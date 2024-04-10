@@ -18,7 +18,7 @@ func (d *UserUpdate) Validate() (bool, error) {
 }
 
 func GetUserFromUpdate(r *http.Request) *entity.User {
-	var bodyDataDTO *UserUpdate = &UserUpdate{
+	bodyDataDTO := &UserUpdate{
 		Name:  r.FormValue("name"),
 		Phone: r.FormValue("phone"),
 		Email: r.FormValue("email"),

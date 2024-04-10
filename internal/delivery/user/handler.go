@@ -1,8 +1,10 @@
 package user
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -82,7 +84,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	ctxRequestId := r.Context().Value("request_id")
 	if ctxRequestId == nil {
 		err := errors.New("request_id передан не был")
-		functions.LogError(d.logger, requestId, cnst.NameHandlerSignUp, err, cnst.DeliveryLayer)
+		functions.LogError(d.logger, requestId, cnst.NameHandlerUpdateUser, err, cnst.DeliveryLayer)
 	} else {
 		requestId = ctxRequestId.(string)
 	}
@@ -93,7 +95,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		email = ctxEmail.(string)
 	}
 	if email == "" {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
@@ -101,8 +103,8 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	// Максимальный размер фотографии 10 Mb
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
-		functions.LogError(d.logger, requestId, cnst.NameHandlerUploadImage, err, cnst.DeliveryLayer)
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.BigSizeFileError), http.StatusBadRequest, cnst.DeliveryLayer)
+		functions.LogError(d.logger, requestId, cnst.NameHandlerUpdateUser, err, cnst.DeliveryLayer)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.BigSizeFileError), http.StatusBadRequest, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.BigSizeFileError, http.StatusBadRequest)
 		return
 	}
@@ -119,14 +121,19 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	}(file)
 
 	u := dto.GetUserFromUpdate(r)
+	if u == nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.BadCredentialsError), http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
 	userUpdated, err := d.ucUser.Update(r.Context(), email, file, handler, u)
 	if err != nil && strings.Contains(err.Error(), "user_email_key") {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.UserAlreadyExistError), http.StatusBadRequest, cnst.DeliveryLayer)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.UserAlreadyExistError), http.StatusBadRequest, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UserAlreadyExistError, http.StatusBadRequest)
 		return
 	}
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
@@ -136,36 +143,36 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	// удалим сессии из БД
 	sessionCookie, err := r.Cookie(cnst.SessionCookieName)
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, err, http.StatusUnauthorized, cnst.DeliveryLayer)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, err, http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
 
 	wasDeleted, err := d.ucSession.DeleteKey(r.Context(), alias.SessionKey(sessionCookie.Value))
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	if !wasDeleted {
-		functions.LogWarn(d.logger, requestId, cnst.NameHandlerSignOut, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
+		functions.LogWarn(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
 	}
 
 	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, err, http.StatusUnauthorized, cnst.DeliveryLayer)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, err, http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
 
 	wasDeleted, err = d.ucCsrf.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value))
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	if !wasDeleted {
-		functions.LogWarn(d.logger, requestId, cnst.NameHandlerSignOut, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
+		functions.LogWarn(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
 	}
 
 	sessionId := uuid.NewV4()
@@ -180,16 +187,16 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 
 	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(userDTO.Email))
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignIn, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 
-	csrfToken, err := auth.GenCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
+	csrfToken, err := auth.GenCsrfToken(d.logger, requestId, cnst.NameHandlerUpdateUser, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
 	if err == nil {
 		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(userDTO.Email))
 		if err != nil {
-			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 			return
 		}
@@ -202,5 +209,72 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &csrfCookie)
 	}
 	w = functions.JsonResponse(w, userDTO)
-	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUploadImage, cnst.DeliveryLayer)
+	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
+}
+
+func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := ""
+	ctxRequestId := r.Context().Value("request_id")
+	if ctxRequestId == nil {
+		err := errors.New("request_id передан не был")
+		functions.LogError(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, cnst.DeliveryLayer)
+	} else {
+		requestId = ctxRequestId.(string)
+	}
+
+	email := ""
+	ctxEmail := r.Context().Value("email")
+	if ctxEmail != nil {
+		email = ctxEmail.(string)
+	}
+	if email == "" {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	var address addressData
+	err = json.Unmarshal(body, &address)
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
+	u, err := d.ucUser.GetByEmail(r.Context(), email)
+	if err != nil || u == nil {
+		err = errors.New(myerrors.InternalServerError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	if len(address.Address) < 14 || len(address.Address) > 100 {
+		err = errors.New(myerrors.BadCredentialsError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
+	u.Address = address.Address
+	_, err = d.ucUser.Update(r.Context(), email, nil, nil, u)
+	if err != nil {
+		err = errors.New(myerrors.InternalServerError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	w = functions.JsonResponse(w, map[string]string{"detail": "Адрес доставки успешно обновлен"})
+	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
+}
+
+type addressData struct {
+	Address string `json:"address"`
 }
