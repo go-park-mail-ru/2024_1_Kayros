@@ -1,6 +1,8 @@
 package entity
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 type Order struct {
 	Id           uint64
@@ -36,7 +38,7 @@ func ToOrder(oDB *OrderDB) *Order {
 		UpdatedAt:    String(oDB.UpdatedAt),
 		ReceivedAt:   String(oDB.ReceivedAt),
 		Status:       oDB.Status,
-		Address:      String(oDB.ExtraAddress),
+		Address:      String(oDB.Address),
 		ExtraAddress: String(oDB.ExtraAddress),
 		Sum:          Int(oDB.Sum),
 		Food:         oDB.Food,

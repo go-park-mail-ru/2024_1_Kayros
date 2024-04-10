@@ -52,12 +52,10 @@ func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
 
 // ok
 func (repo *RepoLayer) Create(ctx context.Context, requestId string, userId alias.UserId, currentTime string) (alias.OrderId, error) {
-	fmt.Println(currentTime)
 	row := repo.db.QueryRowContext(ctx,
 		`INSERT INTO "order" (user_id, created_at, updated_at, status) VALUES ($1, $2, $3, $4) RETURNING id`, uint64(userId), currentTime, currentTime, constants.Draft)
 	var id uint64
 	err := row.Scan(&id)
-	fmt.Println(id)
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodCreateOrder, err, constants.RepoLayer)
 		return 0, err
@@ -96,10 +94,10 @@ func (repo *RepoLayer) GetOrders(ctx context.Context, requestId string, userId a
 }
 
 func (repo *RepoLayer) GetOrderById(ctx context.Context, requestId string, orderId alias.OrderId) (*entity.Order, error) {
-	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, created_at, received_at, status, address, 
+	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, created_at, updated_at, received_at, status, address, 
        				extra_address, sum FROM "order" WHERE id= $1`, uint64(orderId))
 	var order entity.OrderDB
-	err := row.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.ReceivedAt, &order.Status, &order.Address,
+	err := row.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
 		&order.ExtraAddress, &order.Sum)
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
@@ -150,7 +148,6 @@ func (repo *RepoLayer) GetFood(ctx context.Context, requestId string, orderId al
 			functions.LogError(repo.logger, requestId, constants.NameMethodGetFood, err, constants.RepoLayer)
 			return nil, err
 		}
-		fmt.Println(food)
 		foodArray = append(foodArray, &food)
 	}
 	functions.LogOk(repo.logger, requestId, constants.NameMethodGetFood, constants.RepoLayer)
@@ -158,7 +155,6 @@ func (repo *RepoLayer) GetFood(ctx context.Context, requestId string, orderId al
 }
 
 func (repo *RepoLayer) UpdateAddress(ctx context.Context, requestId string, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error) {
-	fmt.Println("repo", address, extraAddress)
 	row := repo.db.QueryRowContext(ctx,
 		`UPDATE "order" SET address=$1, extra_address=$2
                WHERE id=$3 RETURNING id`, address, extraAddress, uint64(orderId))

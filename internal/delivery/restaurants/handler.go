@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -95,7 +94,6 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodGetFoodByRest, err, constants.DeliveryLayer)
 		if err.Error() == foodRepo.NoFoodError {
-			fmt.Println()
 			w = functions.ErrorResponse(w, foodRepo.NoFoodError, http.StatusInternalServerError)
 			return
 		}

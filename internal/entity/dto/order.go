@@ -10,8 +10,8 @@ type Order struct {
 	Id           uint64         `json:"id" valid:"-"`
 	UserId       uint64         `json:"user_id" valid:"-"`
 	CreatedAt    string         `json:"created_at" valid:"-"`
-	UpdatedAt    string         `json:"updated_at" valid:"-"`
-	ReceivedAt   string         `json:"received_at" valid:"-"`
+	UpdatedAt    string         `json:"-" valid:"-"`
+	ReceivedAt   string         `json:"received_at,omitempty" valid:"-"`
 	Status       string         `json:"status" valid:"-"`
 	Address      string         `json:"address" valid:"-"`
 	ExtraAddress string         `json:"extra_address" valid:"-"`

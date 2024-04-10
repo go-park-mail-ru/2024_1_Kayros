@@ -52,7 +52,6 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 
 	email := ""
 	ctxEmail := r.Context().Value("email")
-	fmt.Println(email)
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
@@ -182,7 +181,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	if len(basket.Food) == 0 {
+	if len(basket.Food) == 0 || basket.Id == 0 {
 		functions.LogWarn(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.EmptyError), constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, repoErrors.EmptyError, http.StatusOK)
 		return
@@ -316,6 +315,11 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+	if basketId == 0 {
+		functions.LogWarn(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.EmptyError), constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, repoErrors.EmptyError, http.StatusOK)
+		return
+	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
@@ -341,7 +345,7 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 			w = functions.ErrorResponse(w, repoErrors.NotAddFood, http.StatusInternalServerError)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
