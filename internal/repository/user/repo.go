@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"go.uber.org/zap"
@@ -162,6 +163,11 @@ func (repo *RepoLayer) Update(ctx context.Context, email string, uDataChange *en
 	if errors.Is(err, sql.ErrNoRows) {
 		err = errors.New("Ошибка получения данных после их обновления в базе данных")
 		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return err
+	}
+	if err != nil && strings.Contains(err.Error(), "user_email_key") {
+		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		err = errors.New("user_email_key")
 		return err
 	}
 	if err != nil {
