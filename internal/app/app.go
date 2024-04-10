@@ -32,7 +32,7 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger)
 
 	serverConfig := cfg.Server
-	serverAddress := fmt.Sprintf("%s:%d", serverConfig.Host, cfg.Server.Port)
+	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)
 	srv := &http.Server{
 		Handler:      handler,
 		Addr:         serverAddress,
