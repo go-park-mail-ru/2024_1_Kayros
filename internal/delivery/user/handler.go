@@ -263,15 +263,14 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u.Address = address.Address
-	_, err = d.ucUser.Update(r.Context(), email, nil, nil, u)
-	if err != nil {
+	uUpdated, err := d.ucUser.Update(r.Context(), email, nil, nil, u)
+	if err != nil || uUpdated == nil {
 		err = errors.New(myerrors.InternalServerError)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-
-	w = functions.JsonResponse(w, map[string]string{"detail": "Адрес доставки успешно обновлен"})
+	w = functions.JsonResponse(w, uUpdated)
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
 }
 
