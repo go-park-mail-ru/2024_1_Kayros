@@ -125,6 +125,10 @@ func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
+	if len(fullAddress.Address) < 15 || len(fullAddress.ExtraAddress) < 3 {
+		w = functions.ErrorResponse(w, "Некорректный адрес", http.StatusBadRequest)
+		return
+	}
 	basket, err := h.uc.UpdateAddress(r.Context(), fullAddress, basketId)
 	if err != nil {
 		if err.Error() == repoErrors.NotUpdateError {
