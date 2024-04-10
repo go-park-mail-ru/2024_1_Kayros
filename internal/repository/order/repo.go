@@ -23,6 +23,7 @@ const (
 	NotUpdateStatusError = "Заказ не оплачен"
 	NotAddFood           = "Блюдо не добавлено в заказ"
 	NotDeleteFood        = "Блюдо не удалено из заказа"
+	CleanError           = "Корзина не очищена"
 )
 
 type Repo interface {
@@ -36,6 +37,7 @@ type Repo interface {
 	AddToOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
 	UpdateCountInOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
 	DeleteFromOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId) error
+	CleanBasket(ctx context.Context, requestId string, orderId alias.OrderId) error
 }
 
 type RepoLayer struct {
@@ -131,7 +133,7 @@ func (repo *RepoLayer) GetBasketId(ctx context.Context, requestId string, userId
 
 func (repo *RepoLayer) GetFood(ctx context.Context, requestId string, orderId alias.OrderId) ([]*entity.FoodInOrder, error) {
 	rows, err := repo.db.QueryContext(ctx,
-		`SELECT f.id, f.name, f.weight, f.price, fo.count, f.img_url
+		`SELECT f.id, f.name, f.weight, f.price, fo.count, f.img_url, f.restaurant_id
 				FROM food_order AS fo
 				JOIN food AS f ON fo.food_id = f.id
 				WHERE fo.order_id = $1`, uint64(orderId))
@@ -143,7 +145,7 @@ func (repo *RepoLayer) GetFood(ctx context.Context, requestId string, orderId al
 	var foodArray []*entity.FoodInOrder
 	for rows.Next() {
 		var food entity.FoodInOrder
-		err = rows.Scan(&food.Id, &food.Name, &food.Weight, &food.Price, &food.Count, &food.ImgUrl)
+		err = rows.Scan(&food.Id, &food.Name, &food.Weight, &food.Price, &food.Count, &food.ImgUrl, &food.RestaurantId)
 		if err != nil {
 			functions.LogError(repo.logger, requestId, constants.NameMethodGetFood, err, constants.RepoLayer)
 			return nil, err
@@ -354,4 +356,29 @@ func (repo *RepoLayer) DeleteFromOrder(ctx context.Context, requestId string, or
 	sum = sum - count*price
 	functions.LogOk(repo.logger, requestId, constants.NameMethodDeleteFromOrder, constants.RepoLayer)
 	return repo.UpdateSum(ctx, requestId, sum, orderId)
+}
+
+func (repo *RepoLayer) CleanBasket(ctx context.Context, requestId string, id alias.OrderId) error {
+	res, err := repo.db.ExecContext(ctx,
+		`DELETE FROM food_order WHERE order_id=$1`, uint64(id))
+	if err != nil {
+		functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
+		return err
+	}
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
+		return err
+	}
+	if countRows == 0 {
+		functions.LogWarn(repo.logger, requestId, constants.NameMethodCleanBasket, fmt.Errorf(CleanError), constants.RepoLayer)
+		return fmt.Errorf(CleanError)
+	}
+	sum := uint32(0)
+	err = repo.UpdateSum(ctx, requestId, sum, id)
+	if err != nil {
+		functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
+		return err
+	}
+	return nil
 }

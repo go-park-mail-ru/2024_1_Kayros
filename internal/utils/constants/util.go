@@ -65,6 +65,7 @@ const (
 	NameMethodUpdateStatus       = "UpdateStatus"
 	NameMethodUpdateAddress      = "UpdateAddress"
 	NameMethodGetFood            = "GetFood"
+	NameMethodCleanBasket        = "CleanBasket"
 )
 
 // Название методов Session для логгера

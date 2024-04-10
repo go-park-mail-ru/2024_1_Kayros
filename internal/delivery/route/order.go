@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/delivery/order"
+	rFood "2024_1_kayros/internal/repository/food"
 	rOrder "2024_1_kayros/internal/repository/order"
 	rUser "2024_1_kayros/internal/repository/user"
 	ucOrder "2024_1_kayros/internal/usecase/order"
@@ -16,8 +17,9 @@ import (
 // нужно будет добавить интерфейс к БД и редису
 func AddOrderRouter(db *sql.DB, minio *minio.Client, mux *mux.Router, logger *zap.Logger) {
 	repoOrder := rOrder.NewRepoLayer(db, logger)
+	repoFood := rFood.NewRepoLayer(db, logger)
 	repoUser := rUser.NewRepoLayer(db, minio, logger)
-	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoUser, logger)
+	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, repoUser, logger)
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)
 
 	mux.HandleFunc("/order", handler.GetBasket).Methods("GET") //работает
