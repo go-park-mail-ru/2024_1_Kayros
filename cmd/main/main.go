@@ -2,74 +2,33 @@ package main
 
 import (
 	"flag"
-	"log"
-	"net/http"
-	"time"
 
-	"github.com/gorilla/mux"
-
-	"2024_1_kayros/internal/delivery/authorization"
-	"2024_1_kayros/internal/delivery/restaurants"
+	"2024_1_kayros/config"
+	"2024_1_kayros/internal/app"
+	"go.uber.org/zap"
 )
 
 func main() {
-	r := mux.NewRouter()
-
-	// мультиплексор авторизации
-	auth := authorization.NewAuthStore()
-	restaurants := delivery.NewRestaurantStore()
-
-	// флаг для установки времени graceful shutdown-а
-	var wait time.Duration
-	flag.DurationVar(&wait, "grtm", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
+	var loggerLevel string
+	flag.StringVar(&loggerLevel, "log_level", "prod", "Уровень логирования кода")
 	flag.Parse()
 
-	// устанавливаем middlewares для аутентификации с помощью сессионной куки
-	r.Use(auth.SessionAuthentication)
-
-	// устанавливаем middleware для CORS
-	r.Use(authorization.CorsMiddleware)
-
-	// авторизация, регистрация, деавторизация
-	r.HandleFunc("/signin", auth.SignIn).Methods("POST", "OPTIONS").Name("signin")
-	r.HandleFunc("/signup", auth.SignUp).Methods("POST", "OPTIONS").Name("signup")
-	r.HandleFunc("/signout", auth.SignOut).Methods("POST", "OPTIONS").Name("signout")
-
-	// рестораны
-	r.HandleFunc("/restaurants", restaurants.RestaurantList).Methods("GET").Name("restaurants")
-
-	srv := &http.Server{
-		Handler:      r,
-		Addr:         ":8000",
-		WriteTimeout: 10 * time.Second, // таймаут на запись данных в ответ на запрос
-		ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
-		IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
+	var logger *zap.Logger
+	switch loggerLevel {
+	case "dev":
+		logger = zap.Must(zap.NewDevelopment())
+	case "prod":
+		logger = zap.Must(zap.NewProduction())
 	}
-	log.Fatal(srv.ListenAndServe())
-	//
-	//go func() {
-	//	if err := srv.ListenAndServe(); err != nil {
-	//		log.Printf("Сервер не может быть запущен. Ошибка: \n%v", err)
-	//	} else {
-	//		log.Println("Сервер запущен на порте 8000")
-	//	}
-	//}()
-	//
-	//// канал для получения прерывания, завершающего работу сервиса (ожидает Ctrl+C)
-	//c := make(chan os.Signal, 1)
-	//signal.Notify(c, os.Interrupt)
-	//
-	//<-c
-	//
-	//// контекст ожидания выполнения запросов в течение времени wait
-	//ctx, cancel := context.WithTimeout(context.Background(), wait)
-	//defer cancel()
-	//err := srv.Shutdown(ctx)
-	//if err != nil {
-	//	log.Printf("Сервер завершил свою работу с ошибкой. Ошибка: \n%v", err)
-	//	os.Exit(1) //
-	//}
-	//
-	//log.Println("Сервер завершил свою работу успешно")
-	//os.Exit(0)
+
+	defer func(logger *zap.Logger) {
+		err := logger.Sync()
+		if err != nil {
+			logger.Error("Очистка данных после логгера прошла с ошибкой", zap.Error(err))
+		}
+	}(logger)
+
+	cfg := config.NewConfig(logger)
+	app.Run(cfg, logger)
+	logger.Info("Сервер завершил работу")
 }

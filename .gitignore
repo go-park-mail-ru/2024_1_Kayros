@@ -1,2 +1,6 @@
 .idea/
 go.sum
+config/config.yaml
+integration
+api.md
+bd.md
