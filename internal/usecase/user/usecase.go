@@ -221,6 +221,9 @@ func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart
 	if uPropsUpdate.ImgUrl == "" {
 		uPropsUpdate.ImgUrl = uOldData.ImgUrl
 	}
+	if uPropsUpdate.Address == "" {
+		uPropsUpdate.Address = uOldData.Address
+	}
 
 	err = uc.repoUser.Update(ctx, email, uPropsUpdate, hashPassword, hashCardNumber, timeStr, requestId)
 	if err != nil {

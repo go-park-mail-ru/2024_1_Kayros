@@ -155,8 +155,8 @@ func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword 
 func (repo *RepoLayer) Update(ctx context.Context, email string, uDataChange *entity.User, hashPassword []byte, hashCardNumber []byte, timeStr string, requestId string) error {
 	methodName := cnst.NameMethodUpdateUser
 	row := repo.database.QueryRowContext(ctx,
-		`UPDATE "user" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5, card_number = $6, updated_at = $7 WHERE email = $8 RETURNING id, email`,
-		uDataChange.Name, uDataChange.Phone, uDataChange.Email, uDataChange.ImgUrl, hashPassword, hashCardNumber, timeStr, email)
+		`UPDATE "user" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5, card_number = $6, address = $7, updated_at = $8 WHERE email = $9 RETURNING id, email`,
+		uDataChange.Name, uDataChange.Phone, uDataChange.Email, uDataChange.ImgUrl, hashPassword, hashCardNumber, uDataChange.Address, timeStr, email)
 	var uId uint64
 	var uEmail string
 	err := row.Scan(&uId, &uEmail)
