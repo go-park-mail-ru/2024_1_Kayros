@@ -49,7 +49,6 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	} else {
 		requestId = ctxRequestId.(string)
 	}
-
 	email := ""
 	ctxEmail := r.Context().Value("email")
 	if ctxEmail != nil {

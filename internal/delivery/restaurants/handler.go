@@ -72,7 +72,6 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 	} else {
 		requestId = ctxRequestId.(string)
 	}
-
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
