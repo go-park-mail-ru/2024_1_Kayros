@@ -270,7 +270,8 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w, uUpdated)
+	u = sanitizer.User(uUpdated)
+	w = functions.JsonResponse(w, u)
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
 }
 
