@@ -1,7 +1,6 @@
 package delivery
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -60,26 +59,12 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	restsDTO := dto.NewRestaurantArray(rests)
-	body, err := json.Marshal(restsDTO)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodGetAllRests, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(body)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodGetAllRests, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	w = functions.JsonResponse(w, restsDTO)
 	functions.LogOk(h.logger, requestId, constants.NameMethodGetAllRests, constants.DeliveryLayer)
 }
 
 func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	vars := mux.Vars(r)
-	id, _ := strconv.Atoi(vars["id"])
 	requestId := ""
 	ctxRequestId := r.Context().Value("request_id")
 	if ctxRequestId == nil {
@@ -88,11 +73,19 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 	} else {
 		requestId = ctxRequestId.(string)
 	}
+
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		functions.LogError(h.logger, requestId, constants.NameMethodGetRestById, err, constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.NotFoundError, http.StatusNotFound)
+		return
+	}
 	rest, err := h.ucRest.GetById(r.Context(), alias.RestId(id))
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodGetRestById, err, constants.DeliveryLayer)
 		if err.Error() == restaurants.NoRestError {
-			w = functions.ErrorResponse(w, restaurants.NoRestError, http.StatusInternalServerError)
+			w = functions.ErrorResponse(w, restaurants.NoRestError, http.StatusNotFound)
 			return
 		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -110,18 +103,6 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	restDTO := dto.NewRestaurantAndFood(rest, categories)
-	body, err := json.Marshal(restDTO)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodGetRestById, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(body)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodGetRestById, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	w = functions.JsonResponse(w, restDTO)
 	functions.LogOk(h.logger, requestId, constants.NameMethodGetRestById, constants.DeliveryLayer)
 }

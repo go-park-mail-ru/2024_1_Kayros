@@ -50,7 +50,6 @@ func (repo *RepoLayer) GetAll(ctx context.Context, requestId string) ([]*entity.
 		}
 		rests = append(rests, &rest)
 	}
-	fmt.Println(rests)
 	functions.LogOk(repo.logger, requestId, constants.NameMethodGetAllRests, constants.RepoLayer)
 	return rests, nil
 }
@@ -68,6 +67,5 @@ func (repo *RepoLayer) GetById(ctx context.Context, requestId string, restId ali
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetRestById, err, constants.RepoLayer)
 		return nil, err
 	}
-	fmt.Println("ok repo getbyid")
 	return &rest, nil
 }
