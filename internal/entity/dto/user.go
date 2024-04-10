@@ -27,6 +27,7 @@ func NewUser(u *entity.User) *User {
 		Phone:    u.Phone,
 		Email:    u.Email,
 		ImgUrl:   u.ImgUrl,
+		Address:  u.Address,
 		Password: u.Password,
 	}
 	return uDTO
