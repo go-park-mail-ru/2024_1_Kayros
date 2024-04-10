@@ -25,7 +25,7 @@ type Repo interface {
 	DeleteByEmail(ctx context.Context, email string, requestId string) error
 
 	Create(ctx context.Context, u *entity.User, hashPassword []byte, timeStr string, requestId string) error
-	Update(ctx context.Context, u *entity.User, hashPassword []byte, hashCardNumber []byte, timeStr string, requestId string) error
+	Update(ctx context.Context, email string, u *entity.User, hashPassword []byte, hashCardNumber []byte, timeStr string, requestId string) error
 
 	IsExistById(ctx context.Context, userId alias.UserId, requestId string) (bool, error)
 	IsExistByEmail(ctx context.Context, email string, requestId string) (bool, error)
@@ -151,11 +151,11 @@ func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword 
 	return nil
 }
 
-func (repo *RepoLayer) Update(ctx context.Context, u *entity.User, hashPassword []byte, hashCardNumber []byte, timeStr string, requestId string) error {
+func (repo *RepoLayer) Update(ctx context.Context, email string, uDataChange *entity.User, hashPassword []byte, hashCardNumber []byte, timeStr string, requestId string) error {
 	methodName := cnst.NameMethodUpdateUser
 	row := repo.database.QueryRowContext(ctx,
-		`UPDATE "user" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5, card_number = $6, updated_at = $6 WHERE id = $6`,
-		u.Name, u.Phone, u.Email, u.ImgUrl, hashPassword, hashCardNumber, timeStr, u.Id)
+		`UPDATE "user" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5, card_number = $6, updated_at = $7 WHERE email = $8 RETURNING id, email`,
+		uDataChange.Name, uDataChange.Phone, uDataChange.Email, uDataChange.ImgUrl, hashPassword, hashCardNumber, timeStr, email)
 	var uId uint64
 	var uEmail string
 	err := row.Scan(&uId, &uEmail)

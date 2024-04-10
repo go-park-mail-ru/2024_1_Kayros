@@ -29,10 +29,9 @@ type Usecase interface {
 	IsExistByEmail(ctx context.Context, email string) (bool, error)
 
 	Create(ctx context.Context, uProps *entity.User) (*entity.User, error)
-	Update(ctx context.Context, uProps *entity.User) (*entity.User, error)
+	Update(ctx context.Context, email string, file multipart.File, handler *multipart.FileHeader, uProps *entity.User) (*entity.User, error)
 
 	CheckPassword(ctx context.Context, email string, password string) (bool, error)
-	UploadImageByEmail(ctx context.Context, file multipart.File, handler *multipart.FileHeader, email string) error
 }
 
 type UsecaseLayer struct {
@@ -152,22 +151,22 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 	return u, nil
 }
 
-func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entity.User, error) {
+func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart.File, handler *multipart.FileHeader, uPropsUpdate *entity.User) (*entity.User, error) {
 	methodName := cnst.NameMethodUpdateUser
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, uProps.Email, requestId)
+	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	uCardNumber, err := uc.repoUser.GetHashedCardNumber(ctx, uProps.Email, requestId)
+	uCardNumber, err := uc.repoUser.GetHashedCardNumber(ctx, email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 
-	var hashPassword []byte
-	if uProps.Password == "" {
+	hashPassword := []byte{}
+	if uPropsUpdate.Password == "" {
 		hashPassword = uPassword
 	} else {
 		salt := make([]byte, 8)
@@ -177,11 +176,11 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 			functions.LogUsecaseFail(uc.logger, requestId, methodName)
 			return nil, err
 		}
-		hashPassword = functions.HashData(salt, uProps.Password)
+		hashPassword = functions.HashData(salt, uPropsUpdate.Password)
 	}
 
-	var hashCardNumber []byte
-	if uProps.CardNumber == "" {
+	hashCardNumber := []byte{}
+	if uPropsUpdate.CardNumber == "" {
 		hashCardNumber = uCardNumber
 	} else {
 		salt := make([]byte, 8)
@@ -191,17 +190,25 @@ func (uc *UsecaseLayer) Update(ctx context.Context, uProps *entity.User) (*entit
 			functions.LogUsecaseFail(uc.logger, requestId, methodName)
 			return nil, err
 		}
-		hashCardNumber = functions.HashData(salt, uProps.CardNumber)
+		hashCardNumber = functions.HashData(salt, uPropsUpdate.CardNumber)
 	}
 
+	fileExtension := functions.GetFileExtension(handler.Filename)
+	filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
 	currentTime := time.Now().UTC()
 	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
-	err = uc.repoUser.Update(ctx, uProps, hashPassword, hashCardNumber, timeStr, requestId)
+	err = uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, timeStr, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	u, err := uc.repoUser.GetById(ctx, alias.UserId(uProps.Id), requestId)
+
+	err = uc.repoUser.Update(ctx, email, uPropsUpdate, hashPassword, hashCardNumber, timeStr, requestId)
+	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return nil, err
+	}
+	u, err := uc.repoUser.GetByEmail(ctx, uPropsUpdate.Email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
@@ -225,20 +232,4 @@ func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, passwor
 
 	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
 	return bytes.Equal(uPassword, hashPassword), nil
-}
-
-func (uc *UsecaseLayer) UploadImageByEmail(ctx context.Context, file multipart.File, handler *multipart.FileHeader, email string) error {
-	methodName := cnst.NameMethodCheckPassword
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	fileExtension := functions.GetFileExtension(handler.Filename)
-	filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
-	currentTime := time.Now().UTC()
-	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
-	err := uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, timeStr, requestId)
-	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return err
-	}
-	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return nil
 }

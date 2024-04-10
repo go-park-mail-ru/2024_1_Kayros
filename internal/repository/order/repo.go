@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -241,8 +242,9 @@ func (repo *RepoLayer) UpdateSum(ctx context.Context, requestId string, sum uint
 }
 
 func (repo *RepoLayer) AddToOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId, count uint32) error {
+	///////////////
 	res, err := repo.db.ExecContext(ctx,
-		`INSERT INTO food_order (order_id, food_id, count) VALUES ($1, $2, $3)`, uint64(orderId), uint64(foodId), count)
+		`INSERT INTO food_order (order_id, food_id, count,  created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`, uint64(orderId), uint64(foodId), count, time.Now())
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodAddToOrder, err, constants.RepoLayer)
 		return err

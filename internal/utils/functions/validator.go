@@ -9,7 +9,7 @@ import (
 )
 
 func InitValidator(logger *zap.Logger) {
-	govalidator.SetFieldsRequiredByDefault(true)
+	govalidator.SetFieldsRequiredByDefault(false)
 
 	// Добавим тег валидации для пароля
 	govalidator.TagMap["user_pwd"] = func(pwd string) bool {

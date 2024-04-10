@@ -5,25 +5,37 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
+	"time"
 
+	"2024_1_kayros/config"
+	"2024_1_kayros/internal/delivery/auth"
 	"2024_1_kayros/internal/entity/dto"
+	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/usecase/user"
+	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/sanitizer"
+	"github.com/satori/uuid"
 	"go.uber.org/zap"
 )
 
 type Delivery struct {
-	ucUser user.Usecase
-	logger *zap.Logger
+	ucSession session.Usecase
+	ucCsrf    session.Usecase
+	ucUser    user.Usecase
+	logger    *zap.Logger
+	cfg       *config.Project
 }
 
-func NewDeliveryLayer(ucUserProps user.Usecase, loggerProps *zap.Logger) *Delivery {
+func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, ucCsrfProps session.Usecase, loggerProps *zap.Logger) *Delivery {
 	return &Delivery{
-		ucUser: ucUserProps,
-		logger: loggerProps,
+		ucUser:    ucUserProps,
+		logger:    loggerProps,
+		ucSession: ucSessionProps,
+		ucCsrf:    ucCsrfProps,
+		cfg:       cfgProps,
 	}
 }
 
@@ -63,7 +75,7 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUserData, cnst.DeliveryLayer)
 }
 
-func (d *Delivery) UploadImage(w http.ResponseWriter, r *http.Request) {
+func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := ""
 	ctxRequestId := r.Context().Value("request_id")
@@ -102,28 +114,85 @@ func (d *Delivery) UploadImage(w http.ResponseWriter, r *http.Request) {
 			d.logger.Error(errorMsg, zap.Error(err))
 		}
 	}(file)
-	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.BadCredentialsError), http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
-		return
-	}
 
-	err = d.ucUser.UploadImageByEmail(r.Context(), file, handler, email)
+	u := dto.GetUserFromUpdate(r)
+	userUpdated, err := d.ucUser.Update(r.Context(), email, file, handler, u)
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	u, err := d.ucUser.GetByEmail(r.Context(), email)
-	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-
-	u = sanitizer.User(u)
-	userDTO := dto.NewUser(u)
+	userSanitizer := sanitizer.User(userUpdated)
+	userDTO := dto.NewUser(userSanitizer)
 	w = functions.JsonResponse(w, userDTO)
 
+	// удалим сессии из БД
+	sessionCookie, err := r.Cookie(cnst.SessionCookieName)
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, err, http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+
+	wasDeleted, err := d.ucSession.DeleteKey(r.Context(), alias.SessionKey(sessionCookie.Value))
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	if !wasDeleted {
+		functions.LogWarn(d.logger, requestId, cnst.NameHandlerSignOut, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
+	}
+
+	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, err, http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+
+	wasDeleted, err = d.ucCsrf.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value))
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	if !wasDeleted {
+		functions.LogWarn(d.logger, requestId, cnst.NameHandlerSignOut, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
+	}
+
+	sessionId := uuid.NewV4()
+	expiration := time.Now().Add(14 * 24 * time.Hour)
+	cookie := http.Cookie{
+		Name:     cnst.SessionCookieName,
+		Value:    sessionId.String(),
+		Expires:  expiration,
+		HttpOnly: false,
+	}
+	http.SetCookie(w, &cookie)
+
+	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(u.Email))
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignIn, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	csrfToken, err := auth.GenCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
+	if err == nil {
+		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
+		if err != nil {
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
+		csrfCookie := http.Cookie{
+			Name:     cnst.CsrfCookieName,
+			Value:    csrfToken,
+			Expires:  expiration,
+			HttpOnly: false,
+		}
+		http.SetCookie(w, &csrfCookie)
+	}
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUploadImage, cnst.DeliveryLayer)
 }

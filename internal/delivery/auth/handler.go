@@ -123,7 +123,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: false,
 	}
 
-	csrfToken, err := genCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId))
+	csrfToken, err := GenCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId))
 	if err == nil {
 		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
 		if err != nil {
@@ -232,7 +232,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		csrfToken, err := genCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
+		csrfToken, err := GenCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
 		if err == nil {
 			err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
 			if err != nil {
@@ -325,7 +325,7 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerSignUp, cnst.DeliveryLayer)
 }
 
-func genCsrfToken(logger *zap.Logger, requestId string, methodName string, secretKey string, sessionId alias.SessionKey) (string, error) {
+func GenCsrfToken(logger *zap.Logger, requestId string, methodName string, secretKey string, sessionId alias.SessionKey) (string, error) {
 	// Создание csrf_token
 	hashData, err := functions.HashCsrf(secretKey, string(sessionId))
 	if err != nil {

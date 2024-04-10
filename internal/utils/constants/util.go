@@ -41,6 +41,7 @@ const (
 	NameMethodUploadImageByEmail    = "UploadImageByEmail"
 	NameMethodGetHashedUserPassword = "GetHashedUserPassword"
 	NameMethodUpdateOrder           = "UpdateOrder"
+	NameMethodAddToOrder            = "AddToOrder"
 )
 
 const (
