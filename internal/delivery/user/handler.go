@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
+	"strings"
 	"time"
 
 	"2024_1_kayros/config"
@@ -117,6 +118,11 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 
 	u := dto.GetUserFromUpdate(r)
 	userUpdated, err := d.ucUser.Update(r.Context(), email, file, handler, u)
+	if err != nil && strings.Contains(err.Error(), "user_email_key") {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.UserAlreadyExistError), http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UserAlreadyExistError, http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUploadImage, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -124,7 +130,6 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	userSanitizer := sanitizer.User(userUpdated)
 	userDTO := dto.NewUser(userSanitizer)
-	w = functions.JsonResponse(w, userDTO)
 
 	// удалим сессии из БД
 	sessionCookie, err := r.Cookie(cnst.SessionCookieName)
@@ -171,7 +176,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 
-	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(u.Email))
+	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(userDTO.Email))
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignIn, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -180,7 +185,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 
 	csrfToken, err := auth.GenCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
 	if err == nil {
-		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(u.Email))
+		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(userDTO.Email))
 		if err != nil {
 			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -194,5 +199,6 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, &csrfCookie)
 	}
+	w = functions.JsonResponse(w, userDTO)
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUploadImage, cnst.DeliveryLayer)
 }
