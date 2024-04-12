@@ -32,6 +32,7 @@ type Usecase interface {
 	Update(ctx context.Context, email string, file multipart.File, handler *multipart.FileHeader, uProps *entity.User) (*entity.User, error)
 
 	CheckPassword(ctx context.Context, email string, password string) (bool, error)
+	SetNewPassword(ctx context.Context, email string, password string) (bool, error)
 }
 
 type UsecaseLayer struct {
@@ -249,9 +250,32 @@ func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, passwor
 		return false, err
 	}
 
-	salt := uPassword[0:8]
+	salt := make([]byte, 8)
+	copy(salt, uPassword[0:8])
 	hashPassword := functions.HashData(salt, password)
 
 	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
 	return bytes.Equal(uPassword, hashPassword), nil
+}
+
+// SetNewPassword устанавливает новый пароль пользователю
+func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email string, password string) (bool, error) {
+	methodName := cnst.NameMethodSetNewPassword
+	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
+
+	salt := make([]byte, 8)
+	_, err := rand.Read(salt)
+	if err != nil {
+		functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return false, err
+	}
+	hashPassword := functions.HashData(salt, password)
+	_, err = uc.repoUser.SetNewPassword(ctx, requestId, email, hashPassword)
+	if err != nil {
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return false, err
+	}
+	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
+	return true, nil
 }

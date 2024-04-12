@@ -9,4 +9,5 @@ const (
 	UserAlreadyExistError   = "Пользователь с таким логином уже зарегистрирован"
 	BigSizeFileError        = "Превышен максимальный размер файла"
 	NotFoundError           = "Данные не найдены"
+	EqualPasswordsError     = "Новый пароль совпадает со старым"
 )

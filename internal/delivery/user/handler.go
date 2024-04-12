@@ -20,6 +20,7 @@ import (
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/sanitizer"
+	"github.com/asaskevich/govalidator"
 	"github.com/satori/uuid"
 	"go.uber.org/zap"
 )
@@ -256,13 +257,13 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	if len(address.Address) < 14 || len(address.Address) > 100 {
+	if len(address.Data) < 14 || len(address.Data) > 100 {
 		err = errors.New(myerrors.BadCredentialsError)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusBadRequest, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-	u.Address = address.Address
+	u.Address = address.Data
 	uUpdated, err := d.ucUser.Update(r.Context(), email, nil, nil, u)
 	if err != nil || uUpdated == nil {
 		err = errors.New(myerrors.InternalServerError)
@@ -275,6 +276,84 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
 }
 
+func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := ""
+	ctxRequestId := r.Context().Value("request_id")
+	if ctxRequestId == nil {
+		err := errors.New("request_id передан не был")
+		functions.LogError(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, cnst.DeliveryLayer)
+	} else {
+		requestId = ctxRequestId.(string)
+	}
+
+	email := ""
+	ctxEmail := r.Context().Value("email")
+	if ctxEmail != nil {
+		email = ctxEmail.(string)
+	}
+	if email == "" {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	var password passwordData
+	err = json.Unmarshal(body, &password)
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
+
+	isValid, err := password.Validate()
+	if err != nil || !isValid {
+		err = errors.New(myerrors.BadCredentialsError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
+
+	isEqual, err := d.ucUser.CheckPassword(r.Context(), email, password.Data)
+	if err != nil {
+		err = errors.New(myerrors.InternalServerError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	if isEqual {
+		err = errors.New(myerrors.EqualPasswordsError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.EqualPasswordsError, http.StatusBadRequest)
+		return
+	}
+	_, err = d.ucUser.SetNewPassword(r.Context(), email, password.Data)
+	if err != nil {
+		err = errors.New(myerrors.BadCredentialsError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
+	w = functions.JsonResponse(w, map[string]string{"detail": "Пароль был успешно обновлен"})
+	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
+}
+
 type addressData struct {
-	Address string `json:"address"`
+	Data string `json:"address"`
+}
+
+type passwordData struct {
+	Data string `json:"password" valid:"user_pwd"`
+}
+
+func (d *passwordData) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
 }

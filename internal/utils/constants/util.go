@@ -42,6 +42,7 @@ const (
 	NameMethodGetHashedUserPassword = "GetHashedUserPassword"
 	NameMethodUpdateOrder           = "UpdateOrder"
 	NameMethodAddToOrder            = "AddToOrder"
+	NameMethodSetNewPassword        = "SetNewPassword"
 )
 
 const (
@@ -80,9 +81,10 @@ const (
 // DELIVERY
 // Название методов User для логгера
 const (
-	NameHandlerUserData      = "UserData"
-	NameHandlerUpdateUser    = "UpdateUser"
-	NameHandlerUpdateAddress = "UpdateAddress"
+	NameHandlerUserData       = "UserData"
+	NameHandlerUpdateUser     = "UpdateUser"
+	NameHandlerUpdateAddress  = "UpdateAddress"
+	NameHandlerUpdatePassword = "UpdatePassword"
 )
 
 // Название методов auth для логгера

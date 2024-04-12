@@ -34,6 +34,7 @@ type Repo interface {
 	UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, timeStr string, requestId string) error
 	GetHashedUserPassword(ctx context.Context, email string, requestId string) ([]byte, error)
 	GetHashedCardNumber(ctx context.Context, email string, requestId string) ([]byte, error)
+	SetNewPassword(ctx context.Context, requestId string, email string, password []byte) (bool, error)
 }
 
 type RepoLayer struct {
@@ -292,4 +293,25 @@ func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.Fi
 	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s имеет фото по адресу %s", uId, uEmail, uImg)
 	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return nil
+}
+
+func (repo *RepoLayer) SetNewPassword(ctx context.Context, requestId string, email string, password []byte) (bool, error) {
+	methodName := cnst.NameMethodSetNewPassword
+	row := repo.database.QueryRowContext(ctx, `UPDATE "user" SET password = $1 WHERE email = $2 RETURNING id, email`, password, email)
+	var uId uint64
+	var uEmail string
+	err := row.Scan(&uId, &uEmail)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = errors.New("Ошибка получения данных после их обновления в базе данных")
+		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return false, err
+	}
+	if err != nil {
+		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		return false, err
+	}
+
+	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s успешно обновил свой пароль", uId, uEmail)
+	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
+	return true, nil
 }

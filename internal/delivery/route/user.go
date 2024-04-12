@@ -30,4 +30,5 @@ func AddUserRouter(db *sql.DB, cfg *config.Project, minio *minio.Client, clientR
 	mux.HandleFunc("/user", deliveryUser.UserData).Methods("GET").Name("userdata")
 	mux.HandleFunc("/user", deliveryUser.UpdateInfo).Methods("PUT").Name("update_user")
 	mux.HandleFunc("/user/address", deliveryUser.UpdateAddress).Methods("PUT").Name("update_user")
+	mux.HandleFunc("/user/new_password", deliveryUser.UpdatePassword).Methods("PUT").Name("update_password")
 }
