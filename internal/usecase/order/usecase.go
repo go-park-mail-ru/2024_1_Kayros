@@ -92,8 +92,12 @@ func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Or
 		functions.LogInfo(uc.logger, requestId, methodName, order.NoBasketError, constants.UsecaseLayer)
 		return nil, err
 	}
+	basket := orders[0]
+	if len(basket.Food) != 0 {
+		basket.RestaurantId = basket.Food[0].RestaurantId
+	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
-	return orders[0], nil
+	return basket, nil
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId, error) {
@@ -128,6 +132,9 @@ func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, FullAddress dto.FullA
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
+	if len(updatedOrder.Food) != 0 {
+		updatedOrder.RestaurantId = updatedOrder.Food[0].RestaurantId
+	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return updatedOrder, nil
 }
@@ -148,6 +155,9 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
+	}
+	if len(payedOrder.Food) != 0 {
+		payedOrder.RestaurantId = payedOrder.Food[0].RestaurantId
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return payedOrder, nil
@@ -193,6 +203,9 @@ func (uc *UsecaseLayer) UpdateCountInOrder(ctx context.Context, orderId alias.Or
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
+	if len(updatedOrder.Food) != 0 {
+		updatedOrder.RestaurantId = updatedOrder.Food[0].RestaurantId
+	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return updatedOrder, nil
 }
@@ -209,6 +222,9 @@ func (uc *UsecaseLayer) DeleteFromOrder(ctx context.Context, orderId alias.Order
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
+	}
+	if len(updatedOrder.Food) != 0 {
+		updatedOrder.RestaurantId = updatedOrder.Food[0].RestaurantId
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return updatedOrder, nil

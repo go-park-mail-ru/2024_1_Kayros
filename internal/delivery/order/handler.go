@@ -289,6 +289,9 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+	if len(order.Food) != 0 {
+		order.RestaurantId = order.Food[0].RestaurantId
+	}
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)
 	functions.LogOk(h.logger, requestId, constants.NameMethodAddFood, constants.DeliveryLayer)

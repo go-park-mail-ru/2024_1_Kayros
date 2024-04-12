@@ -16,6 +16,7 @@ type Order struct {
 	Address      string         `json:"address" valid:"-"`
 	ExtraAddress string         `json:"extra_address" valid:"-"`
 	Sum          uint64         `json:"sum" valid:"-"`
+	RestaurantId uint64         `json:"restaurant_id"`
 	Food         []*FoodInOrder `json:"food" valid:"-"`
 }
 
@@ -44,6 +45,7 @@ func NewOrder(order *entity.Order) *Order {
 		Address:      order.Address,
 		ExtraAddress: order.ExtraAddress,
 		Sum:          order.Sum,
+		RestaurantId: order.RestaurantId,
 		Food:         foodInOrder,
 	}
 }
@@ -63,6 +65,7 @@ func NewOrders(orderArray []*entity.Order) []*Order {
 			Address:      order.Address,
 			ExtraAddress: order.ExtraAddress,
 			Sum:          order.Sum,
+			RestaurantId: order.RestaurantId,
 			Food:         foodInOrder,
 		}
 		orderDTOArray = append(orderDTOArray, orderDTO)
@@ -83,6 +86,7 @@ func NewOrderFromDTO(order *Order) *entity.Order {
 		Address:      order.Address,
 		ExtraAddress: order.ExtraAddress,
 		Sum:          order.Sum,
+		RestaurantId: order.RestaurantId,
 		Food:         foodInOrder,
 	}
 }
