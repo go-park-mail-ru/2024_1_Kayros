@@ -9,9 +9,8 @@ import (
 )
 
 func InitValidator(logger *zap.Logger) {
-	govalidator.SetFieldsRequiredByDefault(false)
+	govalidator.SetFieldsRequiredByDefault(true)
 
-	// Добавим тег валидации для пароля
 	govalidator.TagMap["user_pwd"] = func(pwd string) bool {
 		// Проверка на минимальную длину
 		if len(pwd) < 8 {

@@ -20,7 +20,8 @@ import (
 )
 
 // Run создает все сервисы приложения и запускает их
-func Run(cfg *config.Project, logger *zap.Logger) {
+func Run(cfg *config.Project) {
+	logger := zap.Must(zap.NewProduction())
 	functions.InitValidator(logger)
 
 	postgreDB := postgres.Init(cfg, logger)

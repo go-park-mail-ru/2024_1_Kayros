@@ -122,6 +122,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		Expires:  expiration,
 		HttpOnly: false,
 	}
+	http.SetCookie(w, &sessionCookie)
 
 	csrfToken, err := GenCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId))
 	if err == nil {
@@ -139,7 +140,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, &csrfCookie)
 	}
-	http.SetCookie(w, &sessionCookie)
+
 	u = sanitizer.User(u)
 	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
@@ -248,7 +249,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 			}
 			http.SetCookie(w, &csrfCookie)
 		}
-		// Собираем ответ
+
 		u = sanitizer.User(u)
 		uDTO := dto.NewUser(u)
 		w = functions.JsonResponse(w, uDTO)
@@ -300,8 +301,6 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
 	http.SetCookie(w, sessionCookie)
 
-	//
-
 	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignOut, err, http.StatusUnauthorized, cnst.DeliveryLayer)
@@ -327,11 +326,10 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 
 func GenCsrfToken(logger *zap.Logger, requestId string, methodName string, secretKey string, sessionId alias.SessionKey) (string, error) {
 	// Создание csrf_token
-	hashData, err := functions.HashCsrf(secretKey, string(sessionId))
+	csrfToken, err := functions.HashCsrf(secretKey, string(sessionId))
 	if err != nil {
 		functions.LogError(logger, requestId, methodName, err, cnst.DeliveryLayer)
 		return "", err
 	}
-	csrfToken := hashData + "." + string(sessionId)
 	return csrfToken, nil
 }

@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"strings"
@@ -14,39 +16,40 @@ import (
 	"go.uber.org/zap"
 )
 
-// CsrfMiddleware проверяет наличие csrf_token в запросе | Метод Signed Double-Submit Cookie
+// CsrfMiddleware checks for csrf_token availability in the request | Method `Signed Double-Submit Cookie`
 func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *config.Project, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := ""
-		requestIdCtx := r.Context().Value("request_id")
-		if requestIdCtx != nil {
-			requestId = requestIdCtx.(string)
+		ctxRequestId := r.Context().Value("request_id")
+		if ctxRequestId != nil {
+			requestId = ctxRequestId.(string)
 		}
 
-		// Будем запрещать доступ к не идемпотентным запросам без валидной сессии
+		// We deny access to non-idempotent requests without a session cookie
 		reqMethod := r.Method
-		mutatingMethods := []string{"POST", "PUT", "DELETE"}
+		mutatingMethods := []string{"POST", "PUT", "PATCH", "DELETE"}
 		rMethodIsMut := contains(mutatingMethods, reqMethod)
 		if rMethodIsMut {
-			csrfToken := ""
-			csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
-			if csrfCookie != nil {
-				csrfToken = csrfCookie.Value
+			sessionId := ""
+			sessionCookie, err := r.Cookie(cnst.SessionCookieName)
+			if sessionCookie != nil {
+				sessionId = sessionCookie.Value
 			}
+			// We ignore the fact that attacker can sign in/sign out on behalf of the user. It's safe operation.
 			if errors.Is(err, http.ErrNoCookie) && (r.RequestURI == "/api/v1/signin" || r.RequestURI == "/api/v1/signup") {
 				handler.ServeHTTP(w, r)
 				return
 			} else if err != nil {
 				err := errors.New(myerrors.UnauthorizedError)
-				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
-				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusForbidden)
+				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusUnauthorized, cnst.MiddlewareLayer)
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 				return
 			}
 
-			sessionCookie, err := r.Cookie("session_id")
-			sessionId := ""
-			if sessionCookie != nil {
-				sessionId = sessionCookie.Value
+			csrfTokenCookieHeader := ""
+			csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
+			if csrfCookie != nil {
+				csrfTokenCookieHeader = csrfCookie.Value
 			}
 			if err != nil {
 				err := errors.New(myerrors.UnauthorizedError)
@@ -56,16 +59,33 @@ func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *con
 			}
 
 			secretKey := cfg.Server.CsrfSecretKey
-			isValid := csrfTokenIsValid(logger, requestId, csrfToken, secretKey, sessionId)
+			isValid := csrfTokenIsValid(csrfTokenCookieHeader, secretKey)
 			if !isValid {
+				err = errors.New(myerrors.UnauthorizedError)
+				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusForbidden)
+				return
+			}
+
+			xCsrfTokenHeader := r.Header.Get("XCSRF_Token")
+
+			if xCsrfTokenHeader != csrfTokenCookieHeader {
+				err = errors.New(myerrors.UnauthorizedError)
+				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusForbidden)
+				return
+			}
+
+			value, err := ucCsrfTokens.GetValue(r.Context(), alias.SessionKey(csrfTokenCookieHeader))
+			if err != nil || value == "" {
 				err := errors.New(myerrors.UnauthorizedError)
 				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
 				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusForbidden)
 				return
 			}
-			value, err := ucCsrfTokens.GetValue(r.Context(), alias.SessionKey(csrfToken))
-			if err != nil || value == "" {
-				err := errors.New(myerrors.UnauthorizedError)
+
+			if csrfTokenCookieHeader == "" && sessionId != "" {
+				err = errors.New(myerrors.UnauthorizedError)
 				functions.LogErrorResponse(logger, requestId, cnst.NameCsrfMiddleware, err, http.StatusForbidden, cnst.MiddlewareLayer)
 				w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusForbidden)
 				return
@@ -85,16 +105,17 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func csrfTokenIsValid(logger *zap.Logger, requestId string, csrfToken string, secretKey string, sessionId string) bool {
-	methodName := "csrfTokenIsValid"
-	hashData, err := functions.HashCsrf(secretKey, sessionId)
-	if err != nil {
-		functions.LogError(logger, requestId, methodName, err, cnst.MiddlewareLayer)
-		return false
-	}
+func csrfTokenIsValid(csrfToken string, secretKey string) bool {
 	parts := strings.Split(csrfToken, ".")
 	if len(parts) != 2 {
 		return false
 	}
-	return hashData == parts[0]
+	message := parts[1]
+	hash := sha256.New()
+	_, err := hash.Write([]byte(secretKey + message))
+	if err != nil {
+		return false
+	}
+	hmac := hex.EncodeToString(hash.Sum(nil))
+	return parts[0] == hmac
 }

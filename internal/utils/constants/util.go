@@ -5,6 +5,10 @@ const (
 	CsrfCookieName    = "csrf_token"
 )
 
+const (
+	ContextCsrf = "need_new_csrf_token"
+)
+
 // Статусы заказа
 const (
 	Draft    = "draft"

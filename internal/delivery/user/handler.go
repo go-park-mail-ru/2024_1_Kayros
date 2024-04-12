@@ -263,6 +263,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
+
 	u.Address = address.Data
 	uUpdated, err := d.ucUser.Update(r.Context(), email, nil, nil, u)
 	if err != nil || uUpdated == nil {
@@ -272,6 +273,58 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u = sanitizer.User(uUpdated)
+
+	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, err, http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+
+	wasDeleted, err := d.ucCsrf.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value))
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	if !wasDeleted {
+		functions.LogWarn(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
+	}
+
+	sessionId := uuid.NewV4()
+	expiration := time.Now().Add(14 * 24 * time.Hour)
+	cookie := http.Cookie{
+		Name:     cnst.SessionCookieName,
+		Value:    sessionId.String(),
+		Expires:  expiration,
+		HttpOnly: false,
+	}
+	http.SetCookie(w, &cookie)
+
+	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(uUpdated.Email))
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	csrfToken, err := auth.GenCsrfToken(d.logger, requestId, cnst.NameHandlerUpdateUser, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
+	if err == nil {
+		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(uUpdated.Email))
+		if err != nil {
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
+		csrfCookie := http.Cookie{
+			Name:     cnst.CsrfCookieName,
+			Value:    csrfToken,
+			Expires:  expiration,
+			HttpOnly: false,
+		}
+		http.SetCookie(w, &csrfCookie)
+	}
+
 	w = functions.JsonResponse(w, u)
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
 }
@@ -314,7 +367,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isValid, err := password.Validate()
+	isValid, err := password.validate()
 	if err != nil || !isValid {
 		err = errors.New(myerrors.BadCredentialsError)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
@@ -342,6 +395,59 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
+	//
+
+	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, err, http.StatusUnauthorized, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+
+	wasDeleted, err := d.ucCsrf.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value))
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	if !wasDeleted {
+		functions.LogWarn(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
+	}
+
+	sessionId := uuid.NewV4()
+	expiration := time.Now().Add(14 * 24 * time.Hour)
+	cookie := http.Cookie{
+		Name:     cnst.SessionCookieName,
+		Value:    sessionId.String(),
+		Expires:  expiration,
+		HttpOnly: false,
+	}
+	http.SetCookie(w, &cookie)
+
+	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(uUpdated.Email))
+	if err != nil {
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	csrfToken, err := auth.GenCsrfToken(d.logger, requestId, cnst.NameHandlerUpdateUser, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
+	if err == nil {
+		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(uUpdated.Email))
+		if err != nil {
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
+		csrfCookie := http.Cookie{
+			Name:     cnst.CsrfCookieName,
+			Value:    csrfToken,
+			Expires:  expiration,
+			HttpOnly: false,
+		}
+		http.SetCookie(w, &csrfCookie)
+	}
+
 	w = functions.JsonResponse(w, map[string]string{"detail": "Пароль был успешно обновлен"})
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
 }
@@ -354,6 +460,6 @@ type passwordData struct {
 	Data string `json:"password" valid:"user_pwd"`
 }
 
-func (d *passwordData) Validate() (bool, error) {
+func (d *passwordData) validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
