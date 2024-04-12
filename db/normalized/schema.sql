@@ -53,7 +53,6 @@ CREATE TABLE IF NOT EXISTS "order"
     received_at    TIMESTAMPTZ
 );
 
--- БЖУ хранятся в МГ
 CREATE TABLE IF NOT EXISTS food(
     id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     restaurant_id INTEGER CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0) NOT NULL REFERENCES restaurant (id) ON DELETE CASCADE,
