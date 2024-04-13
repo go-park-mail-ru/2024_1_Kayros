@@ -25,6 +25,7 @@ func AddOrderRouter(db *sql.DB, minio *minio.Client, mux *mux.Router, logger *za
 	mux.HandleFunc("/order", handler.GetBasket).Methods("GET") //работает
 	mux.HandleFunc("/order/update_address", handler.UpdateAddress).Methods("PUT")
 	mux.HandleFunc("/order/pay", handler.Pay).Methods("PUT")
+	mux.HandleFunc("/order/clean", handler.Clean).Methods("DELETE")
 	mux.HandleFunc("/order/food/add/{food_id}", handler.AddFood).Methods("POST")                  //работает
 	mux.HandleFunc("/order/food/update_count", handler.UpdateFoodCount).Methods("PUT")            //работает
 	mux.HandleFunc("/order/food/delete/{food_id}", handler.DeleteFoodFromOrder).Methods("DELETE") //работает

@@ -297,6 +297,39 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	functions.LogOk(h.logger, requestId, constants.NameMethodAddFood, constants.DeliveryLayer)
 }
 
+func (h *OrderHandler) Clean(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	email := ""
+	ctxEmail := r.Context().Value("email")
+	if ctxEmail != nil {
+		email = ctxEmail.(string)
+	}
+	if email == "" {
+		fmt.Println("Необходимо авторизиризоваться")
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		return
+	}
+	basketId, err := h.uc.GetBasketId(r.Context(), email)
+	if err != nil {
+		fmt.Println(err)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	//если basketId-0, значит у пользователя нет корзины
+	if basketId == 0 {
+		fmt.Println("Нет корзины, добавьте что-нибудь")
+		w = functions.ErrorResponse(w, repoErrors.NoBasketError, http.StatusInternalServerError)
+		return
+	}
+	err = h.uc.Clean(r.Context(), basketId)
+	if err != nil {
+		fmt.Println(err)
+		w = functions.ErrorResponse(w, repoErrors.CleanError, http.StatusInternalServerError)
+		return
+	}
+	w = functions.ErrorResponse(w, "Корзина очищена", http.StatusOK)
+}
+
 //PUT - ok
 
 func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {

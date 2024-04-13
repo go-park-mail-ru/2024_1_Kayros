@@ -24,6 +24,7 @@ type Usecase interface {
 	Create(ctx context.Context, email string) (alias.OrderId, error)
 	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) (*entity.Order, error)
 	Pay(ctx context.Context, orderId alias.OrderId, currentStatus string) (*entity.Order, error)
+	Clean(ctx context.Context, orderId alias.OrderId) error
 	AddFoodToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) error
 	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error)
 	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) (*entity.Order, error)
@@ -163,24 +164,19 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 	return payedOrder, nil
 }
 
+func (uc *UsecaseLayer) Clean(ctx context.Context, orderId alias.OrderId) error {
+	requestId := ""
+	err := uc.repoOrder.CleanBasket(ctx, requestId, orderId)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
+}
+
 func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) error {
 	methodName := constants.NameMethodAddToOrder
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	//inputFood, err := uc.repoFood.GetById(ctx, requestId, foodId)
-	//if err != nil {
-	//	functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	//	return err
-	//}
-	//fmt.Println(inputFood.RestaurantId)
-	//Order, err := uc.repoOrder.GetOrderById(ctx, requestId, orderId)
-	//fmt.Println(Order.Food[0].RestaurantId)
-	//if inputFood.RestaurantId != Order.Food[0].RestaurantId {
-	//	err = uc.repoOrder.CleanBasket(ctx, requestId, orderId)
-	//	if err != nil {
-	//		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	//		return err
-	//	}
-	//}
 	err := uc.repoOrder.AddToOrder(ctx, requestId, orderId, foodId, 1)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
