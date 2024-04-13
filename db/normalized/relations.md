@@ -101,3 +101,72 @@
     2. Атрибуты функционально полно определяют составной первичный ключ. Кол-во определенного блюда в заказе зависит от самого блюда и номера заказа. В разных заказах это же блюдо может быть в другом количестве.
     3. Нет функциональных зависимостей среди неключевых атрибутов. Все поля являются характеристикой блюда в заказе. `count` характеризует кол-во еды в заказе, другие поля являются суррогатными данными, необходимыми для дебага.
     4. Блюдо не зависит от его кол-ва в заказе. У нас нет такого ограничения, что какое-то блюдо должно быть в определенном кол-ве в заказе и это кол-ве уникальное для каждого блюда (соответствует НФБК). 
+
+### ER-диаграмма
+```mermaid
+erDiagram
+    RESTAURANT||--o{ FOOD : sells
+    RESTAURANT {
+        int id PK 
+        text name UK
+        text short_description
+        text long_description
+        text img_url
+    }
+    RESTAURANT_ADDRESS||--o{ RESTAURANT : contains
+    RESTAURANT_ADDRESS {
+        int restaurant_id FK, UK
+        text address UK
+    }
+    CATEGORY||--o{ FOOD : contains
+    CATEGORY {
+        int id PK
+        text name
+    } 
+    ORDER {
+        int id PK
+        int user_id FK
+        text status
+        text address
+        text extra_address
+        int sum
+        timestampz created_at
+        timestampz updated_at
+        timestampz received_at
+    } 
+    ORDER_FOOD||--o{ FOOD : contains
+    ORDER_FOOD||--o{ ORDER : contains
+    ORDER_FOOD {
+        int order_id PK, FK
+        int food_id PK, FK
+        int count
+        timestampz created_at
+        timestampz updated_at
+    } 
+    FOOD {
+        int id PK
+        text name
+        int restaurant_id FK 
+        int category_id FK
+        text description
+        int weight
+        int price
+        text img_url
+        numeric poteins
+        numeric fats
+        numeric carbohydrates
+    }
+    USER||--o{ ORDER : makes 
+    USER{
+        int id PK
+        text name
+        text email
+        text phone
+        text password
+        text address
+        text img_url
+        text card_number
+        timestampz created_at
+        timestampz updated_at
+    }
+```
