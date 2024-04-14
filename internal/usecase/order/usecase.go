@@ -2,7 +2,6 @@ package order
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -25,7 +24,7 @@ type Usecase interface {
 	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) (*entity.Order, error)
 	Pay(ctx context.Context, orderId alias.OrderId, currentStatus string) (*entity.Order, error)
 	Clean(ctx context.Context, orderId alias.OrderId) error
-	AddFoodToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) error
+	AddFoodToOrder(ctx context.Context, foodId alias.FoodId, count uint32, orderId alias.OrderId) error
 	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error)
 	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) (*entity.Order, error)
 }
@@ -84,13 +83,12 @@ func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Or
 		return nil, err
 	}
 	orders, err := uc.repoOrder.GetOrders(ctx, requestId, alias.UserId(u.Id), constants.Draft)
+	if len(orders) == 0 {
+		functions.LogInfo(uc.logger, requestId, methodName, order.NoBasketError, constants.UsecaseLayer)
+		return nil, fmt.Errorf(order.NoBasketError)
+	}
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	if len(orders) == 0 {
-		err = errors.New(order.NoBasketError)
-		functions.LogInfo(uc.logger, requestId, methodName, order.NoBasketError, constants.UsecaseLayer)
 		return nil, err
 	}
 	basket := orders[0]
@@ -174,10 +172,10 @@ func (uc *UsecaseLayer) Clean(ctx context.Context, orderId alias.OrderId) error 
 	return nil
 }
 
-func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) error {
+func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId, count uint32, orderId alias.OrderId) error {
 	methodName := constants.NameMethodAddToOrder
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoOrder.AddToOrder(ctx, requestId, orderId, foodId, 1)
+	err := uc.repoOrder.AddToOrder(ctx, requestId, orderId, foodId, count)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return err

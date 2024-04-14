@@ -33,8 +33,8 @@ func NewOrderHandler(u ucOrder.Usecase, loggerProps *zap.Logger) *OrderHandler {
 }
 
 type FoodCount struct {
-	FoodId int `json:"food_id"`
-	Count  int `json:"count"`
+	FoodId alias.FoodId `json:"food_id"`
+	Count  uint32       `json:"count"`
 }
 
 // GET - ok
@@ -61,7 +61,8 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	}
 	order, err := h.uc.GetBasket(r.Context(), email)
 	if err != nil {
-		if errors.Is(err, fmt.Errorf(repoErrors.NoBasketError)) {
+		fmt.Println(err)
+		if err.Error() == "У Вас нет корзины" {
 			functions.LogInfo(h.logger, requestId, constants.NameMethodGetBasket, repoErrors.NoBasketError, constants.DeliveryLayer)
 			w = functions.ErrorResponse(w, repoErrors.NoBasketError, http.StatusOK)
 			return
@@ -228,18 +229,6 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	} else {
 		requestId = ctxRequestId.(string)
 	}
-	vars := mux.Vars(r)
-	foodId, err := strconv.Atoi(vars["food_id"])
-	if foodId <= 0 {
-		functions.LogInfo(h.logger, requestId, constants.NameMethodAddFood, "BadCredentials: food_id <= 0", constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
-		return
-	}
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.NotFoundError, http.StatusNotFound)
-		return
-	}
 	email := ""
 	ctxEmail := r.Context().Value("email")
 	if ctxEmail != nil {
@@ -250,7 +239,24 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
-
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	if err = r.Body.Close(); err != nil {
+		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+	var item FoodCount
+	err = json.Unmarshal(body, &item)
+	if err != nil {
+		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
 	basketId, err := h.uc.GetBasketId(r.Context(), email)
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
@@ -272,7 +278,7 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	//добавляем еду в заказ
-	err = h.uc.AddFoodToOrder(r.Context(), alias.FoodId(foodId), basketId)
+	err = h.uc.AddFoodToOrder(r.Context(), item.FoodId, item.Count, basketId)
 	if err != nil {
 		if errors.Is(err, fmt.Errorf(repoErrors.NotAddFood)) {
 			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, fmt.Errorf(repoErrors.NotAddFood), constants.DeliveryLayer)
