@@ -32,9 +32,9 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - ../minio/data:/data
-      - /etc/nginx/sslcert/server.crt:/root/.minio/certs/public.crt:ro
-      - /etc/nginx/sslcert/server.key:/root/.minio/certs/private.key:ro
+      - ../minios3/data:/data
+      - /etc/nginx/sslcert/server.crt:/root/.minios3/certs/public.crt:ro
+      - /etc/nginx/sslcert/server.key:/root/.minios3/certs/private.key:ro
     environment:
       MINIO_ROOT_USER: kayrosteam
       MINIO_ROOT_PASSWORD: resto123

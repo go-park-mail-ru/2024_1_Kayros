@@ -9,7 +9,7 @@ type (
 	Project struct {
 		Server   `yaml:"server"`
 		Postgres `yaml:"postgresql"`
-		Minio    `yaml:"minio"`
+		Minio    `yaml:"minios3"`
 		Redis    `yaml:"redis"`
 	}
 

@@ -23,9 +23,9 @@ func Init(cfg *config.Project, logger *zap.Logger, dbNum int) *redis.Client {
 
 	_, err := r.Ping(ctx).Result()
 	if err != nil {
-		logger.Fatal("Не удалось подключиться к Redis", zap.Error(err))
+		logger.Fatal("Failed to connect to Redis", zap.Error(err))
 	}
 
-	logger.Info("Redis успешно подключен")
+	logger.Info("Redis connected successfully")
 	return r
 }

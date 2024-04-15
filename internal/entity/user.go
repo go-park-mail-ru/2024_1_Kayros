@@ -10,3 +10,16 @@ type User struct {
 	CardNumber string
 	Password   string
 }
+
+func Copy(u *User) *User {
+	return &User{
+		Id:         u.Id,
+		Name:       u.Name,
+		Phone:      u.Phone,
+		Email:      u.Email,
+		Address:    u.Address,
+		ImgUrl:     u.ImgUrl,
+		CardNumber: u.CardNumber,
+		Password:   u.Password,
+	}
+}

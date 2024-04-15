@@ -7,7 +7,7 @@ import (
 
 func GetFileExtension(fileName string) string {
 	ext := filepath.Ext(fileName)
-	// Удаляем точку из расширения, если она есть
+	// Delete dot from extension (.img --> img)
 	ext = strings.TrimPrefix(ext, ".")
 	return ext
 }

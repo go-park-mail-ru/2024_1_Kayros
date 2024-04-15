@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS "user"
     phone       TEXT CONSTRAINT user_phone_domain CHECK (LENGTH(phone) = 18 OR phone IS NULL) NULL, -- формат |+7 (989) 232 12 12|
     password    BYTEA CONSTRAINT user_password_length CHECK (LENGTH(password) = 64) NOT NULL,
     address     TEXT CONSTRAINT user_address_length CHECK ((LENGTH(address) BETWEEN 14 AND 100) OR address IS NULL) NULL,     -- |ул. Мира, д. 4| (самое короткое название улицы в Москве 4 символа)
-    img_url     TEXT CONSTRAINT user_img_url CHECK(LENGTH(img_url) <= 60) DEFAULT '/minio-api/users/default.jpg' NOT NULL,
+    img_url     TEXT CONSTRAINT user_img_url CHECK(LENGTH(img_url) <= 60) DEFAULT '/minios3-api/users/default.jpg' NOT NULL,
     card_number BYTEA CONSTRAINT user_card_number CHECK (LENGTH(password) = 64) NULL,
     created_at  TIMESTAMPTZ CONSTRAINT user_time_create NOT NULL,
     updated_at  TIMESTAMPTZ CONSTRAINT user_time_last_updated NOT NULL
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS restaurant
     short_description TEXT CONSTRAINT rest_short_description CHECK (LENGTH(short_description) BETWEEN 10 AND 100) NULL,
     long_description  TEXT CONSTRAINT rest_long_description CHECK (LENGTH(long_description) BETWEEN 20 AND 250) NULL,
     address           TEXT CONSTRAINT rest_address CHECK (LENGTH(address) BETWEEN 14 AND 100) UNIQUE NOT NULL,
-    img_url           TEXT CONSTRAINT restaurant_img_url CHECK(LENGTH(img_url) <= 60) DEFAULT '/minio-api/restaurants/default.jpg' NOT NULL,
+    img_url           TEXT CONSTRAINT restaurant_img_url CHECK(LENGTH(img_url) <= 60) DEFAULT '/minios3-api/restaurants/default.jpg' NOT NULL,
     CONSTRAINT rest_unique UNIQUE (name, address)
     );
 
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS food(
     proteins      INTEGER CONSTRAINT non_negative_prot CHECK (proteins >= 0) NULL,
     fats          INTEGER CONSTRAINT non_negative_fats CHECK (fats >= 0) NULL,
     carbohydrates INTEGER CONSTRAINT non_negative_carb CHECK (carbohydrates >= 0) NULL,
-    img_url       TEXT CONSTRAINT restaurant_img_url CHECK(LENGTH(img_url) <= 60) DEFAULT '/minio-api/foods/default.jpg' NOT NULL,
+    img_url       TEXT CONSTRAINT restaurant_img_url CHECK(LENGTH(img_url) <= 60) DEFAULT '/minios3-api/foods/default.jpg' NOT NULL,
     CONSTRAINT unique_food_in_rests UNIQUE (name, restaurant_id)
     );
 

@@ -6,8 +6,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"mime/multipart"
-	"time"
 
+	"2024_1_kayros/internal/repository/minios3"
 	"github.com/satori/uuid"
 	"go.uber.org/zap"
 
@@ -29,253 +29,169 @@ type Usecase interface {
 	IsExistByEmail(ctx context.Context, email string) (bool, error)
 
 	Create(ctx context.Context, uProps *entity.User) (*entity.User, error)
-	Update(ctx context.Context, email string, file multipart.File, handler *multipart.FileHeader, uProps *entity.User) (*entity.User, error)
+	Update(ctx context.Context, email string, uPropsUpdate *entity.User, file multipart.File, handler *multipart.FileHeader) (*entity.User, error)
 
 	CheckPassword(ctx context.Context, email string, password string) (bool, error)
-	SetNewPassword(ctx context.Context, email string, password string) (bool, error)
 }
 
 type UsecaseLayer struct {
 	repoUser user.Repo
+	minio    minios3.Repo
 	logger   *zap.Logger
 }
 
-func NewUsecaseLayer(repoUserProps user.Repo, loggerProps *zap.Logger) Usecase {
+func NewUsecaseLayer(repoUserProps user.Repo, repoMinio minios3.Repo, loggerProps *zap.Logger) Usecase {
 	return &UsecaseLayer{
 		repoUser: repoUserProps,
+		minio:    repoMinio,
 		logger:   loggerProps,
 	}
 }
 
 func (uc *UsecaseLayer) GetById(ctx context.Context, userId alias.UserId) (*entity.User, error) {
-	methodName := cnst.NameMethodGetUserById
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	u, err := uc.repoUser.GetById(ctx, userId, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return u, err
+	return uc.repoUser.GetById(ctx, userId)
 }
 
 func (uc *UsecaseLayer) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
-	methodName := cnst.NameMethodGetUserByEmail
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	fmt.Println("we are in getuser")
-	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
-	if err == nil {
-		fmt.Println("we get user")
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-		return u, nil
-	} else {
-		fmt.Println("we have truble with user", err)
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return u, err
+	return uc.repoUser.GetByEmail(ctx, email)
 }
 
 func (uc *UsecaseLayer) DeleteById(ctx context.Context, userId alias.UserId) error {
-	methodName := cnst.NameMethodDeleteUserById
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoUser.DeleteById(ctx, userId, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return err
+	return uc.repoUser.DeleteById(ctx, userId)
 }
 
 func (uc *UsecaseLayer) DeleteByEmail(ctx context.Context, email string) error {
-	methodName := cnst.NameMethodDeleteUserByEmail
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoUser.DeleteByEmail(ctx, email, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return err
+	return uc.repoUser.DeleteByEmail(ctx, email)
 }
 
 func (uc *UsecaseLayer) IsExistById(ctx context.Context, userId alias.UserId) (bool, error) {
-	methodName := cnst.NameMethodIsExistById
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	isExist, err := uc.repoUser.IsExistById(ctx, userId, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+	u, err := uc.repoUser.GetById(ctx, userId)
+	if err != nil {
+		return false, err
 	}
-	return isExist, err
+	if u == nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (uc *UsecaseLayer) IsExistByEmail(ctx context.Context, email string) (bool, error) {
-	methodName := cnst.NameMethodIsExistByEmail
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	isExist, err := uc.repoUser.IsExistByEmail(ctx, email, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+	u, err := uc.repoUser.GetByEmail(ctx, email)
+	if err != nil {
+		return false, err
 	}
-	return isExist, err
+	if u == nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entity.User, error) {
-	methodName := cnst.NameMethodCreateUser
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	salt := make([]byte, 8)
 	_, err := rand.Read(salt)
 	if err != nil {
-		functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	hashPassword := functions.HashData(salt, uProps.Password)
 
-	currentTime := time.Now().UTC()
-	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
-	err = uc.repoUser.Create(ctx, uProps, hashPassword, timeStr, requestId)
+	uCopy := entity.Copy(uProps)
+	uCopy.Password = string(hashPassword)
+
+	err = uc.repoUser.Create(ctx, uCopy)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 
-	u, err := uc.repoUser.GetByEmail(ctx, uProps.Email, requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, uCopy.Email)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
 	return u, nil
 }
 
-func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart.File, handler *multipart.FileHeader, uPropsUpdate *entity.User) (*entity.User, error) {
-	methodName := cnst.NameMethodUpdateUser
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, email, requestId)
+func (uc *UsecaseLayer) Update(ctx context.Context, email string, uPropsUpdate *entity.User, file multipart.File, handler *multipart.FileHeader) (*entity.User, error) {
+	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	uCardNumber, err := uc.repoUser.GetHashedCardNumber(ctx, email, requestId)
-	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 
-	hashPassword := []byte{}
-	if uPropsUpdate.Password == "" {
-		hashPassword = uPassword
-	} else {
-		salt := make([]byte, 8)
-		_, err := rand.Read(salt)
-		if err != nil {
-			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-			functions.LogUsecaseFail(uc.logger, requestId, methodName)
-			return nil, err
-		}
-		hashPassword = functions.HashData(salt, uPropsUpdate.Password)
+	err = fillUserFields(u, uPropsUpdate)
+	if err != nil {
+		return nil, err
 	}
 
-	hashCardNumber := []byte{}
-	if uPropsUpdate.CardNumber == "" {
-		hashCardNumber = uCardNumber
-	} else {
-		salt := make([]byte, 8)
-		_, err := rand.Read(salt)
-		if err != nil {
-			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-			functions.LogUsecaseFail(uc.logger, requestId, methodName)
-			return nil, err
-		}
-		hashCardNumber = functions.HashData(salt, uPropsUpdate.CardNumber)
-	}
-
-	currentTime := time.Now().UTC()
-	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
 	if file != nil && handler != nil {
 		fileExtension := functions.GetFileExtension(handler.Filename)
 		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
-		err = uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, timeStr, requestId)
+		err = uc.minio.UploadImageByEmail(ctx, file, filename, handler.Size)
 		if err != nil {
-			functions.LogUsecaseFail(uc.logger, requestId, methodName)
 			return nil, err
 		}
-	}
-	uOldData, err := uc.repoUser.GetByEmail(ctx, email, requestId)
-	if err != nil || uOldData == nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	if uPropsUpdate.Name == "" {
-		uPropsUpdate.Name = uOldData.Name
-	}
-	if uPropsUpdate.Phone == "" {
-		uPropsUpdate.Phone = uOldData.Phone
-	}
-	if uPropsUpdate.Email == "" {
-		uPropsUpdate.Email = uOldData.Email
-	}
-	if uPropsUpdate.ImgUrl == "" {
-		uPropsUpdate.ImgUrl = uOldData.ImgUrl
-	}
-	if uPropsUpdate.Address == "" {
-		uPropsUpdate.Address = uOldData.Address
+		u.ImgUrl = fmt.Sprintf("/minios3-api/%s/%s", cnst.BucketUser, filename)
 	}
 
-	err = uc.repoUser.Update(ctx, email, uPropsUpdate, hashPassword, hashCardNumber, timeStr, requestId)
+	err = uc.repoUser.Update(ctx, u, email)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	u, err := uc.repoUser.GetByEmail(ctx, uPropsUpdate.Email, requestId)
+
+	uData, err := uc.repoUser.GetByEmail(ctx, u.Email)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return u, nil
+
+	return uData, nil
 }
 
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
 func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, password string) (bool, error) {
-	methodName := cnst.NameMethodCheckPassword
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, email, requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return false, err
 	}
+	uPasswordBytes := []byte(u.Password)
 
 	salt := make([]byte, 8)
-	copy(salt, uPassword[0:8])
+	copy(salt, uPasswordBytes[0:8])
 	hashPassword := functions.HashData(salt, password)
 
-	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return bytes.Equal(uPassword, hashPassword), nil
+	return bytes.Equal(uPasswordBytes, hashPassword), nil
 }
 
-// SetNewPassword устанавливает новый пароль пользователю
-func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email string, password string) (bool, error) {
-	methodName := cnst.NameMethodSetNewPassword
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
+func fillUserFields(uDest *entity.User, uSrc *entity.User) error {
+	if uSrc.Name != "" {
+		uDest.Name = uSrc.Name
+	}
 
-	salt := make([]byte, 8)
-	_, err := rand.Read(salt)
-	if err != nil {
-		functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return false, err
+	if uSrc.Phone != "" {
+		uDest.Phone = uSrc.Phone
 	}
-	hashPassword := functions.HashData(salt, password)
-	_, err = uc.repoUser.SetNewPassword(ctx, requestId, email, hashPassword)
-	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return false, err
+
+	if uSrc.Email != "" {
+		uDest.Email = uSrc.Email
 	}
-	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return true, nil
+
+	if uSrc.Address != "" {
+		uDest.Address = uSrc.Address
+	}
+
+	if uSrc.Password != "" {
+		salt := make([]byte, 8)
+		_, err := rand.Read(salt)
+		if err != nil {
+			return err
+		}
+		uDest.Password = string(functions.HashData(salt, uSrc.Password))
+	}
+
+	if uSrc.CardNumber != "" {
+		salt := make([]byte, 8)
+		_, err := rand.Read(salt)
+		if err != nil {
+			return err
+		}
+		uDest.CardNumber = string(functions.HashData(salt, uSrc.CardNumber))
+	}
+
+	return nil
 }

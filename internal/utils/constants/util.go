@@ -7,6 +7,7 @@ const (
 
 const (
 	ContextCsrf = "need_new_csrf_token"
+	Timestamptz = "2006-01-02 15:04:05-07:00"
 )
 
 // Статусы заказа
@@ -23,7 +24,7 @@ const (
 	MiddlewareLayer = "middleware"
 )
 
-// Название бакетов для minio
+// Название бакетов для minios3
 const (
 	BucketUser = "users"
 	BucketRest = "restaurants"
