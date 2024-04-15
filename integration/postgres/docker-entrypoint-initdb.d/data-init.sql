@@ -170,18 +170,18 @@ VALUES ('Салат с миксом листьев и ростками сои', 
        ('Лосось, понзу, трюфельное масло, каперсы', 3, 3, 120, 830, NULL, NULL, NULL, '/minio-api/foods/81.jpg'),
        ('Тартар из тунца, авокадо, шрирача', 3, 3, 200, 850, NULL, NULL, NULL, '/minio-api/foods/82.jpg'),
        ('Тартар из говядины, пармезан, трюфельное масло', 3, 3, 170, 790, NULL, NULL, NULL, '/minio-api/foods/83.jpg'),
-       ('Микс-салат, копченый лосось, зеленый горошек, ялтинский лук', 3, 5, 240, 770, NULL, NULL, NULL, '/minio-api/foods/84.jpg'),
+       ('Микс-салат, копченый лосось, зеленый горошек, ялтинский лук', 3, 3, 240, 770, NULL, NULL, NULL, '/minio-api/foods/84.jpg'),
        ('Цезарь, куриное филе, пармезан, анчоусы', 3, 3, 230, 650, NULL, NULL, NULL, '/minio-api/foods/85.jpg'),
        ('Паста Болоньезе', 3, 5, 200, 690, NULL, NULL, NULL, '/minio-api/foods/86.jpg'),
        ('Паста Арабьята со страчателлой', 3, 5, 325, 790, NULL, NULL, NULL, '/minio-api/foods/87.jpg'),
        ('Спагетти, тефтели, томатный соус', 3, 5, 300, 6700, NULL, NULL, NULL, '/minio-api/foods/88.jpg'),
        ('Свекольное ризотто, утиное филе, чимичурри', 3, 5, 280, 950, NULL, NULL, NULL, '/minio-api/foods/89.jpg'),
-       ('Пицца Салями Спьяната', 3, 3, 480, 850, NULL, NULL, NULL, '/minio-api/foods/90.jpg'),
-       ('Пицца Четыре сыра', 3, 3, 410, 790, NULL, NULL, NULL, '/minio-api/foods/91.jpg'),
-       ('Прошутто Котто, грибы', 3, 3, 520, 690, NULL, NULL, NULL, '/minio-api/foods/92.jpg'),
-       ('Тунец, моцарелла, лук, чили', 3, 3, 480, 950, NULL, NULL, NULL, '/minio-api/foods/93.jpg'),
-       ('Пицца Маргарита', 3, 3, 420, 750, NULL, NULL, NULL, '/minio-api/foods/94.jpg'),
-       ('Пицца Груша-горгондзола', 3, 6, 490, 890, NULL, NULL, NULL, '/minio-api/foods/95.jpg');
+       ('Пицца Салями Спьяната', 3, 4, 480, 850, NULL, NULL, NULL, '/minio-api/foods/90.jpg'),
+       ('Пицца Четыре сыра', 3, 4, 410, 790, NULL, NULL, NULL, '/minio-api/foods/91.jpg'),
+       ('Прошутто Котто, грибы', 3, 4, 520, 690, NULL, NULL, NULL, '/minio-api/foods/92.jpg'),
+       ('Тунец, моцарелла, лук, чили', 3, 4, 480, 950, NULL, NULL, NULL, '/minio-api/foods/93.jpg'),
+       ('Пицца Маргарита', 3, 4, 420, 750, NULL, NULL, NULL, '/minio-api/foods/94.jpg'),
+       ('Пицца Груша-горгондзола', 3, 4, 490, 890, NULL, NULL, NULL, '/minio-api/foods/95.jpg');
 
 -- Вставка данных в таблицу "FoodOrder"
 INSERT INTO food_order (food_id, order_id, count, created_at, updated_at)
