@@ -213,9 +213,6 @@ func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart
 	if uPropsUpdate.Name == "" {
 		uPropsUpdate.Name = uOldData.Name
 	}
-	if uPropsUpdate.Phone == "" {
-		uPropsUpdate.Phone = uOldData.Phone
-	}
 	if uPropsUpdate.Email == "" {
 		uPropsUpdate.Email = uOldData.Email
 	}
