@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"time"
@@ -211,10 +212,10 @@ func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart
 		return nil, err
 	}
 	if uPropsUpdate.Name == "" {
-		uPropsUpdate.Name = uOldData.Name
+		return nil, errors.New("Имя не может быть пустым")
 	}
 	if uPropsUpdate.Email == "" {
-		uPropsUpdate.Email = uOldData.Email
+		return nil, errors.New("Почта не может быть пустой")
 	}
 	if uPropsUpdate.ImgUrl == "" {
 		uPropsUpdate.ImgUrl = uOldData.ImgUrl

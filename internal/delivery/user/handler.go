@@ -129,12 +129,17 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userUpdated, err := d.ucUser.Update(r.Context(), email, file, handler, u)
-	if err != nil && strings.Contains(err.Error(), "user_email_key") {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.UserAlreadyExistError), http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UserAlreadyExistError, http.StatusBadRequest)
-		return
-	}
 	if err != nil {
+		if strings.Contains(err.Error(), "user_email_key") {
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.UserAlreadyExistError), http.StatusBadRequest, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.UserAlreadyExistError, http.StatusBadRequest)
+			return
+		}
+		if strings.Contains(err.Error(), "не может быть") {
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, err, http.StatusBadRequest, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
