@@ -125,7 +125,7 @@ func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-	if len(fullAddress.Address) < 15 || len(fullAddress.ExtraAddress) < 3 {
+	if len(fullAddress.Address) < 14 || len(fullAddress.ExtraAddress) < 2 {
 		w = functions.ErrorResponse(w, "Некорректный адрес", http.StatusBadRequest)
 		return
 	}
