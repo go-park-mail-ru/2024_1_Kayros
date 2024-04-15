@@ -10,6 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
+	"github.com/satori/uuid"
+	"go.uber.org/zap"
+
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/auth"
 	"2024_1_kayros/internal/entity/dto"
@@ -20,9 +24,6 @@ import (
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/sanitizer"
-	"github.com/asaskevich/govalidator"
-	"github.com/satori/uuid"
-	"go.uber.org/zap"
 )
 
 type Delivery struct {
@@ -321,21 +322,30 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-
-	isEqual, err := d.ucUser.CheckPassword(r.Context(), email, password.Data)
+	// сравниваем старый пароль с тем, что в базе
+	isEqual, err := d.ucUser.CheckPassword(r.Context(), email, password.Password)
 	if err != nil {
 		err = errors.New(myerrors.InternalServerError)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusInternalServerError, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	if isEqual {
+	// если они не совпадают
+	if !isEqual {
+		err = errors.New(myerrors.WrongPasswordError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.WrongPasswordError, http.StatusBadRequest)
+		return
+	}
+	// они совпадают, значит мы можем поменять пароль пользователю
+	// проверяем, что старый и новый пароль должны быть разными
+	if password.Password == password.NewPassword {
 		err = errors.New(myerrors.EqualPasswordsError)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.EqualPasswordsError, http.StatusBadRequest)
 		return
 	}
-	_, err = d.ucUser.SetNewPassword(r.Context(), email, password.Data)
+	_, err = d.ucUser.SetNewPassword(r.Context(), email, password.NewPassword)
 	if err != nil {
 		err = errors.New(myerrors.BadCredentialsError)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
@@ -351,7 +361,8 @@ type addressData struct {
 }
 
 type passwordData struct {
-	Data string `json:"password" valid:"user_pwd"`
+	Password    string `json:"password" valid:"user_pwd"`
+	NewPassword string `json:"new_password" valid:"user_pwd"`
 }
 
 func (d *passwordData) Validate() (bool, error) {

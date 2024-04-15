@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/satori/uuid"
+	"go.uber.org/zap"
+
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/session"
@@ -16,8 +19,6 @@ import (
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/sanitizer"
-	"github.com/satori/uuid"
-	"go.uber.org/zap"
 )
 
 type Delivery struct {
@@ -75,7 +76,6 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-
 	isValid, err := bodyDataDTO.Validate()
 	if err != nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, err, http.StatusBadRequest, cnst.DeliveryLayer)

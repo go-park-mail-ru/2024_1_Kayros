@@ -10,6 +10,7 @@ const (
 	BigSizeFileError        = "Превышен максимальный размер файла"
 	NotFoundError           = "Данные не найдены"
 	EqualPasswordsError     = "Новый пароль совпадает со старым"
+	WrongPasswordError      = "Не верно введен старый пароль"
 )
 
 // Внутренние ошибки
