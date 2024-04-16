@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS "order"
     sum            INTEGER CONSTRAINT positive_sum CHECK (sum >= 0) NULL,
     status         TEXT CONSTRAINT order_status_domain NOT NULL DEFAULT 'draft',
     address        TEXT CONSTRAINT order_address_length CHECK (LENGTH(address) BETWEEN 14 AND 100) NULL,
-    extra_address  TEXT CONSTRAINT order_extra_address_length CHECK (LENGTH(address) BETWEEN 2 AND 30) NULL,
+    extra_address  TEXT CONSTRAINT order_extra_address_length CHECK (LENGTH(extra_address) BETWEEN 2 AND 30) NULL,
     created_at     TIMESTAMPTZ CONSTRAINT user_time_create NOT NULL,
     updated_at     TIMESTAMPTZ CONSTRAINT user_time_last_updated NOT NULL,
     received_at    TIMESTAMPTZ CONSTRAINT user_time_received NULL
