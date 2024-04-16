@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"mime/multipart"
+	"net/http"
 
 	"2024_1_kayros/internal/repository/minios3"
+	"2024_1_kayros/internal/utils/myerrors"
 	"github.com/satori/uuid"
 
 	"2024_1_kayros/internal/entity"
@@ -93,6 +96,33 @@ func (uc *UsecaseLayer) UpdateUserAddress(ctx context.Context, email string, add
 		return nil, err
 	}
 	return uDB, nil
+}
+
+func (uc *UsecaseLayer) SetNewUserPassword(ctx context.Context, userId alias.UserId, requestId string, myLogger *logger.MyLogger) (*entity.User, error) {
+	// сравниваем старый пароль с тем, что в базе
+	isEqual, err := d.ucUser.CheckPassword(r.Context(), email, password.Password)
+	if err != nil {
+		return nil, err
+	}
+	// если они не совпадают
+	if !isEqual {
+		return nil, err
+	}
+	// они совпадают, значит мы можем поменять пароль пользователю
+	// проверяем, что старый и новый пароль должны быть разными
+	if password.Password == password.NewPassword {
+		err = errors.New(myerrors.EqualPasswordsError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.EqualPasswordsError, http.StatusBadRequest)
+		return
+	}
+	_, err = d.ucUser.SetNewPassword(r.Context(), email, password.NewPassword)
+	if err != nil {
+		err = errors.New(myerrors.BadCredentialsError)
+		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		return
+	}
 }
 
 //func (uc *UsecaseLayer) IsExistById(ctx context.Context, userId alias.UserId, requestId string, myLogger *logger.MyLogger) (bool, error) {

@@ -8,20 +8,15 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strings"
-	"time"
 
 	"2024_1_kayros/config"
-	"2024_1_kayros/internal/delivery/auth"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/usecase/user"
-	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
-	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/sanitizer"
 	"github.com/asaskevich/govalidator"
-	"github.com/satori/uuid"
 )
 
 type Delivery struct {
@@ -196,83 +191,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 
 	isValid, err := password.Validate()
 	if err != nil || !isValid {
-		err = errors.New(myerrors.BadCredentialsError)
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
-	}
-
-	isEqual, err := d.ucUser.CheckPassword(r.Context(), email, password.Data)
-	if err != nil {
-		err = errors.New(myerrors.InternalServerError)
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	if isEqual {
-		err = errors.New(myerrors.EqualPasswordsError)
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.EqualPasswordsError, http.StatusBadRequest)
-		return
-	}
-	_, err = d.ucUser.SetNewPassword(r.Context(), email, password.Data)
-	if err != nil {
-		err = errors.New(myerrors.BadCredentialsError)
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
-		return
-	}
-	//
-
-	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
-	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, err, http.StatusUnauthorized, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
-		return
-	}
-
-	wasDeleted, err := d.ucCsrf.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value))
-	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	if !wasDeleted {
-		functions.LogWarn(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New("Такого ключа нет в Redis"), cnst.DeliveryLayer)
-	}
-
-	sessionId := uuid.NewV4()
-	expiration := time.Now().Add(14 * 24 * time.Hour)
-	cookie := http.Cookie{
-		Name:     cnst.SessionCookieName,
-		Value:    sessionId.String(),
-		Expires:  expiration,
-		HttpOnly: false,
-	}
-	http.SetCookie(w, &cookie)
-
-	err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(uUpdated.Email))
-	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-
-	csrfToken, err := auth.GenCsrfToken(d.logger, requestId, cnst.NameHandlerUpdateUser, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
-	if err == nil {
-		err = d.ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(uUpdated.Email))
-		if err != nil {
-			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
-			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-			return
-		}
-		csrfCookie := http.Cookie{
-			Name:     cnst.CsrfCookieName,
-			Value:    csrfToken,
-			Expires:  expiration,
-			HttpOnly: false,
-		}
-		http.SetCookie(w, &csrfCookie)
 	}
 
 	w = functions.JsonResponse(w, map[string]string{"detail": "Пароль был успешно обновлен"})
