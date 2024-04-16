@@ -324,11 +324,10 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerSignUp, cnst.DeliveryLayer)
 }
 
-func GenCsrfToken(logger *zap.Logger, requestId string, methodName string, secretKey string, sessionId alias.SessionKey) (string, error) {
+func GenCsrfToken(secretKey string, sessionId alias.SessionKey) (string, error) {
 	// Создание csrf_token
 	csrfToken, err := functions.HashCsrf(secretKey, string(sessionId))
 	if err != nil {
-		functions.LogError(logger, requestId, methodName, err, cnst.DeliveryLayer)
 		return "", err
 	}
 	return csrfToken, nil

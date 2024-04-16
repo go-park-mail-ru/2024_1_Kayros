@@ -22,7 +22,7 @@ import (
 // Run creates all services and run the handler goroutines
 func Run(cfg *config.Project) {
 	logger := zap.Must(zap.NewProduction())
-	functions.InitValidator(logger)
+	functions.InitDtoValidator(logger)
 
 	postgreDB := postgres.Init(cfg, logger)
 	redisSessionDB := redis.Init(cfg, logger, cfg.Redis.DatabaseSession)

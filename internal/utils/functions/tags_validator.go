@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func InitValidator(logger *zap.Logger) {
+func InitDtoValidator(logger *zap.Logger) {
 	govalidator.SetFieldsRequiredByDefault(true)
 
 	// Relation "user"

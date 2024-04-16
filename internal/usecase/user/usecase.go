@@ -9,82 +9,113 @@ import (
 
 	"2024_1_kayros/internal/repository/minios3"
 	"github.com/satori/uuid"
-	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/services/logger"
 )
 
 type Usecase interface {
-	GetById(ctx context.Context, userId alias.UserId) (*entity.User, error)
-	GetByEmail(ctx context.Context, email string) (*entity.User, error)
-
-	DeleteById(ctx context.Context, userId alias.UserId) error
-	DeleteByEmail(ctx context.Context, email string) error
-
-	IsExistById(ctx context.Context, userId alias.UserId) (bool, error)
-	IsExistByEmail(ctx context.Context, email string) (bool, error)
-
-	Create(ctx context.Context, uProps *entity.User) (*entity.User, error)
-	Update(ctx context.Context, email string, uPropsUpdate *entity.User, file multipart.File, handler *multipart.FileHeader) (*entity.User, error)
-
-	CheckPassword(ctx context.Context, email string, password string) (bool, error)
+	GetUserData(ctx context.Context, email string, requestId string, myLogger *logger.MyLogger) (*entity.User, error)
+	UpdateUserData(ctx context.Context, email string, file multipart.File, handler *multipart.FileHeader, uPropsUpdate *entity.User, requestId string, myLogger *logger.MyLogger) (*entity.User, error)
+	UpdateUserAddress(ctx context.Context, email string, address string, requestId string, myLogger *logger.MyLogger) (*entity.User, error)
+	SetNewUserPassword(ctx context.Context, userId alias.UserId, requestId string, myLogger *logger.MyLogger) (*entity.User, error)
 }
 
 type UsecaseLayer struct {
 	repoUser user.Repo
 	minio    minios3.Repo
-	logger   *zap.Logger
 }
 
-func NewUsecaseLayer(repoUserProps user.Repo, repoMinio minios3.Repo, loggerProps *zap.Logger) Usecase {
+func NewUsecaseLayer(repoUserProps user.Repo, repoMinio minios3.Repo) Usecase {
 	return &UsecaseLayer{
 		repoUser: repoUserProps,
 		minio:    repoMinio,
-		logger:   loggerProps,
 	}
 }
 
-func (uc *UsecaseLayer) GetById(ctx context.Context, userId alias.UserId) (*entity.User, error) {
-	return uc.repoUser.GetById(ctx, userId)
+func (uc *UsecaseLayer) GetUserData(ctx context.Context, email string, requestId string, myLogger *logger.MyLogger) (*entity.User, error) {
+	return uc.repoUser.GetByEmail(ctx, email, requestId, myLogger)
 }
 
-func (uc *UsecaseLayer) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
-	return uc.repoUser.GetByEmail(ctx, email)
-}
-
-func (uc *UsecaseLayer) DeleteById(ctx context.Context, userId alias.UserId) error {
-	return uc.repoUser.DeleteById(ctx, userId)
-}
-
-func (uc *UsecaseLayer) DeleteByEmail(ctx context.Context, email string) error {
-	return uc.repoUser.DeleteByEmail(ctx, email)
-}
-
-func (uc *UsecaseLayer) IsExistById(ctx context.Context, userId alias.UserId) (bool, error) {
-	u, err := uc.repoUser.GetById(ctx, userId)
+func (uc *UsecaseLayer) UpdateUserData(ctx context.Context, email string, file multipart.File, handler *multipart.FileHeader, uPropsUpdate *entity.User, requestId string, myLogger *logger.MyLogger) (*entity.User, error) {
+	u, err := uc.repoUser.GetByEmail(ctx, email, requestId, myLogger)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	if u == nil {
-		return false, nil
+
+	err = fillUserFields(u, uPropsUpdate)
+	if err != nil {
+		return nil, err
 	}
-	return true, nil
+
+	// нужно будет добавить функцию, возвращающую расширение файла по содержимому файла, а не по факт расширению
+	if file != nil && handler != nil {
+		fileExtension := functions.GetFileExtension(handler.Filename)
+		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
+		err = uc.minio.UploadImageByEmail(ctx, file, filename, handler.Size)
+		if err != nil {
+			return nil, err
+		}
+		u.ImgUrl = fmt.Sprintf("/minios3-api/%s/%s", cnst.BucketUser, filename)
+	}
+
+	err = uc.repoUser.Update(ctx, u, email, requestId, myLogger)
+	if err != nil {
+		return nil, err
+	}
+
+	uData, err := uc.repoUser.GetByEmail(ctx, u.Email, requestId, myLogger)
+	if err != nil {
+		return nil, err
+	}
+
+	return uData, nil
 }
 
-func (uc *UsecaseLayer) IsExistByEmail(ctx context.Context, email string) (bool, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
+func (uc *UsecaseLayer) UpdateUserAddress(ctx context.Context, email string, address string, requestId string, myLogger *logger.MyLogger) (*entity.User, error) {
+	u, err := uc.repoUser.GetByEmail(ctx, email, requestId, myLogger)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	if u == nil {
-		return false, nil
+
+	u.Address = address
+	err = uc.repoUser.Update(ctx, u, email, requestId, myLogger)
+	if err != nil {
+		return nil, err
 	}
-	return true, nil
+
+	uDB, err := uc.repoUser.GetByEmail(ctx, email, requestId, myLogger)
+	if err != nil {
+		return nil, err
+	}
+	return uDB, nil
 }
+
+//func (uc *UsecaseLayer) IsExistById(ctx context.Context, userId alias.UserId, requestId string, myLogger *logger.MyLogger) (bool, error) {
+//	u, err := uc.repoUser.GetById(ctx, userId, requestId, myLogger)
+//	if err != nil {
+//		return false, err
+//	}
+//	if u == nil {
+//		return false, nil
+//	}
+//	return true, nil
+//}
+//
+//func (uc *UsecaseLayer) IsExistByEmail(ctx context.Context, email string, requestId string, myLogger *logger.MyLogger) (bool, error) {
+//	u, err := uc.repoUser.GetByEmail(ctx, email, requestId, myLogger)
+//	if err != nil {
+//		return false, err
+//	}
+//	if u == nil {
+//		return false, nil
+//	}
+//	return true, nil
+//}
 
 func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entity.User, error) {
 	salt := make([]byte, 8)
@@ -107,40 +138,6 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 		return nil, err
 	}
 	return u, nil
-}
-
-func (uc *UsecaseLayer) Update(ctx context.Context, email string, uPropsUpdate *entity.User, file multipart.File, handler *multipart.FileHeader) (*entity.User, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-
-	err = fillUserFields(u, uPropsUpdate)
-	if err != nil {
-		return nil, err
-	}
-
-	if file != nil && handler != nil {
-		fileExtension := functions.GetFileExtension(handler.Filename)
-		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
-		err = uc.minio.UploadImageByEmail(ctx, file, filename, handler.Size)
-		if err != nil {
-			return nil, err
-		}
-		u.ImgUrl = fmt.Sprintf("/minios3-api/%s/%s", cnst.BucketUser, filename)
-	}
-
-	err = uc.repoUser.Update(ctx, u, email)
-	if err != nil {
-		return nil, err
-	}
-
-	uData, err := uc.repoUser.GetByEmail(ctx, u.Email)
-	if err != nil {
-		return nil, err
-	}
-
-	return uData, nil
 }
 
 // CheckPassword проверяет пароль, хранящийся в БД с переданным паролем

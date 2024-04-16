@@ -107,3 +107,5 @@ const (
 	NameCorsMiddleware                  = "CorsMiddleware"
 	NameCsrfMiddleware                  = "CorsMiddleware"
 )
+
+const UploadedFileMaxSize = 10 << 20
