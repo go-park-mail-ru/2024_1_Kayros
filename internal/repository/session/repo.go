@@ -29,7 +29,7 @@ func NewRepoLayer(client *redis.Client) Repo {
 func (repo *RepoLayer) GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error) {
 	value, err := repo.redis.Get(ctx, string(key)).Result()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return "", myerrors.RedisNoData
 		}
 		return "", err
@@ -40,7 +40,7 @@ func (repo *RepoLayer) GetValue(ctx context.Context, key alias.SessionKey) (alia
 func (repo *RepoLayer) SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error {
 	err := repo.redis.Set(ctx, string(key), string(value), 14*24*time.Hour).Err()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return myerrors.RedisNoData
 		}
 		return err

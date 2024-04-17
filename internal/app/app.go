@@ -37,9 +37,9 @@ func Run(cfg *config.Project) {
 	srv := &http.Server{
 		Handler:      handler,
 		Addr:         serverAddress,
-		WriteTimeout: time.Duration(serverConfig.WriteTimeout) * time.Second, // таймаут на запись данных в ответ на запрос
-		ReadTimeout:  time.Duration(serverConfig.ReadTimeout) * time.Second,  // таймаут на чтение данных из запроса
-		IdleTimeout:  time.Duration(serverConfig.IdleTimeout) * time.Second,  // время поддержания связи между клиентом и сервером
+		WriteTimeout: time.Duration(serverConfig.WriteTimeout) * time.Second, // timeout for writing data in response to a request
+		ReadTimeout:  time.Duration(serverConfig.ReadTimeout) * time.Second,  // timeout for reading data from request
+		IdleTimeout:  time.Duration(serverConfig.IdleTimeout) * time.Second,  // time of communication between client and server
 	}
 
 	srvConfig := cfg.Server

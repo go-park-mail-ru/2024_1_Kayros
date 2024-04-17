@@ -14,6 +14,15 @@ type UpdateUserDataProps struct {
 	UserPropsUpdate *entity.User
 }
 
+func GetUpdateUserDataProps(email string, file multipart.File, handler *multipart.FileHeader, u *entity.User) *UpdateUserDataProps {
+	return &UpdateUserDataProps{
+		Email:           email,
+		File:            file,
+		Handler:         handler,
+		UserPropsUpdate: u,
+	}
+}
+
 // SetNewUserPasswordProps - props used in
 type SetNewUserPasswordProps struct {
 	Password    string

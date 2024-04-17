@@ -14,10 +14,6 @@ var (
 	WrongFileExtensionRu = errors.New("Недопустимый формат фотографии")
 	NewPasswordRu        = errors.New("Новый пароль совпадает со старым")
 	PasswordRu           = errors.New("Неверно указан текущий пароль")
-	NameRu               = errors.New("Неверно указано имя")
-	PhoneRu              = errors.New("Неверно указан номер телефона ")
-	EmailRu              = errors.New("Неверно указана почта")
-	AddressRu            = errors.New("Неверно указан адрес")
 )
 
 // Response errors (external) En
@@ -46,10 +42,8 @@ var (
 	WrongFileExtension = errors.New("invalid image format")
 	NewPassword        = errors.New("the new password is the same as the old one")
 	Password           = errors.New("the current password is incorrect")
-	Name               = errors.New("invalid name")
-	Phone              = errors.New("invalid phone")
-	Email              = errors.New("invalid email")
-	Address            = errors.New("the address exceeds the permissible size")
+	UserAlreadyExist   = errors.New("user with this login already exists")
+	BadAuthCredentials = errors.New("invalid login or password")
 	// Database
 	SqlNoRowsUserRelation = errors.New("no such record exists for \"user\"")
 	RedisNoData           = errors.New("no such record exists in Redis")

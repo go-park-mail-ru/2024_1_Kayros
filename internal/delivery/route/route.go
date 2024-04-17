@@ -12,7 +12,7 @@ import (
 )
 
 func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsrf *redis.Client, minio *minio.Client, mux *mux.Router, logger *zap.Logger) http.Handler {
-	logger.Info("Начало определения хендлеров")
+	logger.Info("The begin of handlers definition")
 	mux = mux.PathPrefix("/api/v1").Subrouter()
 	mux.StrictSlash(true)
 
@@ -22,6 +22,6 @@ func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsr
 	AddOrderRouter(db, minio, mux, logger)
 
 	handler := AddMiddleware(cfg, db, redisSession, redisCsrf, minio, mux, logger)
-	logger.Info("Конец определения хендлеров")
+	logger.Info("The end of handlers definition")
 	return handler
 }

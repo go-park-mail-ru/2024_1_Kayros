@@ -40,7 +40,7 @@ func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, 
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 	requestId, err := functions.GetCtxRequestId(r)
 	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		d.logger.Error(err.Error())
 	}
 	email, err := functions.GetCtxEmail(r)
 	if err != nil {
@@ -79,8 +79,7 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	requestId, err := functions.GetCtxRequestId(r)
 	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		return
+		d.logger.Error(err.Error())
 	}
 	email, err := functions.GetCtxEmail(r)
 	if err != nil {
@@ -111,12 +110,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := &props.UpdateUserDataProps{
-		Email:           email,
-		File:            file,
-		Handler:         handler,
-		UserPropsUpdate: u,
-	}
+	data := props.GetUpdateUserDataProps(email, file, handler, u)
 	uUpdated, err := d.ucUser.UpdateData(r.Context(), data)
 	if err != nil {
 		if errors.Is(err, myerrors.WrongFileExtension) {
@@ -149,8 +143,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	requestId, err := functions.GetCtxRequestId(r)
 	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		return
+		d.logger.Error(err.Error())
 	}
 	email, err := functions.GetCtxEmail(r)
 	if err != nil {
@@ -163,7 +156,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 
@@ -214,8 +207,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	requestId, err := functions.GetCtxRequestId(r)
 	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		return
+		d.logger.Error(err.Error())
 	}
 	email, err := functions.GetCtxEmail(r)
 	if err != nil {
@@ -228,7 +220,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 

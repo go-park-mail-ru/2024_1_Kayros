@@ -54,6 +54,10 @@ type UserSignUp struct {
 	Password string `json:"password" valid:"user_password_domain"`
 }
 
+func (d *UserSignUp) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
+}
+
 func NewUserFromSignUpForm(data *UserSignUp) *entity.User {
 	uDTO := &entity.User{
 		Name:     data.Name,
@@ -61,6 +65,15 @@ func NewUserFromSignUpForm(data *UserSignUp) *entity.User {
 		Password: data.Password,
 	}
 	return uDTO
+}
+
+type UserSignIn struct {
+	Email    string `json:"email" valid:"user_email_domain"`
+	Password string `json:"password" valid:"user_password_domain"`
+}
+
+func (d *UserSignIn) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
 }
 
 // UserGet - DTO used for handler 'UserData' method GET
