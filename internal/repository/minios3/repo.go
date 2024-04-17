@@ -6,7 +6,6 @@ import (
 
 	cnst "2024_1_kayros/internal/utils/constants"
 	"github.com/minio/minio-go/v7"
-	"go.uber.org/zap"
 )
 
 type Repo interface {
@@ -14,14 +13,12 @@ type Repo interface {
 }
 
 type RepoLayer struct {
-	minio  *minio.Client
-	logger *zap.Logger
+	minio *minio.Client
 }
 
-func NewRepoLayer(minioClient *minio.Client, loggerProps *zap.Logger) Repo {
+func NewRepoLayer(minioClient *minio.Client) Repo {
 	return &RepoLayer{
-		minio:  minioClient,
-		logger: loggerProps,
+		minio: minioClient,
 	}
 }
 

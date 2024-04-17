@@ -11,30 +11,31 @@ import (
 	"github.com/satori/uuid"
 )
 
-// надо еще учитывать таймзону
-func SetCookie(w http.ResponseWriter, r *http.Request, ucCsrf session.Usecase, ucSession session.Usecase, email string, secretKey string) http.ResponseWriter {
-	sessionId := uuid.NewV4()
-	expiration := time.Now().Add(14 * 24 * time.Hour)
+const timeExpDur = 14 * 24 * time.Hour
+
+// SetCookie - !!it is necessary to take into account the time zone!!
+func SetCookie(w http.ResponseWriter, r *http.Request, ucCsrf session.Usecase, ucSession session.Usecase, email string, secretKey string) (http.ResponseWriter, error) {
+	sessionId := uuid.NewV4().String()
+	expiration := time.Now().Add(timeExpDur)
 	cookie := http.Cookie{
 		Name:     cnst.SessionCookieName,
-		Value:    sessionId.String(),
+		Value:    sessionId,
 		Expires:  expiration,
 		HttpOnly: false,
 	}
+	err := ucSession.SetValue(r.Context(), alias.SessionKey(sessionId), alias.SessionValue(email))
+	if err != nil {
+		return w, err
+	}
 	http.SetCookie(w, &cookie)
 
-	err := ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(email))
+	csrfToken, err := auth.GenCsrfToken(secretKey, alias.SessionKey(sessionId))
 	if err != nil {
-		return w
-	}
-
-	csrfToken, err := auth.GenCsrfToken(secretKey, alias.SessionKey(sessionId.String()))
-	if err != nil {
-		return w
+		return w, err
 	}
 	err = ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(email))
 	if err != nil {
-		return w
+		return w, err
 	}
 	csrfCookie := http.Cookie{
 		Name:     cnst.CsrfCookieName,
@@ -43,5 +44,5 @@ func SetCookie(w http.ResponseWriter, r *http.Request, ucCsrf session.Usecase, u
 		HttpOnly: false,
 	}
 	http.SetCookie(w, &csrfCookie)
-	return w
+	return w, nil
 }

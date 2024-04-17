@@ -6,6 +6,7 @@ import (
 
 	"2024_1_kayros/internal/entity"
 	cnst "2024_1_kayros/internal/utils/constants"
+	"2024_1_kayros/internal/utils/myerrors"
 	"github.com/asaskevich/govalidator"
 )
 
@@ -20,7 +21,6 @@ func (d *UserUpdate) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
 
-// how to handle an error ?
 func GetUpdatedUserData(r *http.Request) (multipart.File, *multipart.FileHeader, *entity.User, error) {
 	bodyDataDTO := &UserUpdate{
 		Name:  r.FormValue("name"),
@@ -42,7 +42,7 @@ func GetUpdatedUserData(r *http.Request) (multipart.File, *multipart.FileHeader,
 		return nil, nil, u, err
 	}
 	if handler.Size > cnst.UploadedFileMaxSize {
-		return file, handler, u, err
+		return file, handler, u, myerrors.BigSizeFile
 	}
 
 	return file, handler, u, nil
@@ -83,4 +83,22 @@ func NewUserData(u *entity.User) *UserGet {
 		Address: u.Address,
 		ImgUrl:  u.ImgUrl,
 	}
+}
+
+// Address - DTO used for handler 'UpdateAddress' method PUT
+type Address struct {
+	Data string `json:"user_address_domain"`
+}
+
+func (d *Address) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
+}
+
+type Passwords struct {
+	Password    string `json:"password" valid:"user_password_domain"`
+	PasswordNew string `json:"new_password" valid:"user_password_domain"`
+}
+
+func (d *Passwords) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
 }
