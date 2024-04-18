@@ -157,6 +157,7 @@ func (repo *RepoLayer) GetFood(ctx context.Context, requestId string, orderId al
 }
 
 func (repo *RepoLayer) UpdateAddress(ctx context.Context, requestId string, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error) {
+	fmt.Println(len(address), len(extraAddress))
 	row := repo.db.QueryRowContext(ctx,
 		`UPDATE "order" SET address=$1, extra_address=$2
                WHERE id=$3 RETURNING id`, address, extraAddress, uint64(orderId))

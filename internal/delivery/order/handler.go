@@ -37,6 +37,11 @@ type FoodCount struct {
 	Count  uint32       `json:"count"`
 }
 
+type payedOrderInfo struct {
+	OrderId alias.OrderId `json:"order_id"`
+	Status  string        `json:"status"`
+}
+
 // GET - ok
 
 func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
@@ -129,26 +134,13 @@ func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, "Некорректный адрес", http.StatusBadRequest)
 		return
 	}
-	basket, err := h.uc.UpdateAddress(r.Context(), fullAddress, basketId)
+	err = h.uc.UpdateAddress(r.Context(), fullAddress, basketId)
 	if err != nil {
 		if errors.Is(err, fmt.Errorf(repoErrors.NotUpdateError)) {
 			functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, fmt.Errorf(repoErrors.NotUpdateError), http.StatusInternalServerError, constants.DeliveryLayer)
 			w = functions.ErrorResponse(w, repoErrors.NotUpdateError, http.StatusInternalServerError)
 			return
 		}
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	orderDTO := dto.NewOrder(basket)
-	jsonResponse, err := json.Marshal(orderDTO)
-	if err != nil {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(jsonResponse)
-	if err != nil {
 		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, err, http.StatusInternalServerError, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
@@ -200,8 +192,8 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusUnauthorized)
 		return
 	}
-	orderDTO := dto.NewOrder(payedOrder)
-	jsonResponse, err := json.Marshal(orderDTO)
+	response := payedOrderInfo{OrderId: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
+	jsonResponse, err := json.Marshal(response)
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodPayOrder, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
