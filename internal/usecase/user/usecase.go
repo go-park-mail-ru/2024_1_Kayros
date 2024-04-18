@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	"github.com/satori/uuid"
@@ -204,7 +205,9 @@ func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart
 	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
 	if file != nil && handler != nil {
 		if uImg.ImgUrl != "/minio-api/users/default.jpg" {
-			err = uc.repoUser.DeleteImageByEmail(ctx, uImg.ImgUrl)
+			parts := strings.Split(uImg.ImgUrl, "/")
+			filename := parts[len(parts)-1]
+			err = uc.repoUser.DeleteImageByEmail(ctx, filename)
 			if err != nil {
 				uc.logger.Error(err.Error())
 			}
