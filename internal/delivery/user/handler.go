@@ -277,9 +277,10 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	u = sanitizer.User(uUpdated)
-	w = functions.JsonResponse(w, u)
-	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
+	uSanitizer := sanitizer.User(uUpdated)
+	uDTO := dto.NewUser(uSanitizer)
+	w = functions.JsonResponse(w, uDTO)
+	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, cnst.DeliveryLayer)
 }
 
 func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
@@ -358,7 +359,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w = functions.JsonResponse(w, map[string]string{"detail": "Пароль был успешно обновлен"})
-	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
+	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, cnst.DeliveryLayer)
 }
 
 type addressData struct {

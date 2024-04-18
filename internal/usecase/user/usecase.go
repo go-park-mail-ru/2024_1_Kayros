@@ -194,10 +194,21 @@ func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart
 		}
 		hashCardNumber = functions.HashData(salt, uPropsUpdate.CardNumber)
 	}
-
+	uImg, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	if err != nil {
+		functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
+		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return nil, err
+	}
 	currentTime := time.Now().UTC()
 	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
 	if file != nil && handler != nil {
+		if uImg.ImgUrl != "/minio-api/users/default.jpg" {
+			err = uc.repoUser.DeleteImageByEmail(ctx, uImg.ImgUrl)
+			if err != nil {
+				uc.logger.Error(err.Error())
+			}
+		}
 		fileExtension := functions.GetFileExtension(handler.Filename)
 		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
 		err = uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, timeStr, requestId)
@@ -206,6 +217,7 @@ func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart
 			return nil, err
 		}
 	}
+
 	uOldData, err := uc.repoUser.GetByEmail(ctx, email, requestId)
 	if err != nil || uOldData == nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)

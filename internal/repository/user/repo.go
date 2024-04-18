@@ -32,6 +32,7 @@ type Repo interface {
 	IsExistByEmail(ctx context.Context, email string, requestId string) (bool, error)
 
 	UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, timeStr string, requestId string) error
+	DeleteImageByEmail(ctx context.Context, filename string) error
 	GetHashedUserPassword(ctx context.Context, email string, requestId string) ([]byte, error)
 	GetHashedCardNumber(ctx context.Context, email string, requestId string) ([]byte, error)
 	SetNewPassword(ctx context.Context, requestId string, email string, password []byte) (bool, error)
@@ -292,6 +293,14 @@ func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.Fi
 	}
 	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s имеет фото по адресу %s", uId, uEmail, uImg)
 	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
+	return nil
+}
+
+func (repo *RepoLayer) DeleteImageByEmail(ctx context.Context, filename string) error {
+	err := repo.minio.RemoveObject(ctx, cnst.BucketUser, filename, minio.RemoveObjectOptions{})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

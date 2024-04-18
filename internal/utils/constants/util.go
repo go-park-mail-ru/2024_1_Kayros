@@ -39,6 +39,7 @@ const (
 	NameMethodIsExistByEmail        = "IsExistByEmail"
 	NameMethodCheckPassword         = "CheckPassword"
 	NameMethodUploadImageByEmail    = "UploadImageByEmail"
+	NameMethodDeleteImageByEmail    = "DeleteImageByEmail"
 	NameMethodGetHashedUserPassword = "GetHashedUserPassword"
 	NameMethodUpdateOrder           = "UpdateOrder"
 	NameMethodAddToOrder            = "AddToOrder"
