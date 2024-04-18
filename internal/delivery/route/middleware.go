@@ -29,7 +29,7 @@ func AddMiddleware(cfg *config.Project, db *sql.DB, redisClientSession *redis.Cl
 
 	// цепочка middlewares
 	handler := middleware.CsrfMiddleware(mux, usecaseCsrf, cfg, logger)
-	handler = middleware.SessionAuthenticationMiddleware(handler, usecaseUser, usecaseSession, logger)
+	handler = middleware.SessionAuthenticationMiddleware(handler, repoUser, usecaseSession, logger)
 	handler = middleware.CorsMiddleware(handler, logger)
 	handler = middleware.AccessMiddleware(handler, logger)
 	return handler
