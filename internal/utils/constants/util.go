@@ -4,6 +4,7 @@ const (
 	SessionCookieName = "session_id"
 	CsrfCookieName    = "csrf_token"
 	RequestId         = "request_id"
+	XCsrfHeader       = "XCSRF_Token"
 )
 
 const (
@@ -17,11 +18,13 @@ const (
 	OnTheWay = "on-the-way"
 )
 
+// Настройка хэширования с помощью Argon2
 const (
-	RepoLayer       = "repository"
-	UsecaseLayer    = "usecase"
-	DeliveryLayer   = "delivery"
-	MiddlewareLayer = "middleware"
+	HashTime    = 1        // specifies the number of passes over the memory
+	HashMemory  = 2 * 1024 // specifies the size of the memory in KiB
+	HashThreads = 2
+	HashKeylen  = 56
+	HashLetters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
 )
 
 // Название бакетов для minios3

@@ -6,22 +6,15 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	cnst "2024_1_kayros/internal/utils/constants"
 	"golang.org/x/crypto/argon2"
-)
-
-const (
-	hashTime    = 1        // specifies the number of passes over the memory
-	hashMemory  = 2 * 1024 // specifies the size of the memory in KiB
-	hashThreads = 2
-	hashKeylen  = 56
-	hashLetters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
 )
 
 // HashData | hashes credentionals using Argon2
 func HashData(saltProps []byte, plainPassword string) []byte {
 	salt := make([]byte, len(saltProps))
 	copy(salt, saltProps)
-	hashedPassword := argon2.IDKey([]byte(plainPassword), salt, hashTime, hashMemory, hashThreads, hashKeylen)
+	hashedPassword := argon2.IDKey([]byte(plainPassword), salt, cnst.HashTime, cnst.HashMemory, cnst.HashThreads, cnst.HashKeylen)
 	return append(salt, hashedPassword...)
 }
 
@@ -44,11 +37,11 @@ func HashCsrf(secretKey string, sessionId string) (string, error) {
 func generateRandomString(n int) (string, error) {
 	ret := make([]byte, n)
 	for i := 0; i < n; i++ {
-		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(hashLetters))))
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(cnst.HashLetters))))
 		if err != nil {
 			return "", err
 		}
-		ret[i] = hashLetters[num.Int64()]
+		ret[i] = cnst.HashLetters[num.Int64()]
 	}
 	return string(ret), nil
 }
