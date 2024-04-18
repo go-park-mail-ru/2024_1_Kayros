@@ -38,8 +38,8 @@ type FoodCount struct {
 }
 
 type payedOrderInfo struct {
-	OrderId alias.OrderId `json:"order_id"`
-	Status  string        `json:"status"`
+	Id     alias.OrderId `json:"id"`
+	Status string        `json:"status"`
 }
 
 // GET - ok
@@ -192,7 +192,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusUnauthorized)
 		return
 	}
-	response := payedOrderInfo{OrderId: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
+	response := payedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
 	jsonResponse, err := json.Marshal(response)
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodPayOrder, err, constants.DeliveryLayer)
