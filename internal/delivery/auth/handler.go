@@ -122,6 +122,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		Expires:  expiration,
 		HttpOnly: false,
 	}
+	http.SetCookie(w, &sessionCookie)
 
 	csrfToken, err := GenCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId))
 	if err == nil {
@@ -139,7 +140,6 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, &csrfCookie)
 	}
-	http.SetCookie(w, &sessionCookie)
 	u = sanitizer.User(u)
 	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
@@ -224,13 +224,13 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 			Expires:  expiration,
 			HttpOnly: false,
 		}
-		http.SetCookie(w, &cookie)
 		err = d.ucSession.SetValue(r.Context(), alias.SessionKey(sessionId.String()), alias.SessionValue(u.Email))
 		if err != nil {
 			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignIn, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 			return
 		}
+		http.SetCookie(w, &cookie)
 
 		csrfToken, err := GenCsrfToken(d.logger, requestId, cnst.NameHandlerSignUp, d.cfg.CsrfSecretKey, alias.SessionKey(sessionId.String()))
 		if err == nil {
