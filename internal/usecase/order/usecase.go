@@ -21,7 +21,7 @@ type Usecase interface {
 	GetBasketId(ctx context.Context, email string) (alias.OrderId, error)
 	GetBasket(ctx context.Context, email string) (*entity.Order, error)
 	Create(ctx context.Context, email string) (alias.OrderId, error)
-	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) (*entity.Order, error)
+	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) error
 	Pay(ctx context.Context, orderId alias.OrderId, currentStatus string) (*entity.Order, error)
 	Clean(ctx context.Context, orderId alias.OrderId) error
 	AddFoodToOrder(ctx context.Context, foodId alias.FoodId, count uint32, orderId alias.OrderId) error
@@ -118,24 +118,16 @@ func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId
 	return id, err
 }
 
-func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) (*entity.Order, error) {
+func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) error {
 	methodName := constants.NameMethodUpdateAddress
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	id, err := uc.repoOrder.UpdateAddress(ctx, requestId, FullAddress.Address, FullAddress.ExtraAddress, orderId)
+	_, err := uc.repoOrder.UpdateAddress(ctx, requestId, FullAddress.Address, FullAddress.ExtraAddress, orderId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, requestId, id)
-	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	if len(updatedOrder.Food) != 0 {
-		updatedOrder.RestaurantId = updatedOrder.Food[0].RestaurantId
+		return err
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
-	return updatedOrder, nil
+	return nil
 }
 
 func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentStatus string) (*entity.Order, error) {
