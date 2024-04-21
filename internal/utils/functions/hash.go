@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"golang.org/x/crypto/argon2"
 )
@@ -44,4 +45,22 @@ func generateRandomString(n int) (string, error) {
 		ret[i] = cnst.HashLetters[num.Int64()]
 	}
 	return string(ret), nil
+}
+
+func GenerateNewSalt() ([]byte, error) {
+	salt := make([]byte, 8)
+	_, err := rand.Read(salt)
+	if err != nil {
+		return []byte{}, err
+	}
+	return salt, nil
+}
+
+func GenerateCsrfToken(secretKey string, sessionId alias.SessionKey) (string, error) {
+	// Создание csrf_token
+	csrfToken, err := HashCsrf(secretKey, string(sessionId))
+	if err != nil {
+		return "", err
+	}
+	return csrfToken, nil
 }

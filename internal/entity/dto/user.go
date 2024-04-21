@@ -39,10 +39,10 @@ func GetUpdatedUserData(r *http.Request) (multipart.File, *multipart.FileHeader,
 
 	file, handler, err := r.FormFile("img")
 	if err != nil {
-		return nil, nil, u, err
+		return nil, nil, nil, err
 	}
 	if handler.Size > cnst.UploadedFileMaxSize {
-		return file, handler, u, myerrors.BigSizeFile
+		return nil, nil, nil, myerrors.BigSizeFile
 	}
 
 	return file, handler, u, nil

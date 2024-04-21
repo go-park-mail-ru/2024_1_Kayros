@@ -23,7 +23,7 @@ func GetUpdateUserDataProps(email string, file multipart.File, handler *multipar
 	}
 }
 
-// SetNewUserPasswordProps - props used in
+// SetNewUserPasswordProps - props used in SetNewUserPassword (usecase) !!!
 type SetNewUserPasswordProps struct {
 	Password    string
 	PasswordNew string

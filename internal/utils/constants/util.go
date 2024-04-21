@@ -38,8 +38,8 @@ const UploadedFileMaxSize = 10 << 20
 
 var ValidMimeTypes = map[string]bool{
 	"image/jpeg":    true,
+	"image/jpg":     true,
 	"image/png":     true,
-	"image/gif":     true,
 	"image/bmp":     true,
 	"image/webp":    true,
 	"image/svg+xml": true,

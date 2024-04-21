@@ -15,8 +15,8 @@ import (
 	"2024_1_kayros/internal/utils/functions"
 )
 
-// SessionAuthenticationMiddleware needed for authentication (check session cookie and if it exists, return associated user email)
-func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Repo, ucSession session.Usecase, logger *zap.Logger) http.Handler {
+// SessionAuthentication needed for authentication (check session cookie and if it exists, return associated user email)
+func SessionAuthentication(handler http.Handler, ucUser user.Repo, ucSession session.Usecase, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionId := ""
 		sessionCookie, err := r.Cookie("session_id")

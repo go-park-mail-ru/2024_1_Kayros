@@ -16,8 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// CsrfMiddleware checks for csrf_token availability in the request | Method `Signed Double-Submit Cookie`
-func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *config.Project, logger *zap.Logger) http.Handler {
+// Csrf checks for csrf_token availability in the request | Method `Signed Double-Submit Cookie`
+func Csrf(handler http.Handler, ucCsrfTokens session.Usecase, cfg *config.Project, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId, err := functions.GetCtxRequestId(r)
 		if err != nil {

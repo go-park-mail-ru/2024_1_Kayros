@@ -34,12 +34,13 @@ type AccessLogEnd struct {
 	RequestId    string
 }
 
-func AccessMiddleware(handler http.Handler, logger *zap.Logger) http.Handler {
+func Access(handler http.Handler, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := uuid.NewV4().String()
 		timeNow := time.Now().UTC()
-
+		LogInitRequest(r, logger, timeNow, requestId)
 		handler.ServeHTTP(w, r)
+		LogEndRequest(r, logger, timeNow, requestId)
 	})
 }
 
@@ -73,23 +74,24 @@ func LogEndRequest(r *http.Request, logger *zap.Logger, timeNow time.Time, reque
 		UserAgent:    r.UserAgent(),
 		Host:         r.Host,
 		RealIp:       r.Header.Get("X-Real-IP"),
+		ResponseSize: 10,
 		URI:          r.RequestURI,
 		Method:       r.Method,
 		EndTime:      timeNow.Format(cnst.Timestamptz),
-		LatencyHuman: time.Since(timeNow).Seconds(),
-		LatencyMs, string
-		EndTime, string,
+		LatencyHuman: time.Since(timeNow).String(),
+		LatencyMs:    time.Since(timeNow).String(),
 	}
 	logger.Info(msg,
-		zap.String("user_agent", startLog.UserAgent),
-		zap.String("host", startLog.Host),
-		zap.String("real_ip", startLog.RealIp),
-		zap.Int64("content_length", startLog.ContentLength),
-		zap.String("uri", startLog.URI),
-		zap.String("method", startLog.Method),
-		zap.String("remote_ip", startLog.RemoteIp),
-		zap.String("start_time", startLog.StartTime),
-		zap.String("response_size", star)
-	zap.String("request_id", requestId),
-)
+		zap.String("user_agent", endLog.UserAgent),
+		zap.String("host", endLog.Host),
+		zap.String("real_ip", endLog.RealIp),
+		zap.Int64("response_size", endLog.ResponseSize),
+		zap.String("uri", endLog.URI),
+		zap.String("method", endLog.Method),
+		zap.String("end_time", endLog.EndTime),
+		zap.String("latency_human", endLog.LatencyHuman),
+		zap.String("latency_human_ms", endLog.LatencyMs),
+		zap.String("end_time", endLog.EndTime),
+		zap.String("request_id", requestId),
+	)
 }

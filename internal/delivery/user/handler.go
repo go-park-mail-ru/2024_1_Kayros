@@ -51,28 +51,33 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 
 	u, err := d.ucUser.GetData(r.Context(), email)
 	if err != nil {
-		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
-			if err != nil {
-				if errors.Is(err, myerrors.RedisNoData) {
-					d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-					w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
-					return
-				}
-				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-				return
-			}
-			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		// if error is `myerrors.RedisNoData` it's okay, because we try to delete token from database
+		err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		}
+
+		w, err = functions.CookieExpired(w, r)
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			if errors.Is(err, http.ErrNoCookie) {
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+				return
+			}
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
-
 	uSanitizer := sanitizer.User(u)
 	uDTO := dto.NewUserData(uSanitizer)
+
 	w = functions.JsonResponse(w, uDTO)
 }
 
@@ -88,9 +93,16 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// defer is declared immediately after the method because if parsing is successful but the file is large,
-	// we return the file
 	file, handler, u, err := dto.GetUpdatedUserData(r)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.BigSizeFile) {
+			w = functions.ErrorResponse(w, myerrors.BigSizeFileRu, http.StatusBadRequest)
+			return
+		}
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
 	defer func(file multipart.File) {
 		if file != nil {
 			err = file.Close()
@@ -99,27 +111,16 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}(file)
-	if err != nil {
-		if errors.Is(err, myerrors.BigSizeFile) {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.BigSizeFileRu, http.StatusBadRequest)
-			return
-		}
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
-		return
-	}
 
 	data := props.GetUpdateUserDataProps(email, file, handler, u)
 	uUpdated, err := d.ucUser.UpdateData(r.Context(), data)
 	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.WrongFileExtension) {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			w = functions.ErrorResponse(w, myerrors.WrongFileExtensionRu, http.StatusBadRequest)
 			return
 		}
 		// we don't handle `myerrors.SqlNoRowsUserRelation`, because it's internal server error
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
@@ -133,7 +134,9 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w, err = functions.SetCookie(w, r, d.ucCsrf, d.ucSession, email, d.cfg.CsrfSecretKey)
+
+	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, email, d.cfg.CsrfSecretKey)
+	w, err = functions.SetCookie(w, r, setCookieProps)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
@@ -177,12 +180,23 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 
 	uUpdated, err := d.ucUser.UpdateAddress(r.Context(), email, address.Data)
 	if err != nil {
-		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
-			return
-		}
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
+			if err != nil {
+				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				return
+			}
+			w, err = functions.CookieExpired(w, r)
+			if err != nil {
+				if errors.Is(err, http.ErrNoCookie) {
+					d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+					w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+					return
+				}
+			}
+		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
@@ -196,7 +210,9 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w, err = functions.SetCookie(w, r, d.ucCsrf, d.ucSession, email, d.cfg.CsrfSecretKey)
+
+	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, email, d.cfg.CsrfSecretKey)
+	w, err = functions.SetCookie(w, r, setCookieProps)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
@@ -238,37 +254,32 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
+
 	data := &props.SetNewUserPasswordProps{
 		Password:    pwds.Password,
 		PasswordNew: pwds.PasswordNew,
 	}
 	err = d.ucUser.SetNewPassword(r.Context(), email, data)
 	if err != nil {
-		if errors.Is(err, myerrors.Password) {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.PasswordRu, http.StatusBadRequest)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.IncorrectCurrentPassword) {
+			w = functions.ErrorResponse(w, myerrors.IncorrectCurrentPasswordRu, http.StatusBadRequest)
 			return
 		}
 		if errors.Is(err, myerrors.NewPasswordRu) {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			w = functions.ErrorResponse(w, myerrors.NewPasswordRu, http.StatusBadRequest)
 			return
 		}
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
 			if err != nil {
+				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				if errors.Is(err, myerrors.RedisNoData) {
-					d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 					w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 					return
 				}
-				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-				return
 			}
 		}
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}

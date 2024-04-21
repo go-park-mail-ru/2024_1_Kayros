@@ -2,6 +2,7 @@ package functions
 
 import (
 	"net/http"
+	"time"
 
 	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/utils/alias"
@@ -28,4 +29,24 @@ func DeleteCookiesFromDB(r *http.Request, ucCsrf session.Usecase, ucSession sess
 		return err
 	}
 	return nil
+}
+
+// CookieExpired - method set cookie expired
+func CookieExpired(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, error) {
+	sessionCookie, err := r.Cookie(cnst.SessionCookieName)
+	if err != nil {
+		return w, err
+	}
+	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
+	if err != nil {
+		return w, err
+	}
+
+	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
+	http.SetCookie(w, sessionCookie)
+
+	csrfCookie.Expires = time.Now().AddDate(0, 0, -1)
+	http.SetCookie(w, csrfCookie)
+
+	return w, nil
 }

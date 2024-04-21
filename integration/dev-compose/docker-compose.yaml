@@ -8,10 +8,9 @@ services:
       - POSTGRES_USER=kayrosteam
       - POSTGRES_PASSWORD=resto123
       - POSTGRES_DB=main_db
-      - DEBIAN_FRONTEND=noninteractive
     volumes:
-      - ../postgres/data:/etc/lib/postgresql/data
       - ../postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ../postgres/data:/var/lib/postgresql/data
     ports:
       - '5432:5432'
   redis:
@@ -19,27 +18,23 @@ services:
     container_name: redis
     ports:
       - '6379:6379'
-      #nginx:
-      #image: nginx:latest
-      #volumes:
-      #- ../postgres/prod/nginx.conf:/etc/nginx/nginx.conf:ro
-      #- /var/www/dist:/var/www/dist
-      #ports:
-      #- "80:80"
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ../nginx/dev/nginx.conf:/etc/nginx/conf.d:ro
+      - /var/www/dist:/var/www/dist
+    ports:
+      - '80:80'
   minio:
     image: minio/minio:latest
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - ../minios3/data:/data
-      - /etc/nginx/sslcert/server.crt:/root/.minios3/certs/public.crt:ro
-      - /etc/nginx/sslcert/server.key:/root/.minios3/certs/private.key:ro
+      - ../minio/data:/data
     environment:
       MINIO_ROOT_USER: kayrosteam
       MINIO_ROOT_PASSWORD: resto123
-      MINIO_SERVER_URL: "https://resto-go.ru:9000"
-      MINIO_BROWSER_REDIRECT_URL: "https://resto-go.ru/minio-admin"
-    hostname: resto-go.ru
-    command: server --console-address :9001 /data
+    hostname: localhost
 

@@ -3,7 +3,6 @@ package user
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"fmt"
 
 	"2024_1_kayros/internal/entity"
@@ -41,7 +40,7 @@ func (uc *UsecaseLayer) GetData(ctx context.Context, email string) (*entity.User
 }
 
 // UpdateData - method used to update user info. it accepts non-password fields.
-// to update password use method SetNewUserPassword.
+// To update password use method SetNewUserPassword.
 func (uc *UsecaseLayer) UpdateData(ctx context.Context, data *props.UpdateUserDataProps) (*entity.User, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, data.Email)
 	if err != nil {
@@ -58,6 +57,7 @@ func (uc *UsecaseLayer) UpdateData(ctx context.Context, data *props.UpdateUserDa
 		if _, ok := cnst.ValidMimeTypes[fileExtension]; !ok {
 			return nil, myerrors.WrongFileExtension
 		}
+
 		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
 		err = uc.minio.UploadImageByEmail(ctx, data.File, filename, data.Handler.Size)
 		if err != nil {
@@ -96,7 +96,7 @@ func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email string, pwds *
 		return err
 	}
 	if !isEqual {
-		return myerrors.Password
+		return myerrors.IncorrectCurrentPassword
 	}
 	if pwds.Password == pwds.PasswordNew {
 		return myerrors.NewPassword
@@ -107,8 +107,7 @@ func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email string, pwds *
 		return err
 	}
 
-	salt := make([]byte, 8)
-	_, err = rand.Read(salt)
+	salt, err := functions.GenerateNewSalt()
 	if err != nil {
 		return err
 	}
@@ -124,8 +123,7 @@ func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email string, pwds *
 
 // Create - method used to create new user in database.
 func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entity.User, error) {
-	salt := make([]byte, 8)
-	_, err := rand.Read(salt)
+	salt, err := functions.GenerateNewSalt()
 	if err != nil {
 		return nil, err
 	}
@@ -154,9 +152,7 @@ func (uc *UsecaseLayer) checkPassword(ctx context.Context, email string, passwor
 	}
 	uPasswordBytes := []byte(u.Password)
 
-	salt := make([]byte, 8)
-	copy(salt, uPasswordBytes[0:8])
-	hashPassword := functions.HashData(salt, password)
+	hashPassword := functions.HashData(uPasswordBytes[0:8], password)
 	return bytes.Equal(uPasswordBytes, hashPassword), nil
 }
 

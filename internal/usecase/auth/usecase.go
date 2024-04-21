@@ -27,24 +27,32 @@ func NewUsecaseLayer(repoUserProps user.Repo) Usecase {
 }
 
 func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, signupData *entity.User) (*entity.User, error) {
-	_, err := uc.isExistByEmail(ctx, email)
-	if err == nil {
-		return nil, myerrors.UserAlreadyExist
+	isExist, err := uc.isExistByEmail(ctx, email)
+	if err != nil {
+		// we can skip error `myerrors.SqlNoRowsUserRelation`, because user must not to be
+		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			return nil, err
+		}
 	}
-	if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-		return nil, err
+	if isExist {
+		return nil, myerrors.UserAlreadyExistRu
 	}
 
-	err = uc.repoUser.Create(ctx, signupData)
+	// we do copy for clean function
+	uCopy := entity.Copy(signupData)
+	salt, err := functions.GenerateNewSalt()
+	if err != nil {
+		return nil, err
+	}
+	hashPassword := functions.HashData(salt, signupData.Password)
+	uCopy.Password = string(hashPassword)
+
+	err = uc.repoUser.Create(ctx, uCopy)
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := uc.repoUser.GetByEmail(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-	return u, nil
+	return uCopy, nil
 }
 
 func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, password string) (*entity.User, error) {
@@ -58,7 +66,7 @@ func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, password s
 		return nil, err
 	}
 	if !isEqual {
-		return nil, myerrors.BadAuthCredentials
+		return nil, myerrors.BadAuthPassword
 	}
 	return u, nil
 }

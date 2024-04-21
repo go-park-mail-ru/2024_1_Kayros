@@ -4,17 +4,16 @@ import (
 	"net/http"
 	"time"
 
-	"2024_1_kayros/internal/delivery/auth"
-	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
+	"2024_1_kayros/internal/utils/props"
 	"github.com/satori/uuid"
 )
 
 const timeExpDur = 14 * 24 * time.Hour
 
 // SetCookie - !!it is necessary to take into account the time zone!!
-func SetCookie(w http.ResponseWriter, r *http.Request, ucCsrf session.Usecase, ucSession session.Usecase, email string, secretKey string) (http.ResponseWriter, error) {
+func SetCookie(w http.ResponseWriter, r *http.Request, props *props.SetCookieProps) (http.ResponseWriter, error) {
 	sessionId := uuid.NewV4().String()
 	expiration := time.Now().Add(timeExpDur)
 	cookie := http.Cookie{
@@ -23,17 +22,17 @@ func SetCookie(w http.ResponseWriter, r *http.Request, ucCsrf session.Usecase, u
 		Expires:  expiration,
 		HttpOnly: false,
 	}
-	err := ucSession.SetValue(r.Context(), alias.SessionKey(sessionId), alias.SessionValue(email))
+	err := props.UsecaseSession.SetValue(r.Context(), alias.SessionKey(sessionId), alias.SessionValue(props.Email))
 	if err != nil {
 		return w, err
 	}
 	http.SetCookie(w, &cookie)
 
-	csrfToken, err := auth.GenCsrfToken(secretKey, alias.SessionKey(sessionId))
+	csrfToken, err := GenerateCsrfToken(props.SecretKey, alias.SessionKey(sessionId))
 	if err != nil {
 		return w, err
 	}
-	err = ucCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(email))
+	err = props.UsecaseCsrf.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(props.Email))
 	if err != nil {
 		return w, err
 	}
