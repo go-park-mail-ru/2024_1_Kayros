@@ -1,8 +1,9 @@
 package constants
 
 const (
-	SessionCookieName = "session_id"
-	CsrfCookieName    = "csrf_token"
+	SessionCookieName     = "session_id"
+	CsrfCookieName        = "csrf_token"
+	UnauthTokenCookieName = "unauth_token"
 )
 
 // Статусы заказа

@@ -27,20 +27,22 @@ import (
 )
 
 type Delivery struct {
-	ucSession session.Usecase
-	ucCsrf    session.Usecase
-	ucUser    user.Usecase
-	logger    *zap.Logger
-	cfg       *config.Project
+	ucSession       session.Usecase
+	ucCsrf          session.Usecase
+	ucUnauthAddress session.Usecase
+	ucUser          user.Usecase
+	logger          *zap.Logger
+	cfg             *config.Project
 }
 
-func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, ucCsrfProps session.Usecase, loggerProps *zap.Logger) *Delivery {
+func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, ucCsrfProps session.Usecase, ucUnauthAddressProps session.Usecase, loggerProps *zap.Logger) *Delivery {
 	return &Delivery{
-		ucUser:    ucUserProps,
-		logger:    loggerProps,
-		ucSession: ucSessionProps,
-		ucCsrf:    ucCsrfProps,
-		cfg:       cfgProps,
+		ucUser:          ucUserProps,
+		logger:          loggerProps,
+		ucSession:       ucSessionProps,
+		ucCsrf:          ucCsrfProps,
+		ucUnauthAddress: ucUnauthAddressProps,
+		cfg:             cfgProps,
 	}
 }
 
@@ -230,12 +232,18 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		requestId = ctxRequestId.(string)
 	}
 
+	unauthToken := ""
+	ctxUnauthToken := r.Context().Value(cnst.UnauthTokenCookieName)
+	if ctxUnauthToken != nil {
+		unauthToken = ctxUnauthToken.(string)
+	}
+
 	email := ""
 	ctxEmail := r.Context().Value("email")
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
-	if email == "" {
+	if email == "" && unauthToken == "" {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
@@ -256,30 +264,37 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-	u, err := d.ucUser.GetByEmail(r.Context(), email)
-	if err != nil || u == nil {
-		err = errors.New(myerrors.InternalServerError)
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
 	if len(address.Data) < 14 || len(address.Data) > 100 {
 		err = errors.New(myerrors.BadCredentialsError)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusBadRequest, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-	u.Address = address.Data
-	uUpdated, err := d.ucUser.Update(r.Context(), email, nil, nil, u)
-	if err != nil || uUpdated == nil {
-		err = errors.New(myerrors.InternalServerError)
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
+	if email == "" {
+		err = d.ucUnauthAddress.SetValue(r.Context(), alias.SessionKey(unauthToken), alias.SessionValue(address.Data))
+		if err != nil {
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
+	} else {
+		u, err := d.ucUser.GetByEmail(r.Context(), email)
+		if err != nil || u == nil {
+			err = errors.New(myerrors.InternalServerError)
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
+		u.Address = address.Data
+		uUpdated, err := d.ucUser.Update(r.Context(), email, nil, nil, u)
+		if err != nil || uUpdated == nil {
+			err = errors.New(myerrors.InternalServerError)
+			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
 	}
-	uSanitizer := sanitizer.User(uUpdated)
-	uDTO := dto.NewUser(uSanitizer)
-	w = functions.JsonResponse(w, uDTO)
+	w = functions.JsonResponse(w, map[string]string{"address": address.Data})
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, cnst.DeliveryLayer)
 }
 

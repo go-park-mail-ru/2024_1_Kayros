@@ -26,10 +26,11 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 	postgreDB := postgres.Init(cfg, logger)
 	redisSessionDB := redis.Init(cfg, logger, cfg.Redis.DatabaseSession)
 	redisCsrfDB := redis.Init(cfg, logger, cfg.Redis.DatabaseCsrf)
+	redisUnauthTokensDB := redis.Init(cfg, logger, cfg.Redis.DatabaseUnauthTokens)
 	minioDB := minio.Init(cfg, logger)
 
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger)
+	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, redisUnauthTokensDB, minioDB, r, logger)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)

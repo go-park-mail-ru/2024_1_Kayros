@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -13,6 +14,9 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 	"go.uber.org/zap"
 )
+
+var allowedRequestURI = []string{"/api/v1/signin", "/api/v1/signup", "/api/v1/user/address", "/api/v1/order/clean", "/api/v1/order/add",
+	"/api/v1/order/food/add", "/api/v1/order/food/update_count", "/order/food/delete/{food_id}"}
 
 // CsrfMiddleware проверяет наличие csrf_token в запросе | Метод Signed Double-Submit Cookie
 func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *config.Project, logger *zap.Logger) http.Handler {
@@ -28,12 +32,20 @@ func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *con
 		mutatingMethods := []string{"POST", "PUT", "DELETE"}
 		rMethodIsMut := contains(mutatingMethods, reqMethod)
 		if rMethodIsMut {
+			unauthToken := ""
+			unauthTokenCookie, err := r.Cookie(cnst.UnauthTokenCookieName)
+			if unauthTokenCookie != nil {
+				unauthToken = unauthTokenCookie.Value
+			}
+			ctx := context.WithValue(r.Context(), cnst.UnauthTokenCookieName, unauthToken)
+			r = r.WithContext(ctx)
+
 			csrfToken := ""
 			csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
 			if csrfCookie != nil {
 				csrfToken = csrfCookie.Value
 			}
-			if errors.Is(err, http.ErrNoCookie) && (r.RequestURI == "/api/v1/signin" || r.RequestURI == "/api/v1/signup") {
+			if errors.Is(err, http.ErrNoCookie) && contains(allowedRequestURI, r.RequestURI) {
 				handler.ServeHTTP(w, r)
 				return
 			} else if err != nil {

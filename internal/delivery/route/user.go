@@ -17,15 +17,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func AddUserRouter(db *sql.DB, cfg *config.Project, minio *minio.Client, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, mux *mux.Router, logger *zap.Logger) {
+func AddUserRouter(db *sql.DB, cfg *config.Project, minio *minio.Client, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, clientRedisUnauthTokens *redis.Client, mux *mux.Router, logger *zap.Logger) {
 	repoUser := rUser.NewRepoLayer(db, minio, logger)
 	repoSession := rSession.NewRepoLayer(clientRedisSession, logger)
 	repoCsrf := rSession.NewRepoLayer(clientRedisCsrf, logger)
+	repoUnauthAddress := rSession.NewRepoLayer(clientRedisUnauthTokens, logger)
 
 	usecaseUser := ucUser.NewUsecaseLayer(repoUser, logger)
 	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
 	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrf, logger)
-	deliveryUser := dUser.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, usecaseCsrf, logger)
+	usecaseUnauthAddress := ucSession.NewUsecaseLayer(repoUnauthAddress, logger)
+	deliveryUser := dUser.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, usecaseCsrf, usecaseUnauthAddress, logger)
 
 	mux.HandleFunc("/user", deliveryUser.UserData).Methods("GET").Name("userdata")
 	mux.HandleFunc("/user", deliveryUser.UpdateInfo).Methods("PUT").Name("update_user")
