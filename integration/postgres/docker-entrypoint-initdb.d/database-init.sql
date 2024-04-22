@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS unauth_address
     address     TEXT CONSTRAINT unauth_address_domain CHECK (LENGTH(address) BETWEEN 14 AND 100) NULL
 );
 
-
 CREATE TABLE IF NOT EXISTS category
 (
     id   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

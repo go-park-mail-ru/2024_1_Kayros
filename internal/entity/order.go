@@ -20,7 +20,7 @@ type Order struct {
 
 type OrderDB struct {
 	Id           uint64
-	UserId       uint64
+	UserId       sql.NullInt64
 	CreatedAt    string
 	UpdatedAt    sql.NullString
 	ReceivedAt   sql.NullString
@@ -34,7 +34,7 @@ type OrderDB struct {
 func ToOrder(oDB *OrderDB) *Order {
 	return &Order{
 		Id:           oDB.Id,
-		UserId:       oDB.UserId,
+		UserId:       Int(oDB.UserId),
 		CreatedAt:    oDB.CreatedAt,
 		UpdatedAt:    String(oDB.UpdatedAt),
 		ReceivedAt:   String(oDB.ReceivedAt),
