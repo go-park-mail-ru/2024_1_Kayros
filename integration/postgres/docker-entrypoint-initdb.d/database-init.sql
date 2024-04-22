@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS restaurant
 CREATE TABLE IF NOT EXISTS "order"
 (
     id             INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id        INTEGER CONSTRAINT foreign_key CHECK (user_id > 0) REFERENCES "user" (id) ON DELETE CASCADE,
+    user_id        INTEGER CONSTRAINT foreign_key CHECK (user_id > 0) REFERENCES "user" (id) ON DELETE CASCADE NULL,
     sum            INTEGER CONSTRAINT positive_sum CHECK (sum >= 0) NULL,
     status         TEXT CONSTRAINT order_status_domain NOT NULL DEFAULT 'draft',
     unauth_token   TEXT CONSTRAINT unauth_token_domain CHECK (length(unauth_token) = 36) NOT NULL,
