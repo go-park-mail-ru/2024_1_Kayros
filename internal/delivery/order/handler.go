@@ -65,6 +65,7 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	if ctxToken != nil {
 		token = ctxToken.(string)
 	}
+	fmt.Println(token, email)
 	if email == "" && token == "" {
 		w = functions.ErrorResponse(w, "У вас нет корзины", http.StatusBadRequest)
 		return
@@ -253,11 +254,6 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	ctxEmail := r.Context().Value("email")
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
-	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodAddFood, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
-		return
 	}
 	token := ""
 	ctxToken := r.Context().Value("unauth_token")
