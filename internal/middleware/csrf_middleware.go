@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -30,20 +29,22 @@ func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *con
 			requestId = requestIdCtx.(string)
 		}
 
+		unauthToken := ""
+		unauthTokenCookie, err := r.Cookie(cnst.UnauthTokenCookieName)
+		if err != nil {
+			functions.LogError(logger, requestId, cnst.NameCsrfMiddleware, err, cnst.MiddlewareLayer)
+		}
+		if unauthTokenCookie != nil {
+			unauthToken = unauthTokenCookie.Value
+		}
+		ctx := context.WithValue(r.Context(), cnst.UnauthTokenCookieName, unauthToken)
+		r = r.WithContext(ctx)
+
 		// Будем запрещать доступ к не идемпотентным запросам без валидной сессии
 		reqMethod := r.Method
-		mutatingMethods := []string{"POST", "PUT", "DELETE", "GET"}
+		mutatingMethods := []string{"POST", "PUT", "DELETE"}
 		rMethodIsMut := contains(mutatingMethods, reqMethod)
 		if rMethodIsMut {
-			unauthToken := ""
-			unauthTokenCookie, err := r.Cookie(cnst.UnauthTokenCookieName)
-			if unauthTokenCookie != nil {
-				unauthToken = unauthTokenCookie.Value
-			}
-			ctx := context.WithValue(r.Context(), cnst.UnauthTokenCookieName, unauthToken)
-			r = r.WithContext(ctx)
-			fmt.Println(unauthToken)
-
 			csrfToken := ""
 			csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
 			if csrfCookie != nil {
