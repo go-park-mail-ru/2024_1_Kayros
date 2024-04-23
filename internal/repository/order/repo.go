@@ -28,8 +28,11 @@ const (
 
 type Repo interface {
 	Create(ctx context.Context, requestId string, userId alias.UserId, dateOrder string) (alias.OrderId, error)
+	CreateNoAuth(ctx context.Context, requestId string, token string, dateOrder string) (alias.OrderId, error)
 	GetOrders(ctx context.Context, requestId string, userId alias.UserId, status string) ([]*entity.Order, error)
+	GetBasketNoAuth(ctx context.Context, requestId string, token string) (*entity.Order, error)
 	GetBasketId(ctx context.Context, requestId string, userId alias.UserId) (alias.OrderId, error)
+	GetBasketIdNoAuth(ctx context.Context, requestId string, token string) (alias.OrderId, error)
 	GetOrderById(ctx context.Context, requestId string, orderId alias.OrderId) (*entity.Order, error)
 	GetFood(ctx context.Context, requestId string, orderId alias.OrderId) ([]*entity.FoodInOrder, error)
 	UpdateAddress(ctx context.Context, requestId string, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error)
@@ -38,6 +41,7 @@ type Repo interface {
 	UpdateCountInOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
 	DeleteFromOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId) error
 	CleanBasket(ctx context.Context, requestId string, orderId alias.OrderId) error
+	SetUser(ctx context.Context, requestId string, orderId alias.OrderId, userId alias.UserId) error
 }
 
 type RepoLayer struct {
@@ -56,6 +60,19 @@ func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
 func (repo *RepoLayer) Create(ctx context.Context, requestId string, userId alias.UserId, currentTime string) (alias.OrderId, error) {
 	row := repo.db.QueryRowContext(ctx,
 		`INSERT INTO "order" (user_id, created_at, updated_at, status) VALUES ($1, $2, $3, $4) RETURNING id`, uint64(userId), currentTime, currentTime, constants.Draft)
+	var id uint64
+	err := row.Scan(&id)
+	if err != nil {
+		functions.LogError(repo.logger, requestId, constants.NameMethodCreateOrder, err, constants.RepoLayer)
+		return 0, err
+	}
+	functions.LogOk(repo.logger, requestId, constants.NameMethodCreateOrder, constants.RepoLayer)
+	return alias.OrderId(id), err
+}
+
+func (repo *RepoLayer) CreateNoAuth(ctx context.Context, requestId string, token string, currentTime string) (alias.OrderId, error) {
+	row := repo.db.QueryRowContext(ctx,
+		`INSERT INTO "order" (unauth_token, created_at, updated_at, status) VALUES ($1, $2, $3, $4) RETURNING id`, token, currentTime, currentTime, constants.Draft)
 	var id uint64
 	err := row.Scan(&id)
 	if err != nil {
@@ -95,6 +112,26 @@ func (repo *RepoLayer) GetOrders(ctx context.Context, requestId string, userId a
 	return orders, nil
 }
 
+func (repo *RepoLayer) GetBasketNoAuth(ctx context.Context, requestId string, token string) (*entity.Order, error) {
+	row := repo.db.QueryRowContext(ctx, `SELECT id, created_at, updated_at, received_at, status, address, 
+       				extra_address, sum FROM "order" WHERE unauth_token= $1 AND status=$2`, token, constants.Draft)
+	var order entity.OrderDB
+	err := row.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
+		&order.ExtraAddress, &order.Sum)
+	if err != nil {
+		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
+		return nil, err
+	}
+	foodArray, err := repo.GetFood(ctx, requestId, alias.OrderId(order.Id))
+	if err != nil {
+		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
+		return nil, err
+	}
+	order.Food = foodArray
+	functions.LogOk(repo.logger, requestId, constants.NameMethodGetOrderById, constants.RepoLayer)
+	return entity.ToOrder(&order), nil
+}
+
 func (repo *RepoLayer) GetOrderById(ctx context.Context, requestId string, orderId alias.OrderId) (*entity.Order, error) {
 	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, created_at, updated_at, received_at, status, address, 
        				extra_address, sum FROM "order" WHERE id= $1`, uint64(orderId))
@@ -117,6 +154,22 @@ func (repo *RepoLayer) GetOrderById(ctx context.Context, requestId string, order
 
 func (repo *RepoLayer) GetBasketId(ctx context.Context, requestId string, userId alias.UserId) (alias.OrderId, error) {
 	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), constants.Draft)
+	var orderId uint64
+	err := row.Scan(&orderId)
+	if errors.Is(err, sql.ErrNoRows) {
+		functions.LogWarn(repo.logger, requestId, constants.NameMethodGetBasketId, err, constants.RepoLayer)
+		return 0, fmt.Errorf(NoBasketError)
+	}
+	if err != nil {
+		functions.LogError(repo.logger, requestId, constants.NameMethodGetBasketId, err, constants.RepoLayer)
+		return 0, err
+	}
+	functions.LogOk(repo.logger, requestId, constants.NameMethodGetBasketId, constants.RepoLayer)
+	return alias.OrderId(orderId), nil
+}
+
+func (repo *RepoLayer) GetBasketIdNoAuth(ctx context.Context, requestId string, token string) (alias.OrderId, error) {
+	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "order" WHERE unauth_token=$1 AND status=$2`, token, constants.Draft)
 	var orderId uint64
 	err := row.Scan(&orderId)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -380,6 +433,22 @@ func (repo *RepoLayer) CleanBasket(ctx context.Context, requestId string, id ali
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
 		return err
+	}
+	return nil
+}
+
+func (repo *RepoLayer) SetUser(ctx context.Context, requestId string, orderId alias.OrderId, userId alias.UserId) error {
+	res, err := repo.db.ExecContext(ctx,
+		`UPDATE "order" SET user_id=$1, unauth_token='' WHERE id=$2`, uint64(userId), uint64(orderId))
+	if err != nil {
+		return err
+	}
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return fmt.Errorf("В корзину не проставился айдишник юзера")
 	}
 	return nil
 }

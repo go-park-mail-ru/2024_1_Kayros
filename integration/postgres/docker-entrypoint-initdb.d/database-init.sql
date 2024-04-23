@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS unauth_address
     address     TEXT CONSTRAINT unauth_address_domain CHECK (LENGTH(address) BETWEEN 14 AND 100) NULL
 );
 
-
 CREATE TABLE IF NOT EXISTS category
 (
     id   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -51,7 +50,7 @@ CREATE TABLE IF NOT EXISTS "order"
     user_id        INTEGER CONSTRAINT foreign_key CHECK (user_id > 0) REFERENCES "user" (id) ON DELETE CASCADE NULL,
     sum            INTEGER CONSTRAINT positive_sum CHECK (sum >= 0) NULL,
     status         TEXT CONSTRAINT order_status_domain NOT NULL DEFAULT 'draft',
-    unauth_token   TEXT CONSTRAINT unauth_token_domain CHECK (length(unauth_token) = 36) NOT NULL,
+    unauth_token   TEXT CONSTRAINT unauth_token_domain CHECK (length(unauth_token) = 36) NULL,
     address        TEXT CONSTRAINT order_address_length CHECK (LENGTH(address) BETWEEN 14 AND 100) NULL,
     extra_address  TEXT CONSTRAINT order_extra_address_length CHECK (LENGTH(extra_address) BETWEEN 2 AND 30) NULL,
     created_at     TIMESTAMPTZ CONSTRAINT user_time_create NOT NULL,

@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
+	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	repoErrors "2024_1_kayros/internal/repository/order"
 	ucOrder "2024_1_kayros/internal/usecase/order"
@@ -59,12 +60,27 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+	token := ""
+	ctxToken := r.Context().Value("unauth_token")
+	if ctxToken != nil {
+		token = ctxToken.(string)
+	}
+	fmt.Println(token, email)
+	if email == "" && token == "" {
+		w = functions.ErrorResponse(w, "У вас нет корзины", http.StatusBadRequest)
 		return
 	}
-	order, err := h.uc.GetBasket(r.Context(), email)
+	// неавторизованный - вовзвращаем по токену, авторизованный - по почте
+	//неавторизованный пользователь
+	var order *entity.Order
+	var err error
+	if token != "" {
+		fmt.Println(email)
+		order, err = h.uc.GetBasketNoAuth(r.Context(), token)
+	} else if email != "" {
+		fmt.Println(token)
+		order, err = h.uc.GetBasket(r.Context(), email)
+	}
 	if err != nil {
 		fmt.Println(err)
 		if err.Error() == "У Вас нет корзины" {
@@ -80,7 +96,7 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	functions.LogOk(h.logger, requestId, constants.NameMethodGetBasket, constants.DeliveryLayer)
 }
 
-//PUT - ok
+//PUT
 
 func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -171,7 +187,20 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
-	basket, err := h.uc.GetBasket(r.Context(), email)
+	token := ""
+	ctxToken := r.Context().Value("unauth_token")
+	if ctxToken != nil {
+		token = ctxToken.(string)
+	}
+	var basket *entity.Order
+	var err error
+	if token != "" {
+		// эта корзина создана неавторизованным
+		basket, err = h.uc.GetBasketNoAuth(r.Context(), token)
+	} else {
+		// в случае, когда заказ был создан авторизированным пользователем
+		basket, err = h.uc.GetBasket(r.Context(), email)
+	}
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodGetBasket, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -182,7 +211,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, repoErrors.EmptyError, http.StatusOK)
 		return
 	}
-	payedOrder, err := h.uc.Pay(r.Context(), alias.OrderId(basket.Id), basket.Status)
+	payedOrder, err := h.uc.Pay(r.Context(), alias.OrderId(basket.Id), basket.Status, email, alias.UserId(basket.UserId))
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodPayOrder, err, constants.DeliveryLayer)
 		if errors.Is(err, fmt.Errorf(repoErrors.NotUpdateStatusError)) {
@@ -209,7 +238,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	functions.LogOk(h.logger, requestId, constants.NameMethodPayOrder, constants.DeliveryLayer)
 }
 
-// POST-ok
+// POST- ok
 
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -226,10 +255,10 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodAddFood, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
-		return
+	token := ""
+	ctxToken := r.Context().Value("unauth_token")
+	if ctxToken != nil {
+		token = ctxToken.(string)
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -249,16 +278,30 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-	basketId, err := h.uc.GetBasketId(r.Context(), email)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
+	var basketId alias.OrderId
+	if token != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), token)
+		if err != nil {
+			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
+	} else if email != "" {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+		if err != nil {
+			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
+			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+			return
+		}
 	}
 	//если basketId-0, значит у пользователя нет корзины
 	if basketId == 0 {
 		//создаем заказ-корзину
-		basketId, err = h.uc.Create(r.Context(), email)
+		if token != "" {
+			basketId, err = h.uc.CreateNoAuth(r.Context(), token)
+		} else if email != "" {
+			basketId, err = h.uc.Create(r.Context(), email)
+		}
 		if err != nil {
 			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
 			if errors.Is(err, fmt.Errorf(repoErrors.CreateError)) {
@@ -281,14 +324,11 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
-	order, err := h.uc.GetBasket(r.Context(), email)
+	order, err := h.uc.GetOrderById(r.Context(), basketId)
 	if err != nil {
 		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.NoBasketError), http.StatusNotFound, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
-	}
-	if len(order.Food) != 0 {
-		order.RestaurantId = order.Food[0].RestaurantId
 	}
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)
@@ -328,7 +368,7 @@ func (h *OrderHandler) Clean(w http.ResponseWriter, r *http.Request) {
 	w = functions.ErrorResponse(w, "Корзина очищена", http.StatusOK)
 }
 
-//PUT - ok
+//PUT
 
 func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -400,7 +440,7 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-//DELETE - ok
+//DELETE
 
 func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
