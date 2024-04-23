@@ -385,14 +385,20 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateCountInOrder, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
-		return
+	token := ""
+	ctxToken := r.Context().Value("unauth_token")
+	if ctxToken != nil {
+		token = ctxToken.(string)
 	}
-	basketId, err := h.uc.GetBasketId(r.Context(), email)
+	var basketId alias.OrderId
+	var err error
+	if token != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), token)
+	} else if email != "" {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+	}
 	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
+		fmt.Println(err)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
@@ -424,7 +430,7 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
 		return
 	}
-	order, err := h.uc.UpdateCountInOrder(r.Context(), basketId, alias.FoodId(item.FoodId), uint32(item.Count))
+	order, err := h.uc.UpdateCountInOrder(r.Context(), basketId, item.FoodId, item.Count)
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
 		if errors.Is(err, fmt.Errorf(repoErrors.NotAddFood)) {

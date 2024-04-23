@@ -22,7 +22,7 @@ func AddOrderRouter(db *sql.DB, minio *minio.Client, mux *mux.Router, logger *za
 	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, repoUser, logger)
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)
 
-	mux.HandleFunc("/order", handler.GetBasket).Methods("GET") //работает
+	mux.HandleFunc("/order", handler.GetBasket).Methods("GET")
 	mux.HandleFunc("/order/update_address", handler.UpdateAddress).Methods("PUT")
 	mux.HandleFunc("/order/pay", handler.Pay).Methods("PUT")
 	mux.HandleFunc("/order/clean", handler.Clean).Methods("DELETE")
