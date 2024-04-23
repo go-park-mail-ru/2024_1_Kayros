@@ -184,7 +184,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	}
 	if email == "" {
 		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodPayOrder, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, "Войдите, чтобы оплатить заказ", http.StatusUnauthorized)
 		return
 	}
 	token := ""

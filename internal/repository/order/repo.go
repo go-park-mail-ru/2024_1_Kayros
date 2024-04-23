@@ -116,7 +116,7 @@ func (repo *RepoLayer) GetBasketNoAuth(ctx context.Context, requestId string, to
 	row := repo.db.QueryRowContext(ctx, `SELECT id, created_at, updated_at, received_at, status, address, 
        				extra_address, sum FROM "order" WHERE unauth_token= $1 AND status=$2`, token, constants.Draft)
 	var order entity.OrderDB
-	err := row.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
+	err := row.Scan(&order.Id, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
 		&order.ExtraAddress, &order.Sum)
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
@@ -439,7 +439,7 @@ func (repo *RepoLayer) CleanBasket(ctx context.Context, requestId string, id ali
 
 func (repo *RepoLayer) SetUser(ctx context.Context, requestId string, orderId alias.OrderId, userId alias.UserId) error {
 	res, err := repo.db.ExecContext(ctx,
-		`UPDATE "order" SET user_id=$1, unauth_token='' WHERE id=$2`, uint64(userId), uint64(orderId))
+		`UPDATE "order" SET user_id=$1, unauth_token=NULL WHERE id=$2`, uint64(userId), uint64(orderId))
 	if err != nil {
 		return err
 	}
