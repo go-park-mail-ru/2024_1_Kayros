@@ -65,7 +65,6 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	if ctxToken != nil {
 		token = ctxToken.(string)
 	}
-	fmt.Println(token, email)
 	if email == "" && token == "" {
 		w = functions.ErrorResponse(w, "У вас нет корзины", http.StatusBadRequest)
 		return
@@ -82,10 +81,10 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 		order, err = h.uc.GetBasket(r.Context(), email)
 	}
 	if err != nil {
-		fmt.Println(err)
-		if err.Error() == "У Вас нет корзины" {
+		fmt.Println(errors.Is(err, errors.New(repoErrors.NoBasketError)))
+		if errors.Is(err, myerrors.ErrorNoBasket) {
 			functions.LogInfo(h.logger, requestId, constants.NameMethodGetBasket, repoErrors.NoBasketError, constants.DeliveryLayer)
-			w = functions.ErrorResponse(w, repoErrors.NoBasketError, http.StatusOK)
+			w = functions.ErrorResponse(w, myerrors.ErrorNoBasket.Error(), http.StatusOK)
 			return
 		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -214,7 +213,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	payedOrder, err := h.uc.Pay(r.Context(), alias.OrderId(basket.Id), basket.Status, email, alias.UserId(basket.UserId))
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodPayOrder, err, constants.DeliveryLayer)
-		if errors.Is(err, fmt.Errorf(repoErrors.NotUpdateStatusError)) {
+		if errors.Is(err, errors.New(repoErrors.NotUpdateStatusError)) {
 			w = functions.ErrorResponse(w, repoErrors.NotUpdateStatusError, http.StatusInternalServerError)
 			return
 		}
@@ -304,7 +303,7 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		}
 		if err != nil {
 			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
-			if errors.Is(err, fmt.Errorf(repoErrors.CreateError)) {
+			if errors.Is(err, errors.New(repoErrors.CreateError)) {
 				w = functions.ErrorResponse(w, repoErrors.CreateError, http.StatusInternalServerError)
 			} else {
 				w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -315,7 +314,7 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	//добавляем еду в заказ
 	err = h.uc.AddFoodToOrder(r.Context(), item.FoodId, item.Count, basketId)
 	if err != nil {
-		if errors.Is(err, fmt.Errorf(repoErrors.NotAddFood)) {
+		if errors.Is(err, errors.New(repoErrors.NotAddFood)) {
 			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, fmt.Errorf(repoErrors.NotAddFood), constants.DeliveryLayer)
 			w = functions.ErrorResponse(w, repoErrors.NotAddFood, http.StatusInternalServerError)
 			return
@@ -368,7 +367,7 @@ func (h *OrderHandler) Clean(w http.ResponseWriter, r *http.Request) {
 	w = functions.ErrorResponse(w, "Корзина очищена", http.StatusOK)
 }
 
-//PUT
+//PUT - ok
 
 func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -433,7 +432,7 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 	order, err := h.uc.UpdateCountInOrder(r.Context(), basketId, item.FoodId, item.Count)
 	if err != nil {
 		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
-		if errors.Is(err, fmt.Errorf(repoErrors.NotAddFood)) {
+		if errors.Is(err, errors.New(repoErrors.NotAddFood)) {
 			w = functions.ErrorResponse(w, repoErrors.NotAddFood, http.StatusInternalServerError)
 			return
 		}
@@ -465,20 +464,32 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodDeleteFromOrder, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
-		return
+	token := ""
+	ctxToken := r.Context().Value("unauth_token")
+	if ctxToken != nil {
+		token = ctxToken.(string)
 	}
-	basketId, err := h.uc.GetBasketId(r.Context(), email)
+	var basketId alias.OrderId
+	var err error
+	if token != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), token)
+	} else if email != "" {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+	}
 	if err != nil {
+		fmt.Println(err)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
+
 	order, err := h.uc.DeleteFromOrder(r.Context(), basketId, alias.FoodId(foodId))
 	if err != nil {
+		if errors.Is(err, myerrors.BasketCleaned) {
+			w = functions.ErrorResponse(w, myerrors.BasketCleaned.Error(), http.StatusOK)
+			return
+		}
 		functions.LogError(h.logger, requestId, constants.NameMethodDeleteFromOrder, err, constants.DeliveryLayer)
-		if errors.Is(err, fmt.Errorf(repoErrors.NotDeleteFood)) {
+		if errors.Is(err, errors.New(repoErrors.NotDeleteFood)) {
 			w = functions.ErrorResponse(w, repoErrors.NotDeleteFood, http.StatusInternalServerError)
 			return
 		}

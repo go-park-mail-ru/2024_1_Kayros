@@ -124,7 +124,6 @@ func (uc *UsecaseLayer) GetBasketNoAuth(ctx context.Context, token string) (*ent
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	Order, err := uc.repoOrder.GetBasketNoAuth(ctx, requestId, token)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	if len(Order.Food) != 0 {
@@ -276,12 +275,10 @@ func (uc *UsecaseLayer) DeleteFromOrder(ctx context.Context, orderId alias.Order
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	err := uc.repoOrder.DeleteFromOrder(ctx, requestId, orderId, foodId)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, requestId, orderId)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	if len(updatedOrder.Food) != 0 {

@@ -1,5 +1,7 @@
 package myerrors
 
+import "errors"
+
 // Ошибки сетевых ответов
 const (
 	InternalServerError     = "Ошибка сервера"
@@ -16,4 +18,9 @@ const (
 // Внутренние ошибки
 const (
 	HashedPasswordError = "Не удалось захешировать пароль пользователя"
+)
+
+var (
+	ErrorNoBasket = errors.New("У вас нет корзины")
+	BasketCleaned = errors.New("Корзина очищена")
 )

@@ -13,6 +13,7 @@ import (
 	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/internal/utils/myerrors"
 )
 
 const (
@@ -118,6 +119,12 @@ func (repo *RepoLayer) GetBasketNoAuth(ctx context.Context, requestId string, to
 	var order entity.OrderDB
 	err := row.Scan(&order.Id, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
 		&order.ExtraAddress, &order.Sum)
+	fmt.Println(errors.Is(err, sql.ErrNoRows))
+	if errors.Is(err, sql.ErrNoRows) {
+		fmt.Println("ok")
+		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
+		return nil, myerrors.ErrorNoBasket
+	}
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
 		return nil, err
@@ -138,6 +145,10 @@ func (repo *RepoLayer) GetOrderById(ctx context.Context, requestId string, order
 	var order entity.OrderDB
 	err := row.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
 		&order.ExtraAddress, &order.Sum)
+	if errors.Is(err, sql.ErrNoRows) {
+		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
+		return nil, myerrors.ErrorNoBasket
+	}
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
 		return nil, err
@@ -158,7 +169,7 @@ func (repo *RepoLayer) GetBasketId(ctx context.Context, requestId string, userId
 	err := row.Scan(&orderId)
 	if errors.Is(err, sql.ErrNoRows) {
 		functions.LogWarn(repo.logger, requestId, constants.NameMethodGetBasketId, err, constants.RepoLayer)
-		return 0, fmt.Errorf(NoBasketError)
+		return 0, myerrors.ErrorNoBasket
 	}
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetBasketId, err, constants.RepoLayer)
@@ -174,7 +185,7 @@ func (repo *RepoLayer) GetBasketIdNoAuth(ctx context.Context, requestId string, 
 	err := row.Scan(&orderId)
 	if errors.Is(err, sql.ErrNoRows) {
 		functions.LogWarn(repo.logger, requestId, constants.NameMethodGetBasketId, err, constants.RepoLayer)
-		return 0, fmt.Errorf(NoBasketError)
+		return 0, myerrors.ErrorNoBasket
 	}
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodGetBasketId, err, constants.RepoLayer)
@@ -395,7 +406,7 @@ func (repo *RepoLayer) DeleteFromOrder(ctx context.Context, requestId string, or
 	}
 	if countRows == 0 {
 		functions.LogWarn(repo.logger, requestId, constants.NameMethodDeleteFromOrder, fmt.Errorf(NotDeleteFood), constants.RepoLayer)
-		return fmt.Errorf(NotDeleteFood)
+		return errors.New(NotDeleteFood)
 	}
 	price, err := repo.GetFoodPrice(ctx, requestId, foodId)
 	if err != nil {
@@ -408,6 +419,24 @@ func (repo *RepoLayer) DeleteFromOrder(ctx context.Context, requestId string, or
 		return err
 	}
 	sum = sum - count*price
+	if sum == 0 {
+		res, err = repo.db.ExecContext(ctx,
+			`DELETE FROM "order" WHERE id=$1`, uint64(orderId))
+		if err != nil {
+			functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
+			return err
+		}
+		countRows, err = res.RowsAffected()
+		if err != nil {
+			functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
+			return err
+		}
+		if countRows == 0 {
+			functions.LogWarn(repo.logger, requestId, constants.NameMethodCleanBasket, fmt.Errorf(CleanError), constants.RepoLayer)
+			return errors.New(CleanError)
+		}
+		return myerrors.BasketCleaned
+	}
 	functions.LogOk(repo.logger, requestId, constants.NameMethodDeleteFromOrder, constants.RepoLayer)
 	return repo.UpdateSum(ctx, requestId, sum, orderId)
 }
@@ -428,11 +457,20 @@ func (repo *RepoLayer) CleanBasket(ctx context.Context, requestId string, id ali
 		functions.LogWarn(repo.logger, requestId, constants.NameMethodCleanBasket, fmt.Errorf(CleanError), constants.RepoLayer)
 		return fmt.Errorf(CleanError)
 	}
-	sum := uint32(0)
-	err = repo.UpdateSum(ctx, requestId, sum, id)
+	res, err = repo.db.ExecContext(ctx,
+		`DELETE FROM "order" WHERE id=$1`, uint64(id))
 	if err != nil {
 		functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
 		return err
+	}
+	countRows, err = res.RowsAffected()
+	if err != nil {
+		functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
+		return err
+	}
+	if countRows == 0 {
+		functions.LogWarn(repo.logger, requestId, constants.NameMethodCleanBasket, fmt.Errorf(CleanError), constants.RepoLayer)
+		return fmt.Errorf(CleanError)
 	}
 	return nil
 }
