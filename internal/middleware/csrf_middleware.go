@@ -20,7 +20,7 @@ import (
 
 var allowedRequestURI = []string{
 	"/api/v1/signin", "/api/v1/signup", "/api/v1/user/address", "/api/v1/order/clean", "/api/v1/order/add",
-	"/api/v1/order/food/add", "/api/v1/order/food/update_count", "/api/v1/order/food/delete/14"}
+	"/api/v1/order/food/add", "/api/v1/order/food/update_count", "/api/v1/order/food/delete/14", "/api/v1/order/update_address"}
 var notAllowedRequestURI = []string{
 	"/api/v1/order/pay"}
 

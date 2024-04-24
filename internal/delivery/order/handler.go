@@ -112,13 +112,23 @@ func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+	token := ""
+	ctxToken := r.Context().Value("unauth_token")
+	if ctxToken != nil {
+		token = ctxToken.(string)
+	}
+	if email == "" && token == "" {
+		w = functions.ErrorResponse(w, "У вас нет корзины", http.StatusBadRequest)
 		return
 	}
 	var fullAddress dto.FullAddress
-	basketId, err := h.uc.GetBasketId(r.Context(), email)
+	var basketId alias.OrderId
+	var err error
+	if token != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), token)
+	} else if email != "" {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+	}
 	if err != nil {
 		functions.LogWarn(h.logger, requestId, constants.NameMethodGetFoodById, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
@@ -336,19 +346,37 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 
 func (h *OrderHandler) Clean(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	requestId := ""
+	ctxRequestId := r.Context().Value("request_id")
+	if ctxRequestId == nil {
+		err := errors.New("request_id передан не был")
+		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
+	} else {
+		requestId = ctxRequestId.(string)
+	}
 	email := ""
 	ctxEmail := r.Context().Value("email")
 	if ctxEmail != nil {
 		email = ctxEmail.(string)
 	}
-	if email == "" {
-		fmt.Println("Необходимо авторизиризоваться")
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+	token := ""
+	ctxToken := r.Context().Value("unauth_token")
+	if ctxToken != nil {
+		token = ctxToken.(string)
+	}
+	if email == "" && token == "" {
+		w = functions.ErrorResponse(w, "У вас нет корзины", http.StatusBadRequest)
 		return
 	}
-	basketId, err := h.uc.GetBasketId(r.Context(), email)
+	var basketId alias.OrderId
+	var err error
+	if token != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), token)
+	} else if email != "" {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+	}
 	if err != nil {
-		fmt.Println(err)
+		functions.LogWarn(h.logger, requestId, constants.NameMethodGetFoodById, err, constants.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}

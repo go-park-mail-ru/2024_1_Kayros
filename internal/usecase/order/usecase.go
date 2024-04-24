@@ -79,11 +79,9 @@ func (uc *UsecaseLayer) GetBasketIdNoAuth(ctx context.Context, token string) (al
 	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	id, err := uc.repoOrder.GetBasketIdNoAuth(ctx, requestId, token)
 	if id == 0 {
-		functions.LogWarn(uc.logger, requestId, methodName, err, constants.UsecaseLayer)
 		return 0, nil
 	}
 	if err != nil {
-		functions.LogError(uc.logger, requestId, methodName, err, constants.UsecaseLayer)
 		return 0, err
 	}
 	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
