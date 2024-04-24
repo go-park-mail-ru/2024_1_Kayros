@@ -7,4 +7,5 @@ var (
 	RegexEmail    = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	RegexPassword = regexp.MustCompile(`^[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+$`)
 	RegexPhone    = regexp.MustCompile(`^\+7 \(\d{3}\) \d{3} \d{2} \d{2}$`)
+	RegexURI      = regexp.MustCompile(`^/api/v1/order/food/delete/\d+$`)
 )

@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -14,11 +15,14 @@ import (
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/regex"
 )
 
 var allowedRequestURI = []string{
 	"/api/v1/signin", "/api/v1/signup", "/api/v1/user/address", "/api/v1/order/clean", "/api/v1/order/add",
-	"/api/v1/order/food/add", "/api/v1/order/food/update_count", "/order/food/delete/{food_id}"}
+	"/api/v1/order/food/add", "/api/v1/order/food/update_count", "/api/v1/order/food/delete/14"}
+var notAllowedRequestURI = []string{
+	"/api/v1/order/pay"}
 
 // CsrfMiddleware проверяет наличие csrf_token в запросе | Метод Signed Double-Submit Cookie
 func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *config.Project, logger *zap.Logger) http.Handler {
@@ -50,6 +54,8 @@ func CsrfMiddleware(handler http.Handler, ucCsrfTokens session.Usecase, cfg *con
 			if csrfCookie != nil {
 				csrfToken = csrfCookie.Value
 			}
+			req := regex.RegexURI.MatchString(r.RequestURI)
+			fmt.Println(req)
 			if errors.Is(err, http.ErrNoCookie) && contains(allowedRequestURI, r.RequestURI) {
 				handler.ServeHTTP(w, r)
 				return
@@ -99,6 +105,9 @@ func contains(slice []string, item string) bool {
 		if element == item {
 			return true
 		}
+	}
+	if regex.RegexURI.MatchString(item) {
+		return true
 	}
 	return false
 }
