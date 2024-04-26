@@ -12,7 +12,6 @@ func Cors(handler http.Handler, logger *zap.Logger) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		logger.Info("Политики SOP разрешена")
 		handler.ServeHTTP(w, r)
 	})
 }

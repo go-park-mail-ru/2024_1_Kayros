@@ -40,13 +40,9 @@ func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, 
 }
 
 func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
-	requestId, err := functions.GetCtxRequestId(r)
-	if err != nil {
-		d.logger.Error(err.Error())
-	}
-	email, err := functions.GetCtxEmail(r)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email != "" {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
@@ -75,7 +71,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	u := dto.NewUserFromSignUpForm(&signupDTO)
 
-	uAuth, err := d.ucAuth.SignUpUser(r.Context(), email, u)
+	uAuth, err := d.ucAuth.SignUpUser(r.Context(), u.Email, u)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.UserAlreadyExist) {
@@ -89,7 +85,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	u = sanitizer.User(uAuth)
 	uDTO := dto.NewUserData(u)
 
-	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, email, d.cfg.CsrfSecretKey)
+	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, u.Email, d.cfg.CsrfSecretKey)
 	w, err = functions.SetCookie(w, r, setCookieProps)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
@@ -98,13 +94,9 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
-	requestId, err := functions.GetCtxRequestId(r)
-	if err != nil {
-		d.logger.Error(err.Error())
-	}
-	email, err := functions.GetCtxEmail(r)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email != "" {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
@@ -145,7 +137,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	uSanitizer := sanitizer.User(u)
 	uDTO := dto.NewUserData(uSanitizer)
 
-	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, email, d.cfg.CsrfSecretKey)
+	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, u.Email, d.cfg.CsrfSecretKey)
 	w, err = functions.SetCookie(w, r, setCookieProps)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
@@ -154,18 +146,14 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
-	requestId, err := functions.GetCtxRequestId(r)
-	if err != nil {
-		d.logger.Error(err.Error())
-	}
-	_, err = functions.GetCtxEmail(r)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
-	err = functions.DeleteCookiesFromDB(r, d.ucCsrf, d.ucSession)
+	err := functions.DeleteCookiesFromDB(r, d.ucCsrf, d.ucSession)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, http.ErrNoCookie) {

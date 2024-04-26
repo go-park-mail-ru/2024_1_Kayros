@@ -38,13 +38,9 @@ func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, 
 }
 
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
-	requestId, err := functions.GetCtxRequestId(r)
-	if err != nil {
-		d.logger.Error(err.Error())
-	}
-	email, err := functions.GetCtxEmail(r)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
@@ -82,13 +78,9 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
-	requestId, err := functions.GetCtxRequestId(r)
-	if err != nil {
-		d.logger.Error(err.Error())
-	}
-	email, err := functions.GetCtxEmail(r)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
@@ -144,13 +136,9 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
-	requestId, err := functions.GetCtxRequestId(r)
-	if err != nil {
-		d.logger.Error(err.Error())
-	}
-	email, err := functions.GetCtxEmail(r)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
@@ -221,13 +209,9 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
-	requestId, err := functions.GetCtxRequestId(r)
-	if err != nil {
-		d.logger.Error(err.Error())
-	}
-	email, err := functions.GetCtxEmail(r)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}

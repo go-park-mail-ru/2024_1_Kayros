@@ -35,7 +35,7 @@ func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, signupData
 		}
 	}
 	if isExist {
-		return nil, myerrors.UserAlreadyExistRu
+		return nil, myerrors.UserAlreadyExist
 	}
 
 	// we do copy for clean function
@@ -51,6 +51,8 @@ func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, signupData
 	if err != nil {
 		return nil, err
 	}
+	// we insert default address here, because double request for database is more complicated
+	uCopy.ImgUrl = "/minio-api/users/default.jpg"
 
 	return uCopy, nil
 }
@@ -72,8 +74,14 @@ func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, password s
 }
 
 func (uc *UsecaseLayer) isExistByEmail(ctx context.Context, email string) (bool, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
-	return u != nil, err
+	_, err := uc.repoUser.GetByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // checkPassword - method used to check password with password saved in database

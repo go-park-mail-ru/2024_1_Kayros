@@ -1,18 +1,19 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	cnst "2024_1_kayros/internal/utils/constants"
+	"2024_1_kayros/internal/utils/functions"
 	"github.com/satori/uuid"
 	"go.uber.org/zap"
 )
 
 type AccessLogStart struct {
 	UserAgent     string
-	Host          string
 	RealIp        string
 	ContentLength int64
 	URI           string
@@ -22,12 +23,7 @@ type AccessLogStart struct {
 }
 
 type AccessLogEnd struct {
-	UserAgent    string
-	Host         string
-	RealIp       string
 	ResponseSize int64
-	URI          string
-	Method       string
 	LatencyHuman string
 	LatencyMs    string
 	EndTime      string
@@ -39,8 +35,17 @@ func Access(handler http.Handler, logger *zap.Logger) http.Handler {
 		requestId := uuid.NewV4().String()
 		timeNow := time.Now().UTC()
 		LogInitRequest(r, logger, timeNow, requestId)
+
+		unauthId, err := functions.GetCookieUnauthIdValue(r)
+		if err != nil {
+			logger.Warn(err.Error(), zap.String(cnst.RequestId, requestId))
+		}
+		ctx := context.WithValue(r.Context(), cnst.UnauthIdCookieName, unauthId)
+		ctx = context.WithValue(ctx, cnst.RequestId, requestId)
+		r = r.WithContext(ctx)
 		handler.ServeHTTP(w, r)
-		LogEndRequest(r, logger, timeNow, requestId)
+
+		LogEndRequest(logger, timeNow, requestId)
 	})
 }
 
@@ -48,7 +53,6 @@ func LogInitRequest(r *http.Request, logger *zap.Logger, timeNow time.Time, requ
 	msg := fmt.Sprintf("init request %s", requestId)
 	startLog := &AccessLogStart{
 		UserAgent:     r.UserAgent(),
-		Host:          r.Host,
 		RealIp:        r.Header.Get("X-Real-IP"),
 		ContentLength: r.ContentLength,
 		URI:           r.RequestURI,
@@ -58,7 +62,6 @@ func LogInitRequest(r *http.Request, logger *zap.Logger, timeNow time.Time, requ
 
 	logger.Info(msg,
 		zap.String("user_agent", startLog.UserAgent),
-		zap.String("host", startLog.Host),
 		zap.String("real_ip", startLog.RealIp),
 		zap.Int64("content_length", startLog.ContentLength),
 		zap.String("uri", startLog.URI),
@@ -68,30 +71,19 @@ func LogInitRequest(r *http.Request, logger *zap.Logger, timeNow time.Time, requ
 	)
 }
 
-func LogEndRequest(r *http.Request, logger *zap.Logger, timeNow time.Time, requestId string) {
+func LogEndRequest(logger *zap.Logger, timeNow time.Time, requestId string) {
 	msg := fmt.Sprintf("request done %s", requestId)
 	endLog := &AccessLogEnd{
-		UserAgent:    r.UserAgent(),
-		Host:         r.Host,
-		RealIp:       r.Header.Get("X-Real-IP"),
 		ResponseSize: 10,
-		URI:          r.RequestURI,
-		Method:       r.Method,
 		EndTime:      timeNow.Format(cnst.Timestamptz),
 		LatencyHuman: time.Since(timeNow).String(),
 		LatencyMs:    time.Since(timeNow).String(),
 	}
 	logger.Info(msg,
-		zap.String("user_agent", endLog.UserAgent),
-		zap.String("host", endLog.Host),
-		zap.String("real_ip", endLog.RealIp),
 		zap.Int64("response_size", endLog.ResponseSize),
-		zap.String("uri", endLog.URI),
-		zap.String("method", endLog.Method),
 		zap.String("end_time", endLog.EndTime),
 		zap.String("latency_human", endLog.LatencyHuman),
 		zap.String("latency_human_ms", endLog.LatencyMs),
-		zap.String("end_time", endLog.EndTime),
 		zap.String("request_id", requestId),
 	)
 }

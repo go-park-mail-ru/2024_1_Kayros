@@ -1,10 +1,12 @@
 package constants
 
 const (
-	SessionCookieName = "session_id"
-	CsrfCookieName    = "csrf_token"
-	RequestId         = "request_id"
-	XCsrfHeader       = "XCSRF_Token"
+	SessionCookieName  = "session_id"
+	CsrfCookieName     = "csrf_token"
+	UnauthIdCookieName = "unauth_id"
+
+	RequestId   = "request_id"
+	XCsrfHeader = "XCSRF_Token"
 )
 
 const (
