@@ -81,7 +81,7 @@ func (repo *RepoLayer) Create(ctx context.Context, u *entity.User) error {
 func (repo *RepoLayer) Update(ctx context.Context, uDataChange *entity.User, email string) error {
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	row, err := repo.database.ExecContext(ctx,
-		`UPDATE "user" SET name = $1, email = $3, phone = $2, img_url = $4, password = $5, card_number = $6, address = $7, updated_at = $8 WHERE email = $9`,
+		`UPDATE "user" SET name = $1, email = $2, phone = $3, img_url = $4, password = $5, card_number = $6, address = $7, updated_at = $8 WHERE email = $9`,
 		uDataChange.Name, uDataChange.Email, functions.MaybeNullString(uDataChange.Phone), uDataChange.ImgUrl, uDataChange.Password, functions.MaybeNullString(uDataChange.CardNumber), functions.MaybeNullString(uDataChange.Address), timeNow, email)
 	if err != nil {
 		return err

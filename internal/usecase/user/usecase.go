@@ -3,7 +3,9 @@ package user
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/minios3"
@@ -49,21 +51,35 @@ func (uc *UsecaseLayer) UpdateData(ctx context.Context, data *props.UpdateUserDa
 
 	fillUserFields(u, data.UserPropsUpdate)
 	if data.File != nil && data.Handler != nil {
-		mimeType, err := functions.GetFileMimeType(data.File)
+		buffer := bytes.NewBuffer(nil)
+		if _, err := io.Copy(buffer, data.File); err != nil {
+			return nil, err
+		}
+		mimeType, err := functions.GetFileMimeType(buffer.Bytes())
 		if err != nil {
 			return nil, err
 		}
-		fileExtension := functions.GetFileExtension(mimeType)
-		if _, ok := cnst.ValidMimeTypes[fileExtension]; !ok {
+		fileExtension := functions.GetFileExtension(data.Handler.Filename)
+		if _, ok := cnst.ValidMimeTypes[mimeType]; !ok {
 			return nil, myerrors.WrongFileExtension
 		}
 
 		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
-		err = uc.minio.UploadImageByEmail(ctx, data.File, filename, data.Handler.Size)
+		err = uc.minio.UploadImageByEmail(ctx, buffer, filename, data.Handler.Size, mimeType)
 		if err != nil {
 			return nil, err
 		}
 		u.ImgUrl = fmt.Sprintf("/minio-api/%s/%s", cnst.BucketUser, filename)
+	}
+
+	uDB, err := uc.repoUser.GetByEmail(ctx, data.UserPropsUpdate.Email)
+	if err != nil {
+		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			return nil, err
+		}
+	}
+	if uDB != nil {
+		return nil, myerrors.UserAlreadyExist
 	}
 
 	err = uc.repoUser.Update(ctx, u, data.Email)
@@ -85,7 +101,13 @@ func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email string, address
 	if err != nil {
 		return nil, err
 	}
-	return u, nil
+
+	uDB, err := uc.repoUser.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	return uDB, nil
 }
 
 // SetNewPassword - method used to set new password.

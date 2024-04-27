@@ -1,15 +1,15 @@
 package minios3
 
 import (
+	"bytes"
 	"context"
-	"mime/multipart"
 
 	cnst "2024_1_kayros/internal/utils/constants"
 	"github.com/minio/minio-go/v7"
 )
 
 type Repo interface {
-	UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64) error
+	UploadImageByEmail(ctx context.Context, buffer *bytes.Buffer, filename string, filesize int64, mimeType string) error
 }
 
 type RepoLayer struct {
@@ -22,7 +22,7 @@ func NewRepoLayer(minioClient *minio.Client) Repo {
 	}
 }
 
-func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64) error {
-	_, err := repo.minio.PutObject(ctx, cnst.BucketUser, filename, file, filesize, minio.PutObjectOptions{ContentType: "application/form-data"})
+func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, buffer *bytes.Buffer, filename string, filesize int64, mimeType string) error {
+	_, err := repo.minio.PutObject(ctx, cnst.BucketUser, filename, buffer, filesize, minio.PutObjectOptions{ContentType: mimeType})
 	return err
 }

@@ -2,6 +2,7 @@ package functions
 
 import (
 	"regexp"
+	"unicode/utf8"
 
 	"2024_1_kayros/internal/utils/regex"
 	"github.com/asaskevich/govalidator"
@@ -17,35 +18,39 @@ func InitDtoValidator(logger *zap.Logger) {
 		return regex.Name.MatchString(name)
 	}
 
-	// phone_domain
+	// user_phone_domain
 	govalidator.TagMap["user_phone_domain"] = func(phone string) bool {
 		return regex.Phone.MatchString(phone)
 	}
 
-	// email_domain
+	// user_email_domain
 	govalidator.TagMap["user_email_domain"] = func(email string) bool {
-		return len(email) >= 6 && len(email) <= 50 && regex.Email.MatchString(email)
+		emailLen := utf8.RuneCountInString(email)
+		return emailLen >= 6 && emailLen <= 50 && regex.Email.MatchString(email)
 	}
 
-	// address_domain
+	// user_address_domain
 	govalidator.TagMap["user_address_domain"] = func(address string) bool {
-		return len(address) >= 14 || len(address) <= 100
+		addressLen := utf8.RuneCountInString(address)
+		return addressLen >= 14 && addressLen <= 100
 	}
 
 	// img_url_domain
 	govalidator.TagMap["img_url_domain"] = func(imgUrl string) bool {
-		return len(imgUrl) <= 60
+		imgUrlLen := utf8.RuneCountInString(imgUrl)
+		return imgUrlLen <= 60
 	}
 
-	// card_number_domain
+	// user_card_number_domain
 	govalidator.TagMap["user_card_number_domain"] = func(cardNumber string) bool {
 		return regex.CardNumber.MatchString(cardNumber)
 	}
 
-	// password_domain
+	// user_password_domain
 	govalidator.TagMap["user_password_domain"] = func(pwd string) bool {
 		// Check length range
-		if len(pwd) < 8 || len(pwd) > 20 {
+		pwdLen := utf8.RuneCountInString(pwd)
+		if pwdLen < 8 || pwdLen > 20 {
 			return false
 		}
 

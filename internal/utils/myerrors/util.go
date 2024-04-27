@@ -4,9 +4,13 @@ import "errors"
 
 // Response errors (external) RU
 var (
-	InternalServerRu           = errors.New("Ошибка сервера")
-	BadAuthCredentialsRu       = errors.New("Неверный логин или пароль")
-	UnauthorizedRu             = errors.New("Вы не зарегистрированы")
+	InternalServerRu     = errors.New("Ошибка сервера")
+	BadAuthCredentialsRu = errors.New("Неверный логин или пароль")
+
+	UnauthorizedRu = errors.New("Вы не авторизованы")
+	RegisteredRu   = errors.New("Вы уже зарегистрированы")
+	AuthorizedRu   = errors.New("Вы уже авторизованы")
+
 	BadCredentialsRu           = errors.New("Предоставлены некорректные данные")
 	UserAlreadyExistRu         = errors.New("Пользователь с таким логином уже зарегистрирован")
 	BigSizeFileRu              = errors.New("Превышен максимальный размер файла")
@@ -18,9 +22,13 @@ var (
 
 // Response errors (external) En
 var (
-	InternalServerEn           = errors.New("Server error")
-	BadAuthCredentialsEn       = errors.New("Invalid login or password")
-	UnauthorizedEn             = errors.New("You are not registered")
+	InternalServerEn     = errors.New("Server error")
+	BadAuthCredentialsEn = errors.New("Invalid login or password")
+
+	UnauthorizedEn = errors.New("You are not authorized")
+	RegisteredEn   = errors.New("You are already registered")
+	AuthorizedEn   = errors.New("You are already authorized")
+
 	BadCredentialsEn           = errors.New("Incorrect data provided")
 	UserAlreadyExistEn         = errors.New("User with this login already exists")
 	BigSizeFileEn              = errors.New("Maximum file size exceeded")

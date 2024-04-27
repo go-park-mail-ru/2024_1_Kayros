@@ -112,6 +112,10 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 			w = functions.ErrorResponse(w, myerrors.WrongFileExtensionRu, http.StatusBadRequest)
 			return
 		}
+		if errors.Is(err, myerrors.UserAlreadyExist) {
+			w = functions.ErrorResponse(w, myerrors.UserAlreadyExistRu, http.StatusBadRequest)
+			return
+		}
 		// we don't handle `myerrors.SqlNoRowsUserRelation`, because it's internal server error
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
@@ -127,7 +131,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, email, d.cfg.CsrfSecretKey)
+	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, uUpdated.Email, d.cfg.CsrfSecretKey)
 	w, err = functions.SetCookie(w, r, setCookieProps)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
@@ -160,6 +164,9 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isValid, err := address.Validate()
+	if address.Data == "" {
+		isValid = true
+	}
 	if err != nil || !isValid {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
@@ -250,7 +257,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 			w = functions.ErrorResponse(w, myerrors.IncorrectCurrentPasswordRu, http.StatusBadRequest)
 			return
 		}
-		if errors.Is(err, myerrors.NewPasswordRu) {
+		if errors.Is(err, myerrors.NewPassword) {
 			w = functions.ErrorResponse(w, myerrors.NewPasswordRu, http.StatusBadRequest)
 			return
 		}

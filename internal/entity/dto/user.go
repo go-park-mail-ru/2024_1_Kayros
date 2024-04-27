@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"errors"
 	"mime/multipart"
 	"net/http"
 
@@ -12,9 +13,9 @@ import (
 
 // UserUpdate - DTO used for unmarshalling http.Request.Body in format JSON (need for updating user data from profile)
 type UserUpdate struct {
-	Name  string `json:"name" valid:"user_name_domain"`
+	Name  string `json:"name" valid:"user_name_domain, optional"`
 	Phone string `json:"phone" valid:"user_phone_domain, optional"`
-	Email string `json:"email" valid:"user_email_domain"`
+	Email string `json:"email" valid:"user_email_domain, optional"`
 }
 
 func (d *UserUpdate) Validate() (bool, error) {
@@ -39,6 +40,9 @@ func GetUpdatedUserData(r *http.Request) (multipart.File, *multipart.FileHeader,
 
 	file, handler, err := r.FormFile("img")
 	if err != nil {
+		if errors.Is(err, http.ErrMissingFile) {
+			return nil, nil, u, nil
+		}
 		return nil, nil, nil, err
 	}
 	if handler.Size > cnst.UploadedFileMaxSize {
@@ -78,7 +82,7 @@ func (d *UserSignIn) Validate() (bool, error) {
 
 // UserGet - DTO used for handler 'UserData' method GET
 type UserGet struct {
-	Id      uint64 `json:"id" valid:"int, optional"`
+	Id      uint64 `json:"id" valid:"-"`
 	Name    string `json:"name" valid:"user_name_domain"`
 	Phone   string `json:"phone" valid:"user_phone_domain"`
 	Email   string `json:"email" valid:"user_email_domain"`
@@ -100,7 +104,7 @@ func NewUserData(u *entity.User) *UserGet {
 
 // Address - DTO used for handler 'UpdateAddress' method PUT
 type Address struct {
-	Data string `json:"user_address_domain"`
+	Data string `json:"address" valid:"user_address_domain, optional"`
 }
 
 func (d *Address) Validate() (bool, error) {

@@ -51,10 +51,13 @@ func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, signupData
 	if err != nil {
 		return nil, err
 	}
-	// we insert default address here, because double request for database is more complicated
-	uCopy.ImgUrl = "/minio-api/users/default.jpg"
 
-	return uCopy, nil
+	uDB, err := uc.repoUser.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	return uDB, nil
 }
 
 func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, password string) (*entity.User, error) {

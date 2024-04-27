@@ -43,7 +43,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email != "" {
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.RegisteredRu, http.StatusUnauthorized)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email != "" {
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
@@ -160,6 +160,8 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
 			return
 		}
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
 	}
 
 	w, err = functions.CookieExpired(w, r)
