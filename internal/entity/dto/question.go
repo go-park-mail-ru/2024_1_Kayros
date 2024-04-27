@@ -1,12 +1,33 @@
 package dto
 
-import "github.com/asaskevich/govalidator"
+import (
+	"2024_1_kayros/internal/entity"
+	"github.com/asaskevich/govalidator"
+)
 
 type Question struct {
-	Id     uint64 `json:"id" valid:"-"`
-	Rating uint32 `json:"rating" valid:"-"`
+	Id        uint64 `json:"id"`
+	Name      string `json:"name"`
+	Url       string `json:"url"`
+	FocusId   string `json:"focus_id,omitempty"`
+	ParamType string `json:"param_type"`
 }
 
 func (d *Question) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
+}
+
+func QuestionReturn(qArray []*entity.Question) []Question {
+	arr := []Question{}
+	for _, q := range qArray {
+		qDTO := Question{
+			Id:        q.Id,
+			Name:      q.Name,
+			ParamType: q.ParamType,
+			FocusId:   q.FocusId,
+			Url:       q.Url,
+		}
+		arr = append(arr, qDTO)
+	}
+	return arr
 }

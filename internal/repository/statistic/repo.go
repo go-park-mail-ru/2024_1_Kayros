@@ -16,8 +16,8 @@ type Repo interface {
 	//GetStatistic(ctx context.Context) ([]*entity.Statistic, error)
 	GetQuestionInfo(ctx context.Context, url string) ([]*entity.Question, error)
 	GetQuestions(ctx context.Context) ([]*entity.Question, error)
-	NPS(ctx context.Context, id uint16) (int8, error)
-	CSAT(ctx context.Context, id uint16) (int8, error)
+	NPS(ctx context.Context, id uint64) (int8, error)
+	CSAT(ctx context.Context, id uint64) (int8, error)
 }
 
 type RepoLayer struct {
@@ -116,7 +116,7 @@ func (repo *RepoLayer) GetQuestions(ctx context.Context) ([]*entity.Question, er
 //	return stats, nil
 //}
 
-func (repo *RepoLayer) NPS(ctx context.Context, id uint16) (int8, error) {
+func (repo *RepoLayer) NPS(ctx context.Context, id uint64) (int8, error) {
 	//кол-во промоутеров 9-10
 	var first int8
 	var second int8
@@ -145,7 +145,7 @@ func (repo *RepoLayer) NPS(ctx context.Context, id uint16) (int8, error) {
 	return (first - second) * 100 / n, nil
 }
 
-func (repo *RepoLayer) CSAT(ctx context.Context, id uint16) (int8, error) {
+func (repo *RepoLayer) CSAT(ctx context.Context, id uint64) (int8, error) {
 	//кол-во промоутеров 9-10
 	var top int8
 	var n int8

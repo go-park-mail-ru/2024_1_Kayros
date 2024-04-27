@@ -3,7 +3,7 @@ package entity
 import "database/sql"
 
 type Question struct {
-	Id        uint16
+	Id        uint64
 	Name      string
 	Url       string
 	FocusId   string
@@ -11,7 +11,7 @@ type Question struct {
 }
 
 type QuestionSql struct {
-	Id        uint16         `json:"id"`
+	Id        uint64         `json:"id"`
 	Name      string         `json:"name"`
 	Url       string         `json:"url"`
 	FocusId   sql.NullString `json:"focus_id"`
