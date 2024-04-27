@@ -3,6 +3,7 @@ package statistic
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"2024_1_kayros/internal/entity"
 	"go.uber.org/zap"
@@ -28,7 +29,8 @@ func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
 }
 
 func (repo *RepoLayer) Create(ctx context.Context, questionId uint64, rating uint32, user string) error {
-	res, err := repo.db.ExecContext(ctx, `INSERT INTO quiz(question_id, user_id, rating) VALUES($1, $2, $3)`, questionId, user, rating)
+	timeNow := time.Now().UTC().Format("2006-01-02 15:04:05-07:00")
+	res, err := repo.db.ExecContext(ctx, `INSERT INTO quiz(question_id, user_id, rating, created_at) VALUES($1, $2, $3, $4)`, questionId, user, rating, timeNow)
 	if err != nil {
 		return err
 	}
@@ -43,8 +45,9 @@ func (repo *RepoLayer) Create(ctx context.Context, questionId uint64, rating uin
 }
 
 func (repo *RepoLayer) Update(ctx context.Context, questionId uint64, rating uint32, user string) error {
+	timeNow := time.Now().UTC().Format("2006-01-02 15:04:05-07:00")
 	res, err := repo.db.ExecContext(ctx,
-		`UPDATE quiz SET rating=$1 WHERE question_id=$2 AND user_id=$3`, rating, questionId, user)
+		`UPDATE quiz SET rating=$1, created_at=$2 WHERE question_id=$3 AND user_id=$4`, rating, timeNow, questionId, user)
 	if err != nil {
 		return err
 	}
@@ -59,14 +62,14 @@ func (repo *RepoLayer) Update(ctx context.Context, questionId uint64, rating uin
 }
 
 func (repo *RepoLayer) GetQuestionInfo(ctx context.Context) ([]*entity.Question, error) {
-	rows, err := repo.db.QueryContext(ctx, `SELECT id, text FROM question`)
+	rows, err := repo.db.QueryContext(ctx, `SELECT id, name FROM question`)
 	if err != nil {
 		return nil, err
 	}
 	qs := []*entity.Question{}
 	for rows.Next() {
 		q := entity.Question{}
-		err = rows.Scan(&q.Id, &q.Text)
+		err = rows.Scan(&q.Id, &q.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -76,14 +79,14 @@ func (repo *RepoLayer) GetQuestionInfo(ctx context.Context) ([]*entity.Question,
 }
 
 func (repo *RepoLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, error) {
-	rows, err := repo.db.QueryContext(ctx, `SELECT question_id, COUNT(*), AVG(rating) FROM quiz JOIN question ON quiz.question_id = question.id  GROUP BY question_id`)
+	rows, err := repo.db.QueryContext(ctx, `SELECT question_id, COUNT(*), AVG(rating), MIN(name) as name FROM quiz JOIN question ON quiz.question_id = question.id  GROUP BY question_id;`)
 	if err != nil {
 		return nil, err
 	}
 	stats := []*entity.Statistic{}
 	for rows.Next() {
 		stat := entity.Statistic{}
-		err = rows.Scan(&stat.QuestionId, &stat.Count, &stat.Rating, &stat.QuestionName)
+		err = rows.Scan(&stat.QuestionId, &stat.Count, &stat.AverageRating, &stat.QuestionName)
 		if err != nil {
 			return nil, err
 		}

@@ -48,7 +48,7 @@ func (d *Delivery) GetStatistic(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
-	if email != "admina@mail.ru" {
+	if email != "admiq@mail.ru" {
 		d.logger.Error(myerrors.PermissionError, zap.String("request_id", requestId))
 		w = functions.ErrorResponse(w, myerrors.PermissionError, http.StatusUnauthorized)
 		return
@@ -205,5 +205,5 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.WriteHeader(http.StatusOK)
+	w = functions.JsonResponse(w, map[string]string{"detail": "Пользователь успешно проголосовал"})
 }
