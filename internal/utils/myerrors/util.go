@@ -6,6 +6,7 @@ import "errors"
 const (
 	InternalServerError     = "Ошибка сервера"
 	UnauthorizedError       = "Вы не зарегистрированы"
+	PermissionError         = "Нет доступа"
 	BadAuthCredentialsError = "Неверный логин или пароль"
 	BadCredentialsError     = "Предоставлены некорректные данные"
 	UserAlreadyExistError   = "Пользователь с таким логином уже зарегистрирован"

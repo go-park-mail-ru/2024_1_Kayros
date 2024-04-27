@@ -14,7 +14,6 @@ import (
 	ucRest "2024_1_kayros/internal/usecase/restaurants"
 )
 
-// нужно будет добавить интерфейс к БД и редису
 func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
 	repoRest := rRest.NewRepoLayer(db, logger)
 	repoFood := rFood.NewRepoLayer(db, logger)
