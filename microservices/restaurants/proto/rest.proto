@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option go_package = "./;rest";
+
+package rest;
+
+message RestId {
+  uint64 id = 1;
+}
+
+message CommentId {
+  uint64 id = 1;
+}
+
+message Empty {}
+
+message Rest {
+  oneof user_info {
+    int32 user_id = 1;
+    string user_name = 2;
+  }
+  string shortDescription = 3;
+  string longDescription = 4;
+  string address = 5;
+  string imgUrl = 6;
+}
+
+message RestList {
+  repeated Rest rest= 1;
+}
+
+message Comment {
+  uint64 userId = 1;
+  string userName = 2;
+  uint64 restId = 3;
+  string text = 4;
+  string rating = 5;
+}
+
+message CommentList {
+  repeated Comment comment= 1;
+}
+
+service RestWorker {
+  rpc GetAll(Empty) returns (RestList) {};
+  rpc GetById(RestId) returns (Rest) {};
+  rpc CreateComment(Comment) returns (Comment) {};
+  rpc DeleteComment(CommentId) returns (Empty) {};
+  rpc GetCommentsByRest(RestId) returns (CommentList) {};
+}
