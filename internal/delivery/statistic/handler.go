@@ -162,7 +162,7 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 		requestId = ctxRequestId.(string)
 	}
 
-	var qi dto.Question
+	var qi []*dto.Question
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String("request_id", requestId))
@@ -192,18 +192,27 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 			return
 		}
-		err = d.ucQuiz.Create(r.Context(), qi.Id, qi.Rating, strconv.Itoa(int(u.Id)))
+		for _, q := range qi {
+			err = d.ucQuiz.Create(r.Context(), q.Id, q.Rating, strconv.Itoa(int(u.Id)))
+			if err != nil {
+				d.logger.Error(err.Error(), zap.String("request_id", requestId))
+				w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+				return
+			}
+		}
 	} else {
 		token := ""
 		ctxToken := r.Context().Value("unauth_token")
 		if ctxToken != nil {
 			token = ctxToken.(string)
-			err = d.ucQuiz.Create(r.Context(), qi.Id, qi.Rating, token)
-		}
-		if err != nil {
-			d.logger.Error(err.Error(), zap.String("request_id", requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-			return
+			for _, q := range qi {
+				err = d.ucQuiz.Create(r.Context(), q.Id, q.Rating, token)
+				if err != nil {
+					d.logger.Error(err.Error(), zap.String("request_id", requestId))
+					w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+					return
+				}
+			}
 		}
 	}
 	w = functions.JsonResponse(w, map[string]string{"detail": "Пользователь успешно проголосовал"})
