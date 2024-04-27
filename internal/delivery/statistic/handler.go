@@ -162,7 +162,7 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 		requestId = ctxRequestId.(string)
 	}
 
-	var qi []*dto.Question
+	var qi []*dto.QuestionInput
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String("request_id", requestId))

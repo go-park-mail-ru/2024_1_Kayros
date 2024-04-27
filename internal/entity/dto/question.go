@@ -5,6 +5,15 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
+type QuestionInput struct {
+	Id     uint64 `json:"id"`
+	Rating uint32 `json:"rating"`
+}
+
+func (d *QuestionInput) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
+}
+
 type Question struct {
 	Id        uint64 `json:"id"`
 	Name      string `json:"name"`

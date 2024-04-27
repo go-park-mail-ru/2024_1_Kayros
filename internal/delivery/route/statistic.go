@@ -23,5 +23,5 @@ func AddQuizRouter(db *sql.DB, mc *minio.Client, mux *mux.Router, logger *zap.Lo
 	mux.HandleFunc("/quiz/stats", deliveryQuiz.GetStatistic).Methods("GET").Name("quiz-stats")
 	mux.HandleFunc("/quiz/questions", deliveryQuiz.GetQuestions).Methods("GET").Name("get-questions")
 	mux.HandleFunc("/quiz/question/rating", deliveryQuiz.AddAnswer).Methods("POST").Name("add-question-rating")
-	mux.HandleFunc("/quiz/question/rating", deliveryQuiz.UpdateAnswer).Methods("PUT").Name("update-question-rating")
+	//mux.HandleFunc("/quiz/question/rating", deliveryQuiz.UpdateAnswer).Methods("PUT").Name("update-question-rating")
 }
