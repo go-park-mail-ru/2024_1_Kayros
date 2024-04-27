@@ -11,7 +11,7 @@ import (
 type Usecase interface {
 	Create(ctx context.Context, questionId uint64, rating uint32, user string) error
 	Update(ctx context.Context, questionId uint64, rating uint32, user string) error
-	GetQuestionInfo(ctx context.Context) ([]*entity.Question, error)
+	GetQuestionInfo(ctx context.Context, url string) ([]*entity.Question, error)
 	GetStatistic(ctx context.Context) ([]*entity.Statistic, error)
 }
 
@@ -43,8 +43,8 @@ func (uc *UsecaseLayer) Update(ctx context.Context, questionId uint64, rating ui
 	return nil
 }
 
-func (uc *UsecaseLayer) GetQuestionInfo(ctx context.Context) ([]*entity.Question, error) {
-	qs, err := uc.repoStatistic.GetQuestionInfo(ctx)
+func (uc *UsecaseLayer) GetQuestionInfo(ctx context.Context, url string) ([]*entity.Question, error) {
+	qs, err := uc.repoStatistic.GetQuestionInfo(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (uc *UsecaseLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, 
 	//if err != nil {
 	//	return nil, err
 	//}
-	qs, err := uc.repoStatistic.GetQuestionInfo(ctx)
+	qs, err := uc.repoStatistic.GetQuestions(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (uc *UsecaseLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, 
 			if err != nil {
 				return nil, err
 			}
-			st.NPS = uint8(res)
+			st.NPS = res
 			stats = append(stats, st)
 		}
 		if q.ParamType == "CSAT" {
@@ -76,7 +76,7 @@ func (uc *UsecaseLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, 
 			if err != nil {
 				return nil, err
 			}
-			st.CSAT = uint8(res)
+			st.CSAT = res
 			stats = append(stats, st)
 		}
 	}

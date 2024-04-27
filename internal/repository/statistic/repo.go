@@ -14,7 +14,8 @@ type Repo interface {
 	Create(ctx context.Context, questionId uint64, rating uint32, userId string, time string) error
 	Update(ctx context.Context, questionId uint64, rating uint32, userId string) error
 	//GetStatistic(ctx context.Context) ([]*entity.Statistic, error)
-	GetQuestionInfo(ctx context.Context) ([]*entity.Question, error)
+	GetQuestionInfo(ctx context.Context, url string) ([]*entity.Question, error)
+	GetQuestions(ctx context.Context) ([]*entity.Question, error)
 	NPS(ctx context.Context, id uint16) (int8, error)
 	CSAT(ctx context.Context, id uint16) (int8, error)
 }
@@ -63,8 +64,8 @@ func (repo *RepoLayer) Update(ctx context.Context, questionId uint64, rating uin
 	return nil
 }
 
-func (repo *RepoLayer) GetQuestionInfo(ctx context.Context) ([]*entity.Question, error) {
-	rows, err := repo.db.QueryContext(ctx, `SELECT id, name, url, focus_id, param_type FROM question`)
+func (repo *RepoLayer) GetQuestionInfo(ctx context.Context, url string) ([]*entity.Question, error) {
+	rows, err := repo.db.QueryContext(ctx, `SELECT id, name, url, focus_id, param_type FROM question WHERE url=$1`, url)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +73,23 @@ func (repo *RepoLayer) GetQuestionInfo(ctx context.Context) ([]*entity.Question,
 	for rows.Next() {
 		q := entity.Question{}
 		err = rows.Scan(&q.Id, &q.Name, &q.Url, &q.FocusId, &q.ParamType)
+		if err != nil {
+			return nil, err
+		}
+		qs = append(qs, &q)
+	}
+	return qs, nil
+}
+
+func (repo *RepoLayer) GetQuestions(ctx context.Context) ([]*entity.Question, error) {
+	rows, err := repo.db.QueryContext(ctx, `SELECT id, name, param_type FROM question`)
+	if err != nil {
+		return nil, err
+	}
+	qs := []*entity.Question{}
+	for rows.Next() {
+		q := entity.Question{}
+		err = rows.Scan(&q.Id, &q.Name, &q.ParamType)
 		if err != nil {
 			return nil, err
 		}

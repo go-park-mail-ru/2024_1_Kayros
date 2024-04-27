@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"strconv"
 
+	"go.uber.org/zap"
+
+	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/statistic"
 	"2024_1_kayros/internal/usecase/user"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
-	"go.uber.org/zap"
 )
 
 type Delivery struct {
@@ -73,14 +75,17 @@ func (d *Delivery) GetQuestions(w http.ResponseWriter, r *http.Request) {
 	} else {
 		requestId = ctxRequestId.(string)
 	}
-
-	qs, err := d.ucQuiz.GetQuestionInfo(r.Context())
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String("request_id", requestId))
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
-		return
+	url := r.URL.Query().Get("url") //    /restaurants, /address
+	qs := []*entity.Question{}
+	var err error
+	if url != "" {
+		qs, err = d.ucQuiz.GetQuestionInfo(r.Context(), url)
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String("request_id", requestId))
+			w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+			return
+		}
 	}
-
 	w = functions.JsonResponse(w, qs)
 }
 
