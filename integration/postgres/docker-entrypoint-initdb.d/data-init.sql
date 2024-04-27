@@ -161,3 +161,14 @@ VALUES ('Салат с миксом листьев и ростками сои', 
        ('Пицца Маргарита', 3, 4, 420, 750, NULL, NULL, NULL, '/minio-api/foods/94.jpg'),
        ('Пицца Груша-горгондзола', 3, 4, 490, 890, NULL, NULL, NULL, '/minio-api/foods/95.jpg');
 
+
+INSERT INTO question (name, url, focus_id, param_type)
+VALUES ('Question 1', 'https://example.com/1', '123', 'NPS'),
+       ('Question 2', 'https://example.com/2', '456', 'NPS'),
+       ('Question 3', 'https://example.com/3', '789', 'CSAT');
+
+-- Заполнение таблицы quiz данными
+INSERT INTO quiz (question_id, user_id, rating, created_at)
+VALUES (1, '1', 4, CURRENT_TIMESTAMP),
+       (2, '2', 3, CURRENT_TIMESTAMP),
+       (3, '3', 5, CURRENT_TIMESTAMP);

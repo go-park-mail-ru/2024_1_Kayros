@@ -3,6 +3,7 @@ package statistic
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -46,8 +47,9 @@ func (repo *RepoLayer) Create(ctx context.Context, questionId uint64, rating uin
 }
 
 func (repo *RepoLayer) Update(ctx context.Context, questionId uint64, rating uint32, user string) error {
+	timeNow := time.Now().UTC().Format("2006-01-02 15:04:05-07:00")
 	res, err := repo.db.ExecContext(ctx,
-		`UPDATE quiz SET rating=$1 WHERE question_id=$2 AND user_id=$3`, rating, questionId, user)
+		`UPDATE quiz SET rating=$1, created_at=$2 WHERE question_id=$3 AND user_id=$4`, rating, timeNow, questionId, user)
 	if err != nil {
 		return err
 	}
@@ -112,7 +114,6 @@ func (repo *RepoLayer) NPS(ctx context.Context, id uint16) (int8, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	row = repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE question_id=$1`, id)
 	err = row.Scan(&n)
 	if err != nil {
