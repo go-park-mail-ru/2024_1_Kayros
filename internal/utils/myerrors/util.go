@@ -53,6 +53,7 @@ var (
 	UserAlreadyExist         = errors.New("user with this login already exists")
 	BadAuthPassword          = errors.New("invalid password")
 	// Database
-	SqlNoRowsUserRelation = errors.New("no such record exists for \"user\"")
-	RedisNoData           = errors.New("no such record exists in Redis")
+	SqlNoRowsUserRelation       = errors.New("no such record exists for \"user\"")
+	SqlNoRowsRestaurantRelation = errors.New("no such record exists for restaurant")
+	RedisNoData                 = errors.New("no such record exists in Redis")
 )
