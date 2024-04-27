@@ -2,7 +2,8 @@ package dto
 
 type Statistic struct {
 	QuestionId   uint16 `json:"question_id" valid:"id"`
-	QuestionText string `json:"question_text" valid:"question_text_domain"`
-	Count        uint32 `json:"count" valid:"quiz_count_domain"`
-	Rating       uint8  `json:"rating" valid:"quiz_rating_domain"`
+	QuestionName string `json:"question_name" valid:"question_name_domain"`
+	Count        uint32 `json:"-" valid:"quiz_count_domain"`
+	NPS          uint8  `json:"nps" valid:"-"`
+	CSAT         uint8  `json:"csat" valid:"-"`
 }

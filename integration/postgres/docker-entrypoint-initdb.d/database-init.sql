@@ -130,12 +130,11 @@ CREATE TABLE IF NOT EXISTS food_order
 CREATE TABLE IF NOT EXISTS question
 (
     id       INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    text     TEXT
+    name     TEXT
         CONSTRAINT question_text CHECK (LENGTH(text) < 150),
     url      TEXT,
-    focus_id INTEGER
-        CONSTRAINT focus_domain CHECK (focus_id >= 0),
-    type     TEXT
+    focus_id TEXT ,
+    param_type     TEXT
 );
 
 CREATE TABLE IF NOT EXISTS quiz
@@ -147,4 +146,6 @@ CREATE TABLE IF NOT EXISTS quiz
         CONSTRAINT foreign_key_user CHECK (LENGTH(user_id) BETWEEN 1 AND 36),
     rating      INTEGER
         CONSTRAINT rating_domain CHECK (rating BETWEEN 0 AND 5)
+    created_at TIMESTAMPTZ
+        CONSTRAINT time_create NOT NULL
 );

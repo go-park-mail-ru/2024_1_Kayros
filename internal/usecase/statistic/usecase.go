@@ -2,6 +2,7 @@ package statistic
 
 import (
 	"context"
+	"time"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/statistic"
@@ -25,7 +26,9 @@ func NewUsecaseLayer(repoStatisticProps statistic.Repo) Usecase {
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, questionId uint64, rating uint32, user string) error {
-	err := uc.repoStatistic.Create(ctx, questionId, rating, user)
+	currentTime := time.Now().UTC()
+	timeForDB := currentTime.Format("2006-01-02T15:04:05Z07:00")
+	err := uc.repoStatistic.Create(ctx, questionId, rating, user, timeForDB)
 	if err != nil {
 		return err
 	}
@@ -49,9 +52,33 @@ func (uc *UsecaseLayer) GetQuestionInfo(ctx context.Context) ([]*entity.Question
 }
 
 func (uc *UsecaseLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, error) {
-	stats, err := uc.repoStatistic.GetStatistic(ctx)
+	//stats, err := uc.repoStatistic.GetStatistic(ctx)
+	//if err != nil {
+	//	return nil, err
+	//}
+	qs, err := uc.repoStatistic.GetQuestionInfo(ctx)
 	if err != nil {
 		return nil, err
+	}
+	stats := []*entity.Statistic{}
+	for _, q := range qs {
+		st := &entity.Statistic{QuestionId: q.Id, QuestionName: q.Name}
+		if q.ParamType == "NPS" {
+			res, err := uc.repoStatistic.NPS(ctx, q.Id)
+			if err != nil {
+				return nil, err
+			}
+			st.NPS = uint8(res)
+			stats = append(stats, st)
+		}
+		if q.ParamType == "CSAT" {
+			res, err := uc.repoStatistic.CSAT(ctx, q.Id)
+			if err != nil {
+				return nil, err
+			}
+			st.CSAT = uint8(res)
+			stats = append(stats, st)
+		}
 	}
 	return stats, nil
 }
