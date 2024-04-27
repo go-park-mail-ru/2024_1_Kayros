@@ -132,10 +132,10 @@ CREATE TABLE IF NOT EXISTS quiz
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     question_id INTEGER
         CONSTRAINT foreign_key_question CHECK (question_id > 0) REFERENCES question (id) ON DELETE CASCADE,
-    user_id     INTEGER
-        CONSTRAINT foreign_key_user CHECK (user_id > 0) REFERENCES "user" (id) ON DELETE CASCADE,
+    user_id     TEXT
+        CONSTRAINT foreign_key_user CHECK (LENGTH(user_id) BETWEEN 1 AND 36),
     rating      INTEGER
-        CONSTRAINT rating_domain CHECK ( rating BETWEEN 0 AND 5)
+        CONSTRAINT rating_domain CHECK (rating BETWEEN 0 AND 5)
 );
 
 CREATE TABLE IF NOT EXISTS question
