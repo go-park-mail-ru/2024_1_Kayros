@@ -127,6 +127,17 @@ CREATE TABLE IF NOT EXISTS food_order
 );
 
 -- Хакатон
+CREATE TABLE IF NOT EXISTS question
+(
+    id       INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    text     TEXT
+        CONSTRAINT question_text CHECK (LENGTH(text) < 150),
+    url      TEXT,
+    focus_id INTEGER
+        CONSTRAINT focus_domain CHECK (focus_id >= 0),
+    type     TEXT
+);
+
 CREATE TABLE IF NOT EXISTS quiz
 (
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -136,11 +147,4 @@ CREATE TABLE IF NOT EXISTS quiz
         CONSTRAINT foreign_key_user CHECK (LENGTH(user_id) BETWEEN 1 AND 36),
     rating      INTEGER
         CONSTRAINT rating_domain CHECK (rating BETWEEN 0 AND 5)
-);
-
-CREATE TABLE IF NOT EXISTS question
-(
-    id   INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    text TEXT
-        CONSTRAINT question_text CHECK (LENGTH(text) < 150)
 );

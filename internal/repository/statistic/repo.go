@@ -76,7 +76,7 @@ func (repo *RepoLayer) GetQuestionInfo(ctx context.Context) ([]*entity.Question,
 }
 
 func (repo *RepoLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, error) {
-	rows, err := repo.db.QueryContext(ctx, `SELECT question_id, COUNT(*), AVG(rating) FROM quiz JOIN question ON quiz.qeustion_id = question.id  GROUP BY question_id`)
+	rows, err := repo.db.QueryContext(ctx, `SELECT question_id, COUNT(*), AVG(rating) FROM quiz JOIN question ON quiz.question_id = question.id  GROUP BY question_id`)
 	if err != nil {
 		return nil, err
 	}

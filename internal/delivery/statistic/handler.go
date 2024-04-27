@@ -48,7 +48,7 @@ func (d *Delivery) GetStatistic(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
-	if email != "admin@mail.ru" {
+	if email != "admina@mail.ru" {
 		d.logger.Error(myerrors.PermissionError, zap.String("request_id", requestId))
 		w = functions.ErrorResponse(w, myerrors.PermissionError, http.StatusUnauthorized)
 		return
