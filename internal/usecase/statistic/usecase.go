@@ -68,7 +68,7 @@ func (uc *UsecaseLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, 
 			if err != nil {
 				return nil, err
 			}
-			st.NPS = uint8(res)
+			st.NPS = res
 			stats = append(stats, st)
 		}
 		if q.ParamType == "CSAT" {
@@ -76,7 +76,7 @@ func (uc *UsecaseLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, 
 			if err != nil {
 				return nil, err
 			}
-			st.CSAT = uint8(res)
+			st.CSAT = res
 			stats = append(stats, st)
 		}
 	}

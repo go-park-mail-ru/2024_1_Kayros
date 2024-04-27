@@ -70,12 +70,13 @@ func (repo *RepoLayer) GetQuestionInfo(ctx context.Context) ([]*entity.Question,
 	}
 	qs := []*entity.Question{}
 	for rows.Next() {
-		q := entity.Question{}
-		err = rows.Scan(&q.Id, &q.Name, &q.Url, &q.FocusId, &q.ParamType)
+		qSql := entity.QuestionSql{}
+		err = rows.Scan(&qSql.Id, &qSql.Name, &qSql.Url, &qSql.FocusId, &qSql.ParamType)
 		if err != nil {
 			return nil, err
 		}
-		qs = append(qs, &q)
+		q := entity.QuestionFromDB(&qSql)
+		qs = append(qs, q)
 	}
 	return qs, nil
 }
@@ -120,6 +121,9 @@ func (repo *RepoLayer) NPS(ctx context.Context, id uint16) (int8, error) {
 		return 0, err
 	}
 
+	if n == 0 {
+		return 0, nil
+	}
 	return (first - second) * 100 / n, nil
 }
 
@@ -140,5 +144,8 @@ func (repo *RepoLayer) CSAT(ctx context.Context, id uint16) (int8, error) {
 		return 0, err
 	}
 
+	if n == 0 {
+		return 0, nil
+	}
 	return top * 100 / n, nil
 }

@@ -163,9 +163,10 @@ VALUES ('Салат с миксом листьев и ростками сои', 
 
 
 INSERT INTO question (name, url, focus_id, param_type)
-VALUES ('Question 1', 'https://example.com/1', '123', 'NPS'),
-       ('Question 2', 'https://example.com/2', '456', 'NPS'),
-       ('Question 3', 'https://example.com/3', '789', 'CSAT');
+VALUES ('Удобная ли навигация по карте?', '/address', 'map-container', 'NPS'),
+       ('Как вам страница ресторана?', '/restaurants', NULL, 'NPS'),
+       ('Порекомендуете сервис своим друзьям?', '/restaurants', NULL, 'CSAT'),
+       ('Удобно ли было заказать еду?', '/pay', NULL, 'CSAT');
 
 -- Заполнение таблицы quiz данными
 INSERT INTO quiz (question_id, user_id, rating, created_at)

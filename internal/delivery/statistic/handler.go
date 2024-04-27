@@ -48,11 +48,6 @@ func (d *Delivery) GetStatistic(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
 		return
 	}
-	if email != "admiq@mail.ru" {
-		d.logger.Error(myerrors.PermissionError, zap.String("request_id", requestId))
-		w = functions.ErrorResponse(w, myerrors.PermissionError, http.StatusUnauthorized)
-		return
-	}
 
 	stats, err := d.ucQuiz.GetStatistic(r.Context())
 	if err != nil {
