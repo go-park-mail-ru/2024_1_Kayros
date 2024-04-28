@@ -1,6 +1,7 @@
 package functions
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -35,10 +36,16 @@ func DeleteCookiesFromDB(r *http.Request, ucCsrf session.Usecase, ucSession sess
 func CookieExpired(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, error) {
 	sessionCookie, err := r.Cookie(cnst.SessionCookieName)
 	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			return w, nil
+		}
 		return w, err
 	}
 	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
 	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			return w, nil
+		}
 		return w, err
 	}
 

@@ -22,10 +22,9 @@ type RepoLayer struct {
 	logger *zap.Logger
 }
 
-func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
+func NewRepoLayer(dbProps *sql.DB) Repo {
 	return &RepoLayer{
-		db:     dbProps,
-		logger: loggerProps,
+		db: dbProps,
 	}
 }
 

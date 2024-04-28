@@ -4,7 +4,6 @@ import (
 	"database/sql"
 
 	"github.com/gorilla/mux"
-	"github.com/minio/minio-go/v7"
 	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/delivery/order"
@@ -14,11 +13,10 @@ import (
 	ucOrder "2024_1_kayros/internal/usecase/order"
 )
 
-// нужно будет добавить интерфейс к БД и редису
-func AddOrderRouter(db *sql.DB, minio *minio.Client, mux *mux.Router, logger *zap.Logger) {
+func AddOrderRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
 	repoOrder := rOrder.NewRepoLayer(db, logger)
-	repoFood := rFood.NewRepoLayer(db, logger)
-	repoUser := rUser.NewRepoLayer(db, minio, logger)
+	repoFood := rFood.NewRepoLayer(db)
+	repoUser := rUser.NewRepoLayer(db)
 	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, repoUser, logger)
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)
 
@@ -26,7 +24,7 @@ func AddOrderRouter(db *sql.DB, minio *minio.Client, mux *mux.Router, logger *za
 	mux.HandleFunc("/order/update_address", handler.UpdateAddress).Methods("PUT")
 	mux.HandleFunc("/order/pay", handler.Pay).Methods("PUT")
 	mux.HandleFunc("/order/clean", handler.Clean).Methods("DELETE")
-	mux.HandleFunc("/order/food/add", handler.AddFood).Methods("POST")                            //работает
-	mux.HandleFunc("/order/food/update_count", handler.UpdateFoodCount).Methods("PUT")            //работает
-	mux.HandleFunc("/order/food/delete/{food_id}", handler.DeleteFoodFromOrder).Methods("DELETE") //работает
+	mux.HandleFunc("/order/food/add", handler.AddFood).Methods("POST")
+	mux.HandleFunc("/order/food/update_count", handler.UpdateFoodCount).Methods("PUT")
+	mux.HandleFunc("/order/food/delete/{food_id}", handler.DeleteFoodFromOrder).Methods("DELETE")
 }

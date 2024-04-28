@@ -3,21 +3,9 @@ package user
 import (
 	"bytes"
 	"context"
-<<<<<<< HEAD
-	"crypto/rand"
-	"errors"
-	"fmt"
-	"mime/multipart"
-	"strings"
-	"time"
-
-	"github.com/satori/uuid"
-	"go.uber.org/zap"
-=======
 	"errors"
 	"fmt"
 	"io"
->>>>>>> fix_csrf_test
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/minios3"
@@ -182,110 +170,6 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 func (uc *UsecaseLayer) checkPassword(ctx context.Context, email string, password string) (bool, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
-<<<<<<< HEAD
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	uCardNumber, err := uc.repoUser.GetHashedCardNumber(ctx, email, requestId)
-	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-
-	hashPassword := []byte{}
-	if uPropsUpdate.Password == "" {
-		hashPassword = uPassword
-	} else {
-		salt := make([]byte, 8)
-		_, err := rand.Read(salt)
-		if err != nil {
-			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-			functions.LogUsecaseFail(uc.logger, requestId, methodName)
-			return nil, err
-		}
-		hashPassword = functions.HashData(salt, uPropsUpdate.Password)
-	}
-
-	hashCardNumber := []byte{}
-	if uPropsUpdate.CardNumber == "" {
-		hashCardNumber = uCardNumber
-	} else {
-		salt := make([]byte, 8)
-		_, err := rand.Read(salt)
-		if err != nil {
-			functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-			functions.LogUsecaseFail(uc.logger, requestId, methodName)
-			return nil, err
-		}
-		hashCardNumber = functions.HashData(salt, uPropsUpdate.CardNumber)
-	}
-	uImg, err := uc.repoUser.GetByEmail(ctx, email, requestId)
-	if err != nil {
-		functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	currentTime := time.Now().UTC()
-	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
-	if file != nil && handler != nil {
-		if uImg.ImgUrl != "/minio-api/users/default.jpg" {
-			parts := strings.Split(uImg.ImgUrl, "/")
-			filename := parts[len(parts)-1]
-			err = uc.repoUser.DeleteImageByEmail(ctx, filename)
-			if err != nil {
-				uc.logger.Error(err.Error())
-			}
-		}
-		fileExtension := functions.GetFileExtension(handler.Filename)
-		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
-		err = uc.repoUser.UploadImageByEmail(ctx, file, filename, handler.Size, email, timeStr, requestId)
-		if err != nil {
-			functions.LogUsecaseFail(uc.logger, requestId, methodName)
-			return nil, err
-		}
-	}
-
-	uOldData, err := uc.repoUser.GetByEmail(ctx, email, requestId)
-	if err != nil || uOldData == nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	if uPropsUpdate.Name == "" {
-		return nil, errors.New("Имя не может быть пустым")
-	}
-	if uPropsUpdate.Email == "" {
-		return nil, errors.New("Почта не может быть пустой")
-	}
-	if uPropsUpdate.ImgUrl == "" {
-		uPropsUpdate.ImgUrl = uOldData.ImgUrl
-	}
-	if uPropsUpdate.Address == "" {
-		uPropsUpdate.Address = uOldData.Address
-	}
-
-	err = uc.repoUser.Update(ctx, email, uPropsUpdate, hashPassword, hashCardNumber, timeStr, requestId)
-	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	u, err := uc.repoUser.GetByEmail(ctx, uPropsUpdate.Email, requestId)
-	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return nil, err
-	}
-	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return u, nil
-}
-
-// CheckPassword проверяет пароль, хранящийся в БД с переданным паролем
-func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, password string) (bool, error) {
-	methodName := cnst.NameMethodCheckPassword
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, email, requestId)
-	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-=======
->>>>>>> fix_csrf_test
 		return false, err
 	}
 	uPasswordBytes := []byte(u.Password)

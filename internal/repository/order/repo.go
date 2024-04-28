@@ -16,8 +16,8 @@ import (
 )
 
 type Repo interface {
-	Create(ctx context.Context, userId alias.UserId, dateOrder string) (alias.OrderId, error)
-	CreateNoAuth(ctx context.Context, unauthId string, dateOrder string) (alias.OrderId, error)
+	Create(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
+	CreateNoAuth(ctx context.Context, unauthId string) (alias.OrderId, error)
 	GetOrders(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error)
 	GetBasketNoAuth(ctx context.Context, unauthId string) (*entity.Order, error)
 	GetBasketId(ctx context.Context, userId alias.UserId) (alias.OrderId, error)

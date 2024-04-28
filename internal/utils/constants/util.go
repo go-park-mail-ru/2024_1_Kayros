@@ -1,11 +1,6 @@
 package constants
 
 const (
-<<<<<<< HEAD
-	SessionCookieName     = "session_id"
-	CsrfCookieName        = "csrf_token"
-	UnauthTokenCookieName = "unauth_token"
-=======
 	SessionCookieName  = "session_id"
 	CsrfCookieName     = "csrf_token"
 	UnauthIdCookieName = "unauth_id"
@@ -15,8 +10,8 @@ const (
 )
 
 const (
-	Timestamptz = "2006-01-02 15:04:05-07:00"
->>>>>>> fix_csrf_test
+	Timestamptz         = "2006-01-02 15:04:05-07:00"
+	UploadedFileMaxSize = 10 << 20
 )
 
 // Статусы заказа
@@ -41,30 +36,6 @@ const (
 	BucketRest = "restaurants"
 	BucketFood = "foods"
 )
-
-<<<<<<< HEAD
-// USECASE && REPOSITORY
-// Название методов User для логгера
-const (
-	NameMethodGetUserById           = "GetUserById"
-	NameMethodGetUserByEmail        = "GetUserByEmail"
-	NameMethodDeleteUserById        = "DeleteUserById"
-	NameMethodDeleteUserByEmail     = "DeleteUserByEmail"
-	NameMethodCreateUser            = "CreateUser"
-	NameMethodUpdateUser            = "UpdateUser"
-	NameMethodIsExistById           = "IsExistById"
-	NameMethodIsExistByEmail        = "IsExistByEmail"
-	NameMethodCheckPassword         = "CheckPassword"
-	NameMethodUploadImageByEmail    = "UploadImageByEmail"
-	NameMethodDeleteImageByEmail    = "DeleteImageByEmail"
-	NameMethodGetHashedUserPassword = "GetHashedUserPassword"
-	NameMethodUpdateOrder           = "UpdateOrder"
-	NameMethodAddToOrder            = "AddToOrder"
-	NameMethodSetNewPassword        = "SetNewPassword"
-)
-=======
-const UploadedFileMaxSize = 10 << 20
->>>>>>> fix_csrf_test
 
 var ValidMimeTypes = map[string]bool{
 	"image/jpeg":    true,

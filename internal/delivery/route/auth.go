@@ -17,18 +17,11 @@ import (
 	"go.uber.org/zap"
 )
 
-<<<<<<< HEAD
-func AddAuthRouter(cfg *config.Project, db *sql.DB, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, clientRedisUnauthTokens *redis.Client, clientMinio *minio.Client, mux *mux.Router, logger *zap.Logger) {
-	repoUser := rUser.NewRepoLayer(db, clientMinio, logger)
-	repoSession := rSession.NewRepoLayer(clientRedisSession, logger)
-	repoCsrf := rSession.NewRepoLayer(clientRedisCsrf, logger)
-=======
 func AddAuthRouter(cfg *config.Project, db *sql.DB, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, clientMinio *minio.Client, mux *mux.Router, logger *zap.Logger) {
 	repoUser := rUser.NewRepoLayer(db)
 	repoSession := rSession.NewRepoLayer(clientRedisSession)
 	repoCsrf := rSession.NewRepoLayer(clientRedisCsrf)
 	repoMinio := rMinio.NewRepoLayer(clientMinio)
->>>>>>> fix_csrf_test
 
 	usecaseUser := ucUser.NewUsecaseLayer(repoUser, repoMinio)
 	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)

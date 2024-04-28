@@ -3,13 +3,9 @@ package food
 import (
 	"context"
 
-	"go.uber.org/zap"
-
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/food"
 	"2024_1_kayros/internal/utils/alias"
-	"2024_1_kayros/internal/utils/constants"
-	"2024_1_kayros/internal/utils/functions"
 )
 
 type Usecase interface {
@@ -19,22 +15,17 @@ type Usecase interface {
 
 type UsecaseLayer struct {
 	repoFood food.Repo
-	logger   *zap.Logger
 }
 
-func NewUsecaseLayer(repoFoodProps food.Repo, loggerProps *zap.Logger) Usecase {
+func NewUsecaseLayer(repoFoodProps food.Repo) Usecase {
 	return &UsecaseLayer{
 		repoFood: repoFoodProps,
-		logger:   loggerProps,
 	}
 }
 
 func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Category, error) {
-	methodName := constants.NameMethodGetFoodByRest
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	dishes, err := uc.repoFood.GetByRestId(ctx, requestId, restId)
+	dishes, err := uc.repoFood.GetByRestId(ctx, restId)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	categories := []*entity.Category{}
@@ -58,18 +49,13 @@ func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([
 			category.Food = append(category.Food, dishes[i])
 		}
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return categories, nil
 }
 
 func (uc *UsecaseLayer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {
-	methodName := constants.NameMethodGetFoodById
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	dish, err := uc.repoFood.GetById(ctx, requestId, foodId)
+	dish, err := uc.repoFood.GetById(ctx, foodId)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return dish, nil
 }
