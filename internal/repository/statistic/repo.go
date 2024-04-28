@@ -13,7 +13,6 @@ import (
 type Repo interface {
 	Create(ctx context.Context, questionId uint64, rating uint32, userId string, time string) error
 	Update(ctx context.Context, questionId uint64, rating uint32, userId string) error
-	//GetStatistic(ctx context.Context) ([]*entity.Statistic, error)
 	GetQuestionInfo(ctx context.Context, url string) ([]*entity.Question, error)
 	GetQuestions(ctx context.Context) ([]*entity.Question, error)
 	NPS(ctx context.Context, id uint64) (int8, error)
@@ -98,23 +97,6 @@ func (repo *RepoLayer) GetQuestions(ctx context.Context) ([]*entity.Question, er
 	}
 	return qs, nil
 }
-
-//func (repo *RepoLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, error) {
-//	rows, err := repo.db.QueryContext(ctx, `SELECT question_id, COUNT(*), AVG(rating) FROM quiz JOIN question ON quiz.question_id = question.id  GROUP BY question_id`)
-//	if err != nil {
-//		return nil, err
-//	}
-//	stats := []*entity.Statistic{}
-//	for rows.Next() {
-//		stat := entity.Statistic{}
-//		err = rows.Scan(&stat.QuestionId, &stat.Count, &stat.Rating, &stat.QuestionName)
-//		if err != nil {
-//			return nil, err
-//		}
-//		stats = append(stats, &stat)
-//	}
-//	return stats, nil
-//}
 
 func (repo *RepoLayer) NPS(ctx context.Context, id uint64) (int8, error) {
 	//кол-во промоутеров 9-10

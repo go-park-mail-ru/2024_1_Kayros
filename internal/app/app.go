@@ -19,9 +19,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// Run создает все сервисы приложения и запускает их
-func Run(cfg *config.Project, logger *zap.Logger) {
-	functions.InitValidator(logger)
+// Run creates all services and run the handler goroutines
+func Run(cfg *config.Project) {
+	logger := zap.Must(zap.NewProduction())
+	functions.InitDtoValidator(logger)
 
 	postgreDB := postgres.Init(cfg, logger)
 	redisSessionDB := redis.Init(cfg, logger, cfg.Redis.DatabaseSession)
@@ -37,21 +38,20 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 	srv := &http.Server{
 		Handler:      handler,
 		Addr:         serverAddress,
-		WriteTimeout: time.Duration(serverConfig.WriteTimeout) * time.Second, // таймаут на запись данных в ответ на запрос
-		ReadTimeout:  time.Duration(serverConfig.ReadTimeout) * time.Second,  // таймаут на чтение данных из запроса
-		IdleTimeout:  time.Duration(serverConfig.IdleTimeout) * time.Second,  // время поддержания связи между клиентом и сервером
+		WriteTimeout: time.Duration(serverConfig.WriteTimeout) * time.Second, // timeout for writing data in response to a request
+		ReadTimeout:  time.Duration(serverConfig.ReadTimeout) * time.Second,  // timeout for reading data from request
+		IdleTimeout:  time.Duration(serverConfig.IdleTimeout) * time.Second,  // time of communication between client and server
 	}
-	//log.Fatal(srv.ListenAndServe())
+
 	srvConfig := cfg.Server
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Printf("Сервер не может быть запущен.\n%v", err)
+			log.Printf("The server cannot be started.\n%v", err)
 		} else {
-			log.Printf("Сервер запущен по адресу %s:%d", srvConfig.Host, srvConfig.Port)
+			log.Printf("The server is started at the address %s:%d", srvConfig.Host, srvConfig.Port)
 		}
 	}()
 
-	// канал для получения прерывания, завершающего работу сервиса (ожидает прерывание процесса)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
@@ -61,10 +61,10 @@ func Run(cfg *config.Project, logger *zap.Logger) {
 
 	err := srv.Shutdown(ctx)
 	if err != nil {
-		log.Printf("Сервер экстренно завершил свою работу с ошибкой.\n%v", err)
+		log.Printf("The server urgently shut down with an error.\n%v", err)
 		os.Exit(1) //
 	}
 
-	log.Println("Сервер завершил свою работу")
+	log.Println("The server has shut down")
 	os.Exit(0)
 }

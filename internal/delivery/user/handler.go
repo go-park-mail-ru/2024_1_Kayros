@@ -3,27 +3,24 @@ package user
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/satori/uuid"
 	"go.uber.org/zap"
 
 	"2024_1_kayros/config"
-	"2024_1_kayros/internal/delivery/auth"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/usecase/user"
-	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/props"
 	"2024_1_kayros/internal/utils/sanitizer"
+<<<<<<< HEAD
 )
 
 type Delivery struct {
@@ -33,97 +30,106 @@ type Delivery struct {
 	ucUser          user.Usecase
 	logger          *zap.Logger
 	cfg             *config.Project
+=======
+	"go.uber.org/zap"
+)
+
+type Delivery struct {
+	ucSession session.Usecase
+	ucCsrf    session.Usecase
+	ucUser    user.Usecase
+	cfg       *config.Project
+	logger    *zap.Logger
+>>>>>>> fix_csrf_test
 }
 
 func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, ucCsrfProps session.Usecase, ucUnauthAddressProps session.Usecase, loggerProps *zap.Logger) *Delivery {
 	return &Delivery{
+<<<<<<< HEAD
 		ucUser:          ucUserProps,
 		logger:          loggerProps,
 		ucSession:       ucSessionProps,
 		ucCsrf:          ucCsrfProps,
 		ucUnauthAddress: ucUnauthAddressProps,
 		cfg:             cfgProps,
+=======
+		ucUser:    ucUserProps,
+		ucSession: ucSessionProps,
+		ucCsrf:    ucCsrfProps,
+		cfg:       cfgProps,
+		logger:    loggerProps,
+>>>>>>> fix_csrf_test
 	}
 }
 
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	requestId := ""
-	ctxRequestId := r.Context().Value("request_id")
-	if ctxRequestId == nil {
-		err := errors.New("request_id передан не был")
-		functions.LogError(d.logger, requestId, cnst.NameHandlerSignUp, err, cnst.DeliveryLayer)
-	} else {
-		requestId = ctxRequestId.(string)
-	}
-
-	email := ""
-	ctxEmail := r.Context().Value("email")
-	if ctxEmail != nil {
-		email = ctxEmail.(string)
-	}
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
 	if email == "" {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerSignUp, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
-	u, err := d.ucUser.GetByEmail(r.Context(), email)
+	u, err := d.ucUser.GetData(r.Context(), email)
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUserData, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		// if error is `myerrors.RedisNoData` it's okay, because we try to delete token from database
+		err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		}
+
+		w, err = functions.CookieExpired(w, r)
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			if errors.Is(err, http.ErrNoCookie) {
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+				return
+			}
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
+	uSanitizer := sanitizer.User(u)
+	uDTO := dto.NewUserData(uSanitizer)
 
-	u = sanitizer.User(u)
-	uDTO := dto.NewUser(u)
 	w = functions.JsonResponse(w, uDTO)
-
-	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUserData, cnst.DeliveryLayer)
 }
 
 func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	requestId := ""
-	ctxRequestId := r.Context().Value("request_id")
-	if ctxRequestId == nil {
-		err := errors.New("request_id передан не был")
-		functions.LogError(d.logger, requestId, cnst.NameHandlerUpdateUser, err, cnst.DeliveryLayer)
-	} else {
-		requestId = ctxRequestId.(string)
-	}
-
-	email := ""
-	ctxEmail := r.Context().Value("email")
-	if ctxEmail != nil {
-		email = ctxEmail.(string)
-	}
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
 	if email == "" {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
-	// Максимальный размер фотографии 10 Mb
-	err := r.ParseMultipartForm(10 << 20)
+	file, handler, u, err := dto.GetUpdatedUserData(r)
 	if err != nil {
-		functions.LogError(d.logger, requestId, cnst.NameHandlerUpdateUser, err, cnst.DeliveryLayer)
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.BigSizeFileError), http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BigSizeFileError, http.StatusBadRequest)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.BigSizeFile) {
+			w = functions.ErrorResponse(w, myerrors.BigSizeFileRu, http.StatusBadRequest)
+			return
+		}
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
-
-	file, handler, err := r.FormFile("img")
 	defer func(file multipart.File) {
 		if file != nil {
-			err := file.Close()
+			err = file.Close()
 			if err != nil {
-				errorMsg := fmt.Sprintf("Запрос %s. Ошибка закрытия файла", requestId)
-				d.logger.Error(errorMsg, zap.Error(err))
+				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			}
 		}
 	}(file)
 
+<<<<<<< HEAD
 	u := dto.GetUserFromUpdate(r)
 	if u == nil {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.BadCredentialsError), http.StatusBadRequest, cnst.DeliveryLayer)
@@ -207,21 +213,45 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, errors.New(myerrors.InternalServerError), http.StatusInternalServerError, cnst.DeliveryLayer)
 			w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+=======
+	data := props.GetUpdateUserDataProps(email, file, handler, u)
+	uUpdated, err := d.ucUser.UpdateData(r.Context(), data)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.WrongFileExtension) {
+			w = functions.ErrorResponse(w, myerrors.WrongFileExtensionRu, http.StatusBadRequest)
+>>>>>>> fix_csrf_test
 			return
 		}
-		csrfCookie := http.Cookie{
-			Name:     cnst.CsrfCookieName,
-			Value:    csrfToken,
-			Expires:  expiration,
-			HttpOnly: false,
+		if errors.Is(err, myerrors.UserAlreadyExist) {
+			w = functions.ErrorResponse(w, myerrors.UserAlreadyExistRu, http.StatusBadRequest)
+			return
 		}
-		http.SetCookie(w, &csrfCookie)
+		// we don't handle `myerrors.SqlNoRowsUserRelation`, because it's internal server error
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	uSanitizer := sanitizer.User(uUpdated)
+	userDTO := dto.NewUserData(uSanitizer)
+
+	err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
+	if err != nil {
+		// we don't handle `myerrors.RedisNoData`, because it's internal server error | at first, middlewares check session_id and csrf_token
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+
+	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, uUpdated.Email, d.cfg.CsrfSecretKey)
+	w, err = functions.SetCookie(w, r, setCookieProps)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
 	w = functions.JsonResponse(w, userDTO)
-	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateUser, cnst.DeliveryLayer)
 }
 
 func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
+<<<<<<< HEAD
 	w.Header().Set("Content-Type", "application/json")
 	requestId := ""
 	ctxRequestId := r.Context().Value("request_id")
@@ -246,24 +276,31 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	if email == "" && unauthToken == "" {
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+=======
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+>>>>>>> fix_csrf_test
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 
-	var address addressData
+	var address dto.Address
 	err = json.Unmarshal(body, &address)
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
+<<<<<<< HEAD
 	if len(address.Data) < 14 || len(address.Data) > 100 {
 		err = errors.New(myerrors.BadCredentialsError)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusBadRequest, cnst.DeliveryLayer)
@@ -296,53 +333,92 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	}
 	w = functions.JsonResponse(w, map[string]string{"address": address.Data})
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, cnst.DeliveryLayer)
+=======
+
+	isValid, err := address.Validate()
+	if address.Data == "" {
+		isValid = true
+	}
+	if err != nil || !isValid {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+
+	uUpdated, err := d.ucUser.UpdateAddress(r.Context(), email, address.Data)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
+			if err != nil {
+				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				return
+			}
+			w, err = functions.CookieExpired(w, r)
+			if err != nil {
+				if errors.Is(err, http.ErrNoCookie) {
+					d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+					w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+					return
+				}
+			}
+		}
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	uSanitizer := sanitizer.User(uUpdated)
+	uDTO := dto.NewUserData(uSanitizer)
+
+	err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
+	if err != nil {
+		// we don't handle `myerrors.RedisNoData`, because it's internal server error | at first, middlewares check session_id and csrf_token
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+
+	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, email, d.cfg.CsrfSecretKey)
+	w, err = functions.SetCookie(w, r, setCookieProps)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	}
+
+	w = functions.JsonResponse(w, uDTO)
+>>>>>>> fix_csrf_test
 }
 
 func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	requestId := ""
-	ctxRequestId := r.Context().Value("request_id")
-	if ctxRequestId == nil {
-		err := errors.New("request_id передан не был")
-		functions.LogError(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, cnst.DeliveryLayer)
-	} else {
-		requestId = ctxRequestId.(string)
-	}
-
-	email := ""
-	ctxEmail := r.Context().Value("email")
-	if ctxEmail != nil {
-		email = ctxEmail.(string)
-	}
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
 	if email == "" {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusInternalServerError, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 
-	var password passwordData
-	err = json.Unmarshal(body, &password)
+	var pwds dto.Passwords
+	err = json.Unmarshal(body, &pwds)
 	if err != nil {
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdateAddress, err, http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
-	isValid, err := password.Validate()
+	isValid, err := pwds.Validate()
 	if err != nil || !isValid {
-		err = errors.New(myerrors.BadCredentialsError)
-		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
+<<<<<<< HEAD
 	// сравниваем старый пароль с тем, что в базе
 	isEqual, err := d.ucUser.CheckPassword(r.Context(), email, password.Password)
 	if err != nil {
@@ -371,9 +447,40 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		err = errors.New(myerrors.BadCredentialsError)
 		functions.LogErrorResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, err, http.StatusBadRequest, cnst.DeliveryLayer)
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+=======
+
+	data := &props.SetNewUserPasswordProps{
+		Password:    pwds.Password,
+		PasswordNew: pwds.PasswordNew,
+	}
+	err = d.ucUser.SetNewPassword(r.Context(), email, data)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.IncorrectCurrentPassword) {
+			w = functions.ErrorResponse(w, myerrors.IncorrectCurrentPasswordRu, http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, myerrors.NewPassword) {
+			w = functions.ErrorResponse(w, myerrors.NewPasswordRu, http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
+			if err != nil {
+				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				if errors.Is(err, myerrors.RedisNoData) {
+					w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+					return
+				}
+			}
+		}
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+>>>>>>> fix_csrf_test
 		return
 	}
+
 	w = functions.JsonResponse(w, map[string]string{"detail": "Пароль был успешно обновлен"})
+<<<<<<< HEAD
 	functions.LogOkResponse(d.logger, requestId, cnst.NameHandlerUpdatePassword, cnst.DeliveryLayer)
 }
 
@@ -388,4 +495,6 @@ type passwordData struct {
 
 func (d *passwordData) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
+=======
+>>>>>>> fix_csrf_test
 }

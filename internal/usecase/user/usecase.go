@@ -3,6 +3,7 @@ package user
 import (
 	"bytes"
 	"context"
+<<<<<<< HEAD
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -12,153 +13,176 @@ import (
 
 	"github.com/satori/uuid"
 	"go.uber.org/zap"
+=======
+	"errors"
+	"fmt"
+	"io"
+>>>>>>> fix_csrf_test
 
 	"2024_1_kayros/internal/entity"
+	"2024_1_kayros/internal/repository/minios3"
 	"2024_1_kayros/internal/repository/user"
-	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/props"
+	"github.com/satori/uuid"
 )
 
 type Usecase interface {
-	GetById(ctx context.Context, userId alias.UserId) (*entity.User, error)
-	GetByEmail(ctx context.Context, email string) (*entity.User, error)
-
-	DeleteById(ctx context.Context, userId alias.UserId) error
-	DeleteByEmail(ctx context.Context, email string) error
-
-	IsExistById(ctx context.Context, userId alias.UserId) (bool, error)
-	IsExistByEmail(ctx context.Context, email string) (bool, error)
-
-	Create(ctx context.Context, uProps *entity.User) (*entity.User, error)
-	Update(ctx context.Context, email string, file multipart.File, handler *multipart.FileHeader, uProps *entity.User) (*entity.User, error)
-
-	CheckPassword(ctx context.Context, email string, password string) (bool, error)
-	SetNewPassword(ctx context.Context, email string, password string) (bool, error)
+	GetData(ctx context.Context, email string) (*entity.User, error)
+	UpdateData(ctx context.Context, data *props.UpdateUserDataProps) (*entity.User, error)
+	UpdateAddress(ctx context.Context, email string, address string) (*entity.User, error)
+	SetNewPassword(ctx context.Context, email string, pwds *props.SetNewUserPasswordProps) error
 }
 
 type UsecaseLayer struct {
 	repoUser user.Repo
-	logger   *zap.Logger
+	minio    minios3.Repo
 }
 
-func NewUsecaseLayer(repoUserProps user.Repo, loggerProps *zap.Logger) Usecase {
+func NewUsecaseLayer(repoUserProps user.Repo, repoMinio minios3.Repo) Usecase {
 	return &UsecaseLayer{
 		repoUser: repoUserProps,
-		logger:   loggerProps,
+		minio:    repoMinio,
 	}
 }
 
-func (uc *UsecaseLayer) GetById(ctx context.Context, userId alias.UserId) (*entity.User, error) {
-	methodName := cnst.NameMethodGetUserById
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	u, err := uc.repoUser.GetById(ctx, userId, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return u, err
+// GetData - method calls repo method to receive user data.
+func (uc *UsecaseLayer) GetData(ctx context.Context, email string) (*entity.User, error) {
+	return uc.repoUser.GetByEmail(ctx, email)
 }
 
-func (uc *UsecaseLayer) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
-	methodName := cnst.NameMethodGetUserByEmail
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	fmt.Println("we are in getuser")
-	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
-	if err == nil {
-		fmt.Println("we get user")
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-		return u, nil
-	} else {
-		fmt.Println("we have truble with user", err)
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return u, err
-}
-
-func (uc *UsecaseLayer) DeleteById(ctx context.Context, userId alias.UserId) error {
-	methodName := cnst.NameMethodDeleteUserById
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoUser.DeleteById(ctx, userId, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return err
-}
-
-func (uc *UsecaseLayer) DeleteByEmail(ctx context.Context, email string) error {
-	methodName := cnst.NameMethodDeleteUserByEmail
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoUser.DeleteByEmail(ctx, email, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return err
-}
-
-func (uc *UsecaseLayer) IsExistById(ctx context.Context, userId alias.UserId) (bool, error) {
-	methodName := cnst.NameMethodIsExistById
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	isExist, err := uc.repoUser.IsExistById(ctx, userId, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return isExist, err
-}
-
-func (uc *UsecaseLayer) IsExistByEmail(ctx context.Context, email string) (bool, error) {
-	methodName := cnst.NameMethodIsExistByEmail
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	isExist, err := uc.repoUser.IsExistByEmail(ctx, email, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return isExist, err
-}
-
-func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entity.User, error) {
-	methodName := cnst.NameMethodCreateUser
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	salt := make([]byte, 8)
-	_, err := rand.Read(salt)
+// UpdateData - method used to update user info. it accepts non-password fields.
+// To update password use method SetNewUserPassword.
+func (uc *UsecaseLayer) UpdateData(ctx context.Context, data *props.UpdateUserDataProps) (*entity.User, error) {
+	u, err := uc.repoUser.GetByEmail(ctx, data.Email)
 	if err != nil {
-		functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+		return nil, err
+	}
+
+	fillUserFields(u, data.UserPropsUpdate)
+	if data.File != nil && data.Handler != nil {
+		buffer := bytes.NewBuffer(nil)
+		if _, err := io.Copy(buffer, data.File); err != nil {
+			return nil, err
+		}
+		mimeType, err := functions.GetFileMimeType(buffer.Bytes())
+		if err != nil {
+			return nil, err
+		}
+		fileExtension := functions.GetFileExtension(data.Handler.Filename)
+		if _, ok := cnst.ValidMimeTypes[mimeType]; !ok {
+			return nil, myerrors.WrongFileExtension
+		}
+
+		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
+		err = uc.minio.UploadImageByEmail(ctx, buffer, filename, data.Handler.Size, mimeType)
+		if err != nil {
+			return nil, err
+		}
+		u.ImgUrl = fmt.Sprintf("/minio-api/%s/%s", cnst.BucketUser, filename)
+	}
+
+	uDB, err := uc.repoUser.GetByEmail(ctx, data.UserPropsUpdate.Email)
+	if err != nil {
+		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			return nil, err
+		}
+	}
+	if uDB != nil {
+		return nil, myerrors.UserAlreadyExist
+	}
+
+	err = uc.repoUser.Update(ctx, u, data.Email)
+	if err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
+// UpdateAddress - method updates only address.
+func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email string, address string) (*entity.User, error) {
+	u, err := uc.repoUser.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Address = address
+	err = uc.repoUser.Update(ctx, u, email)
+	if err != nil {
+		return nil, err
+	}
+
+	uDB, err := uc.repoUser.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	return uDB, nil
+}
+
+// SetNewPassword - method used to set new password.
+func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email string, pwds *props.SetNewUserPasswordProps) error {
+	// compare old password with database password
+	isEqual, err := uc.checkPassword(ctx, email, pwds.Password)
+	if err != nil {
+		return err
+	}
+	if !isEqual {
+		return myerrors.IncorrectCurrentPassword
+	}
+	if pwds.Password == pwds.PasswordNew {
+		return myerrors.NewPassword
+	}
+
+	u, err := uc.repoUser.GetByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	salt, err := functions.GenerateNewSalt()
+	if err != nil {
+		return err
+	}
+	hashPassword := functions.HashData(salt, pwds.PasswordNew)
+	u.Password = string(hashPassword)
+
+	err = uc.repoUser.Update(ctx, u, email)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Create - method used to create new user in database.
+func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entity.User, error) {
+	salt, err := functions.GenerateNewSalt()
+	if err != nil {
 		return nil, err
 	}
 	hashPassword := functions.HashData(salt, uProps.Password)
 
-	currentTime := time.Now().UTC()
-	timeStr := currentTime.Format("2006-01-02 15:04:05-07:00")
-	err = uc.repoUser.Create(ctx, uProps, hashPassword, timeStr, requestId)
+	uCopy := entity.Copy(uProps)
+	uCopy.Password = string(hashPassword)
+
+	err = uc.repoUser.Create(ctx, uCopy)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 
-	u, err := uc.repoUser.GetByEmail(ctx, uProps.Email, requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, uCopy.Email)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
 	return u, nil
 }
 
-func (uc *UsecaseLayer) Update(ctx context.Context, email string, file multipart.File, handler *multipart.FileHeader, uPropsUpdate *entity.User) (*entity.User, error) {
-	methodName := cnst.NameMethodUpdateUser
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, email, requestId)
+// checkPassword - method used to check password with password saved in database
+func (uc *UsecaseLayer) checkPassword(ctx context.Context, email string, password string) (bool, error) {
+	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
+<<<<<<< HEAD
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
@@ -260,35 +284,23 @@ func (uc *UsecaseLayer) CheckPassword(ctx context.Context, email string, passwor
 	uPassword, err := uc.repoUser.GetHashedUserPassword(ctx, email, requestId)
 	if err != nil {
 		functions.LogUsecaseFail(uc.logger, requestId, methodName)
+=======
+>>>>>>> fix_csrf_test
 		return false, err
 	}
+	uPasswordBytes := []byte(u.Password)
 
-	salt := make([]byte, 8)
-	copy(salt, uPassword[0:8])
-	hashPassword := functions.HashData(salt, password)
-
-	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return bytes.Equal(uPassword, hashPassword), nil
+	hashPassword := functions.HashData(uPasswordBytes[0:8], password)
+	return bytes.Equal(uPasswordBytes, hashPassword), nil
 }
 
-// SetNewPassword устанавливает новый пароль пользователю
-func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email string, password string) (bool, error) {
-	methodName := cnst.NameMethodSetNewPassword
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-
-	salt := make([]byte, 8)
-	_, err := rand.Read(salt)
-	if err != nil {
-		functions.LogError(uc.logger, requestId, methodName, err, cnst.UsecaseLayer)
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return false, err
+// fillUserFields - method used to get finished view of updated user data
+func fillUserFields(uDest *entity.User, uSrc *entity.User) {
+	if uSrc.Name != "" {
+		uDest.Name = uSrc.Name
 	}
-	hashPassword := functions.HashData(salt, password)
-	_, err = uc.repoUser.SetNewPassword(ctx, requestId, email, hashPassword)
-	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-		return false, err
+	if uSrc.Email != "" {
+		uDest.Email = uSrc.Email
 	}
-	functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	return true, nil
+	uDest.Phone = uSrc.Phone
 }

@@ -5,9 +5,9 @@ import (
 	"net/http"
 )
 
-func ErrorResponse(w http.ResponseWriter, messageError string, codeStatus int) http.ResponseWriter {
+func ErrorResponse(w http.ResponseWriter, responseError error, codeStatus int) http.ResponseWriter {
 	w.Header().Set("Content-Type", "application/json")
-	errObject := map[string]string{"detail": messageError}
+	errObject := map[string]string{"detail": responseError.Error()}
 	body, err := json.Marshal(errObject)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

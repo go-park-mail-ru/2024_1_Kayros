@@ -4,323 +4,92 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"mime/multipart"
-	"strings"
-
-	"github.com/minio/minio-go/v7"
-	"go.uber.org/zap"
+	"time"
 
 	"2024_1_kayros/internal/entity"
-	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/internal/utils/myerrors"
 )
 
-// Передаем контекст запроса пользователя (! возможно лучше еще переопределить контекстом WithTimeout)
 type Repo interface {
-	GetById(ctx context.Context, userId alias.UserId, requestId string) (*entity.User, error)
-	GetByEmail(ctx context.Context, email string, requestId string) (*entity.User, error)
-
-	DeleteById(ctx context.Context, userId alias.UserId, requestId string) error
-	DeleteByEmail(ctx context.Context, email string, requestId string) error
-
-	Create(ctx context.Context, u *entity.User, hashPassword []byte, timeStr string, requestId string) error
-	Update(ctx context.Context, email string, u *entity.User, hashPassword []byte, hashCardNumber []byte, timeStr string, requestId string) error
-
-	IsExistById(ctx context.Context, userId alias.UserId, requestId string) (bool, error)
-	IsExistByEmail(ctx context.Context, email string, requestId string) (bool, error)
-
-	UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, timeStr string, requestId string) error
-	DeleteImageByEmail(ctx context.Context, filename string) error
-	GetHashedUserPassword(ctx context.Context, email string, requestId string) ([]byte, error)
-	GetHashedCardNumber(ctx context.Context, email string, requestId string) ([]byte, error)
-	SetNewPassword(ctx context.Context, requestId string, email string, password []byte) (bool, error)
+	GetByEmail(ctx context.Context, email string) (*entity.User, error)
+	DeleteByEmail(ctx context.Context, email string) error
+	Create(ctx context.Context, u *entity.User) error
+	Update(ctx context.Context, uDataChange *entity.User, email string) error
 }
 
 type RepoLayer struct {
 	database *sql.DB
-	minio    *minio.Client
-	logger   *zap.Logger
 }
 
-func NewRepoLayer(db *sql.DB, minioProps *minio.Client, loggerProps *zap.Logger) Repo {
+func NewRepoLayer(db *sql.DB) Repo {
 	return &RepoLayer{
 		database: db,
-		minio:    minioProps,
-		logger:   loggerProps,
 	}
 }
 
-func (repo *RepoLayer) GetById(ctx context.Context, userId alias.UserId, requestId string) (*entity.User, error) {
-	methodName := cnst.NameMethodGetUserById
+func (repo *RepoLayer) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
 	row := repo.database.QueryRowContext(ctx,
-		`SELECT id, name, COALESCE(phone, ''), email, COALESCE(address, ''), img_url FROM "user" WHERE id = $1`, uint64(userId))
+		`SELECT id, name, email, COALESCE(phone, ''), password, COALESCE(address, ''), img_url, COALESCE(card_number, '')  FROM "user" WHERE email = $1`, email)
 	user := entity.User{}
-	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Address, &user.ImgUrl)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Вернулось пустое множество данных")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return nil, nil
-	}
+	err := row.Scan(&user.Id, &user.Name, &user.Email, &user.Phone, &user.Password, &user.Address, &user.ImgUrl, &user.CardNumber)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.SqlNoRowsUserRelation
+		}
 		return nil, err
 	}
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был получен из базы данных", user.Id, user.Email)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
 	return &user, nil
 }
 
-func (repo *RepoLayer) GetByEmail(ctx context.Context, email string, requestId string) (*entity.User, error) {
-	methodName := cnst.NameMethodGetUserByEmail
-	row := repo.database.QueryRowContext(ctx,
-		`SELECT id, name, COALESCE(phone, ''), email, COALESCE(address, ''), img_url FROM "user" WHERE email = $1`, email)
-	user := entity.User{}
-	err := row.Scan(&user.Id, &user.Name, &user.Phone, &user.Email, &user.Address, &user.ImgUrl)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Вернулось пустое множество данных")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return nil, nil
-	}
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return nil, err
-	}
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был получен из базы данных", user.Id, user.Email)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return &user, nil
-}
-
-func (repo *RepoLayer) DeleteById(ctx context.Context, userId alias.UserId, requestId string) error {
-	methodName := cnst.NameMethodDeleteUserById
-	row := repo.database.QueryRowContext(ctx, `DELETE FROM "user" WHERE id = $1 RETURNING id, email`, uint64(userId))
-	var uId uint64
-	var uEmail string
-	err := row.Scan(&uId, &uEmail)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Пользователя с таким Id нет. Удалить не получилось")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return nil
-	}
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был удален из базы данных", uId, uEmail)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return nil
-}
-
-func (repo *RepoLayer) DeleteByEmail(ctx context.Context, email string, requestId string) error {
-	methodName := cnst.NameMethodDeleteUserByEmail
-	row := repo.database.QueryRowContext(ctx, `DELETE FROM "user" WHERE email = $1 RETURNING id, email`, email)
-	var uId uint64
-	var uEmail string
-	err := row.Scan(&uId, &uEmail)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Пользователя с таким Email нет. Удалить не получилось")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return nil
-	}
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был удален из базы данных", uId, uEmail)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return nil
-}
-
-func (repo *RepoLayer) Create(ctx context.Context, u *entity.User, hashPassword []byte, timeStr string, requestId string) error {
-	methodName := cnst.NameMethodCreateUser
-	row := repo.database.QueryRowContext(ctx,
-		`INSERT INTO "user" (name, email, password, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
-		u.Name, u.Email, hashPassword, timeStr, timeStr)
-	var uId uint64
-	var uEmail string
-	err := row.Scan(&uId, &uEmail)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Ошибка получения данных после их добавления в базу данных")
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был добавлен в базу данных", uId, uEmail)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return nil
-}
-
-func (repo *RepoLayer) Update(ctx context.Context, email string, uDataChange *entity.User, hashPassword []byte, hashCardNumber []byte, timeStr string, requestId string) error {
-	methodName := cnst.NameMethodUpdateUser
-	var address interface{}
-	if uDataChange.Address == "" {
-		address = nil
-	} else {
-		address = uDataChange.Address
-	}
-
-	var phone interface{}
-	if uDataChange.Phone == "" {
-		phone = nil
-	} else {
-		phone = uDataChange.Phone
-	}
-	row := repo.database.QueryRowContext(ctx,
-		`UPDATE "user" SET name = $1, phone = $2, email = $3, img_url = $4, password = $5, card_number = $6, address = $7, updated_at = $8 WHERE email = $9 RETURNING id, email`,
-		uDataChange.Name, phone, uDataChange.Email, uDataChange.ImgUrl, hashPassword, hashCardNumber, address, timeStr, email)
-	var uId uint64
-	var uEmail string
-	err := row.Scan(&uId, &uEmail)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Ошибка получения данных после их обновления в базе данных")
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	if err != nil && strings.Contains(err.Error(), "user_email_key") {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		err = errors.New("user_email_key")
-		return err
-	}
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s был обновлен", uId, uEmail)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return nil
-}
-
-func (repo *RepoLayer) IsExistById(ctx context.Context, userId alias.UserId, requestId string) (bool, error) {
-	methodName := cnst.NameMethodIsExistById
-	u, err := repo.GetById(ctx, userId, requestId)
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return false, err
-	}
-	if u == nil {
-		err = errors.New("Пользователя нет в базе данных")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return false, nil
-	}
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s существует", u.Id, u.Email)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return true, nil
-}
-
-func (repo *RepoLayer) IsExistByEmail(ctx context.Context, email string, requestId string) (bool, error) {
-	methodName := cnst.NameMethodIsExistByEmail
-	u, err := repo.GetByEmail(ctx, email, requestId)
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return false, err
-	}
-	if u == nil {
-		err = errors.New("Пользователя нет в базе данных")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return false, nil
-	}
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s существует", u.Id, u.Email)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return true, nil
-}
-
-func (repo *RepoLayer) GetHashedUserPassword(ctx context.Context, email string, requestId string) ([]byte, error) {
-	methodName := cnst.NameMethodGetHashedUserPassword
-	row := repo.database.QueryRowContext(ctx, `SELECT id, password FROM "user" WHERE email = $1`, email)
-	var uId uint64
-	var hashedPassword []byte
-	err := row.Scan(&uId, &hashedPassword)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Пользователя с таким Email нет. Получить пароль не вышло")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return []byte{}, nil
-	}
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return []byte{}, err
-	}
-	msg := fmt.Sprintf("Получили пароль пользователя с идентификатором %d и почтой %s", uId, email)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return hashedPassword, nil
-}
-
-func (repo *RepoLayer) GetHashedCardNumber(ctx context.Context, email string, requestId string) ([]byte, error) {
-	methodName := cnst.NameMethodGetHashedUserPassword
-	row := repo.database.QueryRowContext(ctx, `SELECT id, card_number FROM "user" WHERE email = $1`, email)
-	var uId uint64
-	var hashedCardNumber []byte
-	err := row.Scan(&uId, &hashedCardNumber)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Пользователя с таким Email нет. Получить пароль не вышло")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return []byte{}, nil
-	}
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return []byte{}, err
-	}
-	msg := fmt.Sprintf("Получили пароль пользователя с идентификатором %d и почтой %s", uId, email)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return hashedCardNumber, nil
-}
-
-func (repo *RepoLayer) UploadImageByEmail(ctx context.Context, file multipart.File, filename string, filesize int64, email string, timeStr string, requestId string) error {
-	methodName := cnst.NameMethodUploadImageByEmail
-	_, err := repo.minio.PutObject(ctx, cnst.BucketUser, filename, file, filesize, minio.PutObjectOptions{ContentType: "application/form-data"})
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-
-	imgPath := fmt.Sprintf("/minio-api/%s/%s", cnst.BucketUser, filename)
-	row := repo.database.QueryRowContext(ctx, `UPDATE "user" SET img_url = $1, updated_at = $2 WHERE email = $3 RETURNING id, email, img_url`, imgPath, timeStr, email)
-	var uId uint64
-	var uEmail string
-	var uImg string
-	err = row.Scan(&uId, &uEmail, &uImg)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Ошибка получения данных после их обновления в базе данных")
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return err
-	}
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s имеет фото по адресу %s", uId, uEmail, uImg)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return nil
-}
-
-func (repo *RepoLayer) DeleteImageByEmail(ctx context.Context, filename string) error {
-	err := repo.minio.RemoveObject(ctx, cnst.BucketUser, filename, minio.RemoveObjectOptions{})
+func (repo *RepoLayer) DeleteByEmail(ctx context.Context, email string) error {
+	row, err := repo.database.ExecContext(ctx, `DELETE FROM "user" WHERE email = $1`, email)
 	if err != nil {
 		return err
+	}
+	numRows, err := row.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if numRows == 0 {
+		return myerrors.SqlNoRowsUserRelation
 	}
 	return nil
 }
 
-func (repo *RepoLayer) SetNewPassword(ctx context.Context, requestId string, email string, password []byte) (bool, error) {
-	methodName := cnst.NameMethodSetNewPassword
-	row := repo.database.QueryRowContext(ctx, `UPDATE "user" SET password = $1 WHERE email = $2 RETURNING id, email`, password, email)
-	var uId uint64
-	var uEmail string
-	err := row.Scan(&uId, &uEmail)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.New("Ошибка получения данных после их обновления в базе данных")
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return false, err
-	}
+func (repo *RepoLayer) Create(ctx context.Context, u *entity.User) error {
+	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+	row, err := repo.database.ExecContext(ctx,
+		`INSERT INTO "user" (name, email, password, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
+		u.Name, u.Email, u.Password, timeNow, timeNow)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return false, err
+		return err
 	}
+	numRows, err := row.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if numRows == 0 {
+		return myerrors.SqlNoRowsUserRelation
+	}
+	return nil
+}
 
-	msg := fmt.Sprintf("Пользователь с идентификатором %d и почтой %s успешно обновил свой пароль", uId, uEmail)
-	functions.LogInfo(repo.logger, requestId, methodName, msg, cnst.RepoLayer)
-	return true, nil
+func (repo *RepoLayer) Update(ctx context.Context, uDataChange *entity.User, email string) error {
+	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+	row, err := repo.database.ExecContext(ctx,
+		`UPDATE "user" SET name = $1, email = $2, phone = $3, img_url = $4, password = $5, card_number = $6, address = $7, updated_at = $8 WHERE email = $9`,
+		uDataChange.Name, uDataChange.Email, functions.MaybeNullString(uDataChange.Phone), uDataChange.ImgUrl, uDataChange.Password, functions.MaybeNullString(uDataChange.CardNumber), functions.MaybeNullString(uDataChange.Address), timeNow, email)
+	if err != nil {
+		return err
+	}
+	numRows, err := row.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if numRows == 0 {
+		return myerrors.SqlNoRowsUserRelation
+	}
+	return nil
 }

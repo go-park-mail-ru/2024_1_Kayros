@@ -15,10 +15,10 @@ import (
 )
 
 func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
-	repoRest := rRest.NewRepoLayer(db, logger)
-	repoFood := rFood.NewRepoLayer(db, logger)
-	usecaseRest := ucRest.NewUsecaseLayer(repoRest, logger)
-	usecaseFood := ucFood.NewUsecaseLayer(repoFood, logger)
+	repoRest := rRest.NewRepoLayer(db)
+	repoFood := rFood.NewRepoLayer(db)
+	usecaseRest := ucRest.NewUsecaseLayer(repoRest)
+	usecaseFood := ucFood.NewUsecaseLayer(repoFood)
 	deliveryRest := dRest.NewRestaurantHandler(usecaseRest, usecaseFood, logger)
 
 	mux.HandleFunc("/restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants-list")

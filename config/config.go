@@ -20,7 +20,7 @@ type (
 		ReadTimeout      uint16 `yaml:"read-timeout"    env:"SRV_READ_TM"`
 		IdleTimeout      uint16 `yaml:"idle-timeout"    env:"SRV_IDLE_TM"`
 		ShutdownDuration uint16 `yaml:"shutdown-duration"    env:"SRV_SHUTDOWN_DUR"`
-		CsrfSecretKey    string `yaml:"csrf_secret_key" env:"CSRF_SECRET KEY"`
+		CsrfSecretKey    string `yaml:"csrf-secret-key" env:"CSRF_SECRET_KEY"`
 	}
 
 	Postgres struct {
@@ -61,14 +61,14 @@ func NewConfig(logger *zap.Logger) *Project {
 
 	err := cleanenv.ReadConfig("config/config.yaml", cfg)
 	if err != nil {
-		logger.Fatal("Ошибка чтения конфигурации приложения", zap.Error(err))
+		logger.Fatal("Error reading application configuration", zap.Error(err))
 	}
 
 	err = cleanenv.ReadEnv(cfg)
 	if err != nil {
-		logger.Fatal("Ошибка создания объекта конфигурации", zap.Error(err))
+		logger.Fatal("Error creating configuration object", zap.Error(err))
 	}
 
-	logger.Info("Чтение конфигурации выполнено успешно")
+	logger.Info("Reading configuration successful")
 	return cfg
 }

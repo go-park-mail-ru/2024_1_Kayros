@@ -6,68 +6,55 @@ import (
 	"time"
 
 	"2024_1_kayros/internal/utils/alias"
-	cnst "2024_1_kayros/internal/utils/constants"
-	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/internal/utils/myerrors"
 	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
 )
 
 type Repo interface {
-	GetValue(ctx context.Context, key alias.SessionKey, requestId string) (alias.SessionValue, error)
-	SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue, requestId string) error
-	DeleteKey(ctx context.Context, key alias.SessionKey, requestId string) (bool, error)
+	GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error)
+	SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error
+	DeleteKey(ctx context.Context, key alias.SessionKey) error
 }
 
 type RepoLayer struct {
-	redis  *redis.Client
-	logger *zap.Logger
+	redis *redis.Client
 }
 
-func NewRepoLayer(client *redis.Client, loggerProps *zap.Logger) Repo {
+func NewRepoLayer(client *redis.Client) Repo {
 	return &RepoLayer{
-		redis:  client,
-		logger: loggerProps,
+		redis: client,
 	}
 }
 
-func (repo *RepoLayer) GetValue(ctx context.Context, key alias.SessionKey, requestId string) (alias.SessionValue, error) {
-	methodName := cnst.NameMethodGetValue
+func (repo *RepoLayer) GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error) {
 	value, err := repo.redis.Get(ctx, string(key)).Result()
-	if err == redis.Nil {
-		err = errors.New("Такого ключа в Redis не существует")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return "", nil
-	} else if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return "", myerrors.RedisNoData
+		}
 		return "", err
 	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
 	return alias.SessionValue(value), nil
 }
 
-func (repo *RepoLayer) SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue, requestId string) error {
-	methodName := cnst.NameMethodSetValue
+func (repo *RepoLayer) SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error {
 	err := repo.redis.Set(ctx, string(key), string(value), 14*24*time.Hour).Err()
 	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
+		if errors.Is(err, redis.Nil) {
+			return myerrors.RedisNoData
+		}
 		return err
 	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
 	return nil
 }
 
-func (repo *RepoLayer) DeleteKey(ctx context.Context, key alias.SessionKey, requestId string) (bool, error) {
-	methodName := cnst.NameMethodDeleteKey
+func (repo *RepoLayer) DeleteKey(ctx context.Context, key alias.SessionKey) error {
 	err := repo.redis.Del(ctx, string(key)).Err()
-	if errors.Is(err, redis.Nil) {
-		err = errors.New("Такого ключа в Redis не существует")
-		functions.LogWarn(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return false, nil
-	}
 	if err != nil {
-		functions.LogError(repo.logger, requestId, methodName, err, cnst.RepoLayer)
-		return false, err
+		if errors.Is(err, redis.Nil) {
+			return myerrors.RedisNoData
+		}
+		return err
 	}
-	functions.LogOk(repo.logger, requestId, methodName, cnst.RepoLayer)
-	return true, nil
+	return nil
 }
