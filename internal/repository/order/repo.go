@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -193,7 +192,6 @@ func (repo *RepoLayer) GetFood(ctx context.Context, orderId alias.OrderId) ([]*e
 }
 
 func (repo *RepoLayer) UpdateAddress(ctx context.Context, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error) {
-	fmt.Println(len(address), len(extraAddress))
 	row := repo.db.QueryRowContext(ctx,
 		`UPDATE "order" SET address=$1, extra_address=$2
               WHERE id=$3 RETURNING id`, address, extraAddress, uint64(orderId))
@@ -401,7 +399,7 @@ func (repo *RepoLayer) CleanBasket(ctx context.Context, id alias.OrderId) error 
 		return err
 	}
 	if countRows == 0 {
-		return myerrors.SqlNoRowsFoodOrderRelation
+		return myerrors.FailCleanBasket
 	}
 	res, err = repo.db.ExecContext(ctx,
 		`DELETE FROM "order" WHERE id=$1`, uint64(id))
@@ -413,7 +411,7 @@ func (repo *RepoLayer) CleanBasket(ctx context.Context, id alias.OrderId) error 
 		return err
 	}
 	if countRows == 0 {
-		return myerrors.SqlNoRowsOrderRelation
+		return myerrors.FailCleanBasket
 	}
 	return nil
 }

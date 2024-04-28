@@ -51,9 +51,11 @@ var (
 	IncorrectCurrentPassword = errors.New("the current password is incorrect")
 	BadAuthPassword          = errors.New("invalid password")
 
-	BasketCreate = errors.New("can't to create basket")
-	OrderAddFood = errors.New("food was not added to the order")
-	OrderSum     = errors.New("sum of the order is null")
+	BasketCreate     = errors.New("can't create basket")
+	OrderAddFood     = errors.New("food was not added to the order")
+	OrderSum         = errors.New("sum of the order is null")
+	FailCleanBasket  = errors.New("can't clean basket")
+	InvalidAddressEn = errors.New("invalid length of address")
 
 	// Database
 	SqlNoRowsUserRelation       = errors.New("no such record exists for \"user\"")
@@ -64,6 +66,13 @@ var (
 	RedisNoData                 = errors.New("no such record exists in Redis")
 )
 
-const (
-	NotUpdateStatusError = "Заказ не оплачен"
+var (
+	NoBasket         = errors.New("У Вас нет корзины")
+	AlreadyPayed     = errors.New("Заказ уже оплачен")
+	InvalidAddress   = errors.New("Некорректный адрес")
+	NoAuth           = errors.New("Необходимо авторизоваться")
+	NoAddFoodToOrder = errors.New("Не удалось добавить блюдо в заказ, попробуйте еще раз")
+	NoClean          = errors.New("Не удалось очистить корзину")
+	SuccessClean     = errors.New("Корзина очищена")
+	NoDeleteFood     = errors.New("Не удалось убрать блюдо из заказа, попробуйте еще раз")
 )

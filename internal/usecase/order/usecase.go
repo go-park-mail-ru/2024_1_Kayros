@@ -3,7 +3,6 @@ package order
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -14,7 +13,7 @@ import (
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/internal/utils/constants"
-	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/internal/utils/myerrors"
 )
 
 type Usecase interface {
@@ -50,185 +49,124 @@ func NewUsecaseLayer(repoOrderProps order.Repo, repoFoodProps food.Repo, repoUse
 }
 
 func (uc *UsecaseLayer) GetBasketId(ctx context.Context, email string) (alias.OrderId, error) {
-	methodName := constants.NameMethodGetBasketId
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return 0, err
 	}
-	if u == nil {
-		functions.LogError(uc.logger, requestId, methodName, fmt.Errorf("No user"), constants.UsecaseLayer)
-		return 0, err
-	}
-	id, err := uc.repoOrder.GetBasketId(ctx, requestId, alias.UserId(u.Id))
-	if id == 0 {
-		functions.LogWarn(uc.logger, requestId, methodName, err, constants.UsecaseLayer)
-		return 0, nil
-	}
+	id, err := uc.repoOrder.GetBasketId(ctx, alias.UserId(u.Id))
 	if err != nil {
-		functions.LogError(uc.logger, requestId, methodName, err, constants.UsecaseLayer)
 		return 0, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return id, nil
 }
 
 func (uc *UsecaseLayer) GetBasketIdNoAuth(ctx context.Context, token string) (alias.OrderId, error) {
-	methodName := constants.NameMethodGetBasketId
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	id, err := uc.repoOrder.GetBasketIdNoAuth(ctx, requestId, token)
-	if id == 0 {
-		return 0, nil
-	}
+	id, err := uc.repoOrder.GetBasketIdNoAuth(ctx, token)
 	if err != nil {
 		return 0, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return id, nil
 }
 
 func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Order, error) {
-	methodName := constants.NameMethodGetBasket
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	if u == nil {
-		functions.LogError(uc.logger, requestId, methodName, err, constants.UsecaseLayer)
-		return nil, err
-	}
-	orders, err := uc.repoOrder.GetOrders(ctx, requestId, alias.UserId(u.Id), constants.Draft)
-	if len(orders) == 0 {
-		functions.LogInfo(uc.logger, requestId, methodName, order.NoBasketError, constants.UsecaseLayer)
-		return nil, fmt.Errorf(order.NoBasketError)
-	}
+	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Draft)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	basket := orders[0]
 	if len(basket.Food) != 0 {
 		basket.RestaurantId = basket.Food[0].RestaurantId
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return basket, nil
 }
 
 func (uc *UsecaseLayer) GetBasketNoAuth(ctx context.Context, token string) (*entity.Order, error) {
-	methodName := constants.NameMethodGetBasket
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	Order, err := uc.repoOrder.GetBasketNoAuth(ctx, requestId, token)
+	Order, err := uc.repoOrder.GetBasketNoAuth(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 	if len(Order.Food) != 0 {
 		Order.RestaurantId = Order.Food[0].RestaurantId
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return Order, nil
 }
 
 func (uc *UsecaseLayer) GetOrderById(ctx context.Context, id alias.OrderId) (*entity.Order, error) {
-	methodName := constants.NameMethodGetBasket
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	Order, err := uc.repoOrder.GetOrderById(ctx, requestId, id)
+	Order, err := uc.repoOrder.GetOrderById(ctx, id)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	if len(Order.Food) != 0 {
 		Order.RestaurantId = Order.Food[0].RestaurantId
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return Order, nil
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId, error) {
-	methodName := constants.NameMethodCreateOrder
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return 0, err
 	}
-	currentTime := time.Now().UTC()
-	timeForDB := currentTime.Format("2006-01-02T15:04:05Z07:00")
-	id, err := uc.repoOrder.Create(ctx, requestId, alias.UserId(u.Id), timeForDB)
+	id, err := uc.repoOrder.Create(ctx, alias.UserId(u.Id))
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return 0, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return id, err
 }
 
 func (uc *UsecaseLayer) CreateNoAuth(ctx context.Context, token string) (alias.OrderId, error) {
-	methodName := constants.NameMethodCreateOrder
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	currentTime := time.Now().UTC()
-	timeForDB := currentTime.Format("2006-01-02T15:04:05Z07:00")
-	id, err := uc.repoOrder.CreateNoAuth(ctx, requestId, token, timeForDB)
+	id, err := uc.repoOrder.CreateNoAuth(ctx, token)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return 0, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return id, err
 }
 
 func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) error {
-	methodName := constants.NameMethodUpdateAddress
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	_, err := uc.repoOrder.UpdateAddress(ctx, requestId, FullAddress.Address, FullAddress.ExtraAddress, orderId)
+	_, err := uc.repoOrder.UpdateAddress(ctx, FullAddress.Address, FullAddress.ExtraAddress, orderId)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return nil
 }
 
 func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentStatus string, email string, userId alias.UserId) (*entity.Order, error) {
-	methodName := constants.NameMethodPayOrder
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
 	if currentStatus != constants.Draft {
-		functions.LogWarn(uc.logger, requestId, methodName, fmt.Errorf("Статус должен быть Draft"), constants.UsecaseLayer)
-		return nil, fmt.Errorf("Заказ уже оплачен")
+		return nil, myerrors.AlreadyPayed
 	}
 	if userId == 0 {
-		u, err := uc.repoUser.GetByEmail(ctx, email, requestId)
+		u, err := uc.repoUser.GetByEmail(ctx, email)
 		if err != nil {
 			fmt.Println(err)
 			return nil, err
 		}
-		err = uc.repoOrder.SetUser(ctx, requestId, orderId, alias.UserId(u.Id))
+		err = uc.repoOrder.SetUser(ctx, orderId, alias.UserId(u.Id))
 		if err != nil {
 			fmt.Println(err)
 			return nil, err
 		}
 	}
-	id, err := uc.repoOrder.UpdateStatus(ctx, requestId, orderId, constants.Payed)
+	id, err := uc.repoOrder.UpdateStatus(ctx, orderId, constants.Payed)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
-	Order, err := uc.repoOrder.GetOrderById(ctx, requestId, id)
+	Order, err := uc.repoOrder.GetOrderById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if len(Order.Food) != 0 {
 		Order.RestaurantId = Order.Food[0].RestaurantId
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return Order, nil
 }
 
 func (uc *UsecaseLayer) Clean(ctx context.Context, orderId alias.OrderId) error {
-	requestId := ""
-	err := uc.repoOrder.CleanBasket(ctx, requestId, orderId)
+	err := uc.repoOrder.CleanBasket(ctx, orderId)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -237,51 +175,39 @@ func (uc *UsecaseLayer) Clean(ctx context.Context, orderId alias.OrderId) error 
 }
 
 func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId, count uint32, orderId alias.OrderId) error {
-	methodName := constants.NameMethodAddToOrder
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoOrder.AddToOrder(ctx, requestId, orderId, foodId, count)
+	err := uc.repoOrder.AddToOrder(ctx, orderId, foodId, count)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return err
 }
 
 func (uc *UsecaseLayer) UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error) {
-	methodName := constants.NameMethodUpdateCountInOrder
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoOrder.UpdateCountInOrder(ctx, requestId, orderId, foodId, count)
+	err := uc.repoOrder.UpdateCountInOrder(ctx, orderId, foodId, count)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, requestId, orderId)
+	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, orderId)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
 	if len(updatedOrder.Food) != 0 {
 		updatedOrder.RestaurantId = updatedOrder.Food[0].RestaurantId
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return updatedOrder, nil
 }
 
 func (uc *UsecaseLayer) DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) (*entity.Order, error) {
-	methodName := constants.NameMethodDeleteFromOrder
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoOrder.DeleteFromOrder(ctx, requestId, orderId, foodId)
+	err := uc.repoOrder.DeleteFromOrder(ctx, orderId, foodId)
 	if err != nil {
 		return nil, err
 	}
-	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, requestId, orderId)
+	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, orderId)
 	if err != nil {
 		return nil, err
 	}
 	if len(updatedOrder.Food) != 0 {
 		updatedOrder.RestaurantId = updatedOrder.Food[0].RestaurantId
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
 	return updatedOrder, nil
 }
