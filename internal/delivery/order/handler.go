@@ -390,7 +390,9 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 	}
 	order, err := h.uc.DeleteFromOrder(r.Context(), basketId, alias.FoodId(foodId))
 	if err != nil {
-		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+		if errors.Is(err, myerrors.SuccessCleanRu) {
+			w = functions.JsonResponse(w, map[string]string{"detail": "Корзина очищена"})
+		} else if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
 			w = functions.ErrorResponse(w, myerrors.NoDeleteFoodRu, http.StatusInternalServerError)
 		} else {
 			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)

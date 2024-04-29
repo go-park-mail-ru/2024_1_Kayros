@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -201,6 +202,9 @@ func (uc *UsecaseLayer) DeleteFromOrder(ctx context.Context, orderId alias.Order
 	}
 	updatedOrder, err := uc.repoOrder.GetOrderById(ctx, orderId)
 	if err != nil {
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			return nil, myerrors.SuccessCleanRu
+		}
 		return nil, err
 	}
 	if len(updatedOrder.Food) != 0 {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -71,6 +72,7 @@ func (repo *RepoLayer) CreateNoAuth(ctx context.Context, unauthId string) (alias
 		}
 		return 0, err
 	}
+	fmt.Println(id)
 	return alias.OrderId(id), nil
 }
 
