@@ -28,13 +28,12 @@ message RestList {
 }
 
 message Comment {
-  oneof user_info {
-    int32 user_id = 1;
-    string user_name = 2;
-  }
-  uint64 restId = 3;
-  string text = 4;
-  string rating = 5;
+  int64 user_id = 1;
+  string user_name = 2;
+  string image = 3;
+  uint64 restId = 4;
+  string text = 5;
+  string rating = 6;
 }
 
 message CommentList {
