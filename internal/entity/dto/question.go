@@ -7,7 +7,7 @@ import (
 
 type QuestionInput struct {
 	Id     uint64 `json:"id"`
-	Rating uint32 `json:"rating"`
+	Rating uint8  `json:"rating"`
 }
 
 func (d *QuestionInput) Validate() (bool, error) {

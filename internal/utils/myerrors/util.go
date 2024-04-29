@@ -10,14 +10,23 @@ var (
 	UserAlreadyExistRu   = errors.New("Пользователь с таким логином уже зарегистрирован")
 	NotFoundRu           = errors.New("Данные не найдены")
 
-	UnauthorizedRu = errors.New("Вы не авторизованы")
-	RegisteredRu   = errors.New("Вы уже зарегистрированы")
-	AuthorizedRu   = errors.New("Вы уже авторизованы")
+	UnauthorizedRu   = errors.New("Вы не авторизованы")
+	RegisteredRu     = errors.New("Вы уже зарегистрированы")
+	AuthorizedRu     = errors.New("Вы уже авторизованы")
+	SignOutAlreadyRu = errors.New("Вы уже вышли из аккаунта")
 
 	BigSizeFileRu              = errors.New("Превышен максимальный размер файла")
 	WrongFileExtensionRu       = errors.New("Недопустимый формат фотографии")
 	NewPasswordRu              = errors.New("Новый пароль совпадает со старым")
 	IncorrectCurrentPasswordRu = errors.New("Неверно указан текущий пароль")
+
+	QuizAddRu = errors.New("Произошла ошибка. Пожалуйста, еще раз проголосуйте")
+
+	NoBasketRu         = errors.New("У Вас нет корзины")
+	AlreadyPayedRu     = errors.New("Заказ уже оплачен")
+	NoAddFoodToOrderRu = errors.New("Не удалось добавить блюдо в заказ, попробуйте еще раз")
+	FailCleanBasketRu  = errors.New("Не удалось очистить корзину")
+	NoDeleteFoodRu     = errors.New("Не удалось убрать блюдо из заказа, попробуйте еще раз")
 )
 
 // Response errors (external) ENGLISH
@@ -57,22 +66,16 @@ var (
 	FailCleanBasket  = errors.New("can't clean basket")
 	InvalidAddressEn = errors.New("invalid length of address")
 
+	QuizAdd      = errors.New("answer was not added to the quiz")
+	NoBasket     = errors.New("basket doesn't exist")
+	AlreadyPayed = errors.New("order has already been paid")
+
 	// Database
 	SqlNoRowsUserRelation       = errors.New("no such record exists for \"user\"")
 	SqlNoRowsRestaurantRelation = errors.New("no such record exists for restaurant")
 	SqlNoRowsFoodRelation       = errors.New("no such record exists for food")
 	SqlNoRowsOrderRelation      = errors.New("no such record exists for \"order\"")
 	SqlNoRowsFoodOrderRelation  = errors.New("no such record exists for food_order")
+	SqlNoRowsQuizRelation       = errors.New("no such record exists for quiz")
 	RedisNoData                 = errors.New("no such record exists in Redis")
-)
-
-var (
-	NoBasket         = errors.New("У Вас нет корзины")
-	AlreadyPayed     = errors.New("Заказ уже оплачен")
-	InvalidAddress   = errors.New("Некорректный адрес")
-	NoAuth           = errors.New("Необходимо авторизоваться")
-	NoAddFoodToOrder = errors.New("Не удалось добавить блюдо в заказ, попробуйте еще раз")
-	NoClean          = errors.New("Не удалось очистить корзину")
-	SuccessClean     = errors.New("Корзина очищена")
-	NoDeleteFood     = errors.New("Не удалось убрать блюдо из заказа, попробуйте еще раз")
 )

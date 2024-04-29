@@ -2,6 +2,7 @@ package functions
 
 import (
 	"regexp"
+	"strconv"
 	"unicode/utf8"
 
 	"2024_1_kayros/internal/utils/regex"
@@ -33,6 +34,12 @@ func InitDtoValidator(logger *zap.Logger) {
 	govalidator.TagMap["user_address_domain"] = func(address string) bool {
 		addressLen := utf8.RuneCountInString(address)
 		return addressLen >= 14 && addressLen <= 100
+	}
+
+	// order_extra_address_domain
+	govalidator.TagMap["user_extra_address_domain"] = func(address string) bool {
+		addressLen := utf8.RuneCountInString(address)
+		return addressLen >= 2 && addressLen <= 100
 	}
 
 	// img_url_domain
@@ -79,5 +86,14 @@ func InitDtoValidator(logger *zap.Logger) {
 	govalidator.TagMap["rest_name_domain"] = func(name string) bool {
 		return regex.RestName.MatchString(name)
 	}
+
+	govalidator.TagMap["positive"] = func(numStr string) bool {
+		num, err := strconv.Atoi(numStr)
+		if err != nil {
+			return false
+		}
+		return num > 0
+	}
+
 	logger.Info("Custom tags created")
 }

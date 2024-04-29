@@ -36,10 +36,7 @@ func Access(handler http.Handler, logger *zap.Logger) http.Handler {
 		timeNow := time.Now().UTC()
 		LogInitRequest(r, logger, timeNow, requestId)
 
-		unauthId, err := functions.GetCookieUnauthIdValue(r)
-		if err != nil {
-			logger.Warn(err.Error(), zap.String(cnst.RequestId, requestId))
-		}
+		unauthId, _ := functions.GetCookieUnauthIdValue(r)
 		ctx := context.WithValue(r.Context(), cnst.UnauthIdCookieName, unauthId)
 		ctx = context.WithValue(ctx, cnst.RequestId, requestId)
 		r = r.WithContext(ctx)

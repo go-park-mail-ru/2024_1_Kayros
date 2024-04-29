@@ -296,7 +296,10 @@ func (repo *RepoLayer) AddToOrder(ctx context.Context, orderId alias.OrderId, fo
 	}
 	sum, err := repo.GetOrderSum(ctx, orderId)
 	if err != nil {
-		return err
+		if !errors.Is(err, myerrors.OrderSum) {
+			return err
+		}
+		sum = 0
 	}
 
 	price, err := repo.GetFoodPrice(ctx, foodId)

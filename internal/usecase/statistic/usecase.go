@@ -2,16 +2,14 @@ package statistic
 
 import (
 	"context"
-	"time"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/statistic"
 )
 
 type Usecase interface {
-	Create(ctx context.Context, questionId uint64, rating uint32, user string) error
-	Update(ctx context.Context, questionId uint64, rating uint32, user string) error
-	GetQuestionInfo(ctx context.Context, url string) ([]*entity.Question, error)
+	Create(ctx context.Context, questionId uint64, rating uint8, userId string) error
+	GetQuestionsOnFocus(ctx context.Context, url string) ([]*entity.Question, error)
 	GetStatistic(ctx context.Context) ([]*entity.Statistic, error)
 }
 
@@ -25,26 +23,16 @@ func NewUsecaseLayer(repoStatisticProps statistic.Repo) Usecase {
 	}
 }
 
-func (uc *UsecaseLayer) Create(ctx context.Context, questionId uint64, rating uint32, user string) error {
-	currentTime := time.Now().UTC()
-	timeForDB := currentTime.Format("2006-01-02T15:04:05Z07:00")
-	err := uc.repoStatistic.Create(ctx, questionId, rating, user, timeForDB)
+func (uc *UsecaseLayer) Create(ctx context.Context, questionId uint64, rating uint8, userId string) error {
+	err := uc.repoStatistic.Create(ctx, questionId, rating, userId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (uc *UsecaseLayer) Update(ctx context.Context, questionId uint64, rating uint32, user string) error {
-	err := uc.repoStatistic.Update(ctx, questionId, rating, user)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (uc *UsecaseLayer) GetQuestionInfo(ctx context.Context, url string) ([]*entity.Question, error) {
-	qs, err := uc.repoStatistic.GetQuestionInfo(ctx, url)
+func (uc *UsecaseLayer) GetQuestionsOnFocus(ctx context.Context, url string) ([]*entity.Question, error) {
+	qs, err := uc.repoStatistic.GetQuestionsOnFocus(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -52,10 +40,6 @@ func (uc *UsecaseLayer) GetQuestionInfo(ctx context.Context, url string) ([]*ent
 }
 
 func (uc *UsecaseLayer) GetStatistic(ctx context.Context) ([]*entity.Statistic, error) {
-	//stats, err := uc.repoStatistic.GetStatistic(ctx)
-	//if err != nil {
-	//	return nil, err
-	//}
 	qs, err := uc.repoStatistic.GetQuestions(ctx)
 	if err != nil {
 		return nil, err

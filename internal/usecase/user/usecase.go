@@ -78,7 +78,7 @@ func (uc *UsecaseLayer) UpdateData(ctx context.Context, data *props.UpdateUserDa
 			return nil, err
 		}
 	}
-	if uDB != nil {
+	if uDB != nil && data.Email != data.UserPropsUpdate.Email {
 		return nil, myerrors.UserAlreadyExist
 	}
 

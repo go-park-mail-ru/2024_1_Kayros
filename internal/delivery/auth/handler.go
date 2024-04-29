@@ -151,31 +151,15 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email == "" {
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.SignOutAlreadyRu, http.StatusUnauthorized)
 		return
 	}
 
-	err := functions.DeleteCookiesFromDB(r, d.ucCsrf, d.ucSession)
+	w, err := functions.FlashCookie(r, w, d.ucCsrf, d.ucSession)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		if errors.Is(err, http.ErrNoCookie) {
-			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
-			return
-		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-
-	w, err = functions.CookieExpired(w, r)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.BucketUser, requestId))
-		if errors.Is(err, http.ErrNoCookie) {
-			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
-			return
-		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-		return
-	}
-
 	w = functions.JsonResponse(w, map[string]string{"detail": "Сессия успешно завершена"})
 }

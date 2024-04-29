@@ -141,18 +141,15 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 	if userId == 0 {
 		u, err := uc.repoUser.GetByEmail(ctx, email)
 		if err != nil {
-			fmt.Println(err)
 			return nil, err
 		}
 		err = uc.repoOrder.SetUser(ctx, orderId, alias.UserId(u.Id))
 		if err != nil {
-			fmt.Println(err)
 			return nil, err
 		}
 	}
 	id, err := uc.repoOrder.UpdateStatus(ctx, orderId, constants.Payed)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	Order, err := uc.repoOrder.GetOrderById(ctx, id)

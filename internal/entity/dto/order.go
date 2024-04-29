@@ -21,8 +21,12 @@ type Order struct {
 }
 
 type FullAddress struct {
-	Address      string `json:"address"`
-	ExtraAddress string `json:"extra_address"`
+	Address      string `json:"address" valid:"user_address_domain"`
+	ExtraAddress string `json:"extra_address" valid:"user_extra_address_domain"`
+}
+
+func (d *FullAddress) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
 }
 
 func (d *Order) Validate() (bool, error) {
