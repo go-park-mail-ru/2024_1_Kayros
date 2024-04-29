@@ -15,10 +15,8 @@ message CommentId {
 message Empty {}
 
 message Rest {
-  oneof user_info {
-    int32 user_id = 1;
-    string user_name = 2;
-  }
+  int64 id = 1;
+  string name = 2;
   string shortDescription = 3;
   string longDescription = 4;
   string address = 5;
@@ -30,8 +28,10 @@ message RestList {
 }
 
 message Comment {
-  uint64 userId = 1;
-  string userName = 2;
+  oneof user_info {
+    int32 user_id = 1;
+    string user_name = 2;
+  }
   uint64 restId = 3;
   string text = 4;
   string rating = 5;
