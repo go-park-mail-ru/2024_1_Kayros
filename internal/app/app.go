@@ -9,14 +9,15 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/route"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/minio"
 	"2024_1_kayros/services/postgres"
 	"2024_1_kayros/services/redis"
-	"github.com/gorilla/mux"
-	"go.uber.org/zap"
 )
 
 // Run creates all services and run the handler goroutines
