@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"2024_1_kayros/microservices/restaurants/internal/repo"
@@ -36,6 +37,7 @@ func (uc *RestLayer) GetAll(ctx context.Context, _ *rest.Empty) (*rest.RestList,
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("we are in microservice")
 	return rests, nil
 }
 

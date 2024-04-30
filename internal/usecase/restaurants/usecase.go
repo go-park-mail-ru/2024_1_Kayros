@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"2024_1_kayros/internal/entity"
-	"2024_1_kayros/internal/repository/restaurants"
 	"2024_1_kayros/internal/utils/alias"
+	rest "2024_1_kayros/microservices/restaurants/proto"
 )
 
 type Usecase interface {
@@ -13,27 +13,27 @@ type Usecase interface {
 	GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error)
 }
 type UsecaseLayer struct {
-	repoRest restaurants.Repo
+	grpcClient rest.RestWorkerClient
 }
 
-func NewUsecaseLayer(repoRestProps restaurants.Repo) Usecase {
+func NewUsecaseLayer(restClient rest.RestWorkerClient) *UsecaseLayer {
 	return &UsecaseLayer{
-		repoRest: repoRestProps,
+		grpcClient: restClient,
 	}
 }
 
 func (uc *UsecaseLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
-	rests, err := uc.repoRest.GetAll(ctx)
+	rests, err := uc.grpcClient.GetAll(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	return rests, nil
+	return entity.FromGrpcStructToRestaurantArray(rests), nil
 }
 
 func (uc *UsecaseLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
-	rest, err := uc.repoRest.GetById(ctx, restId)
+	r, err := uc.grpcClient.GetById(ctx, &rest.RestId{Id: uint64(restId)})
 	if err != nil {
 		return nil, err
 	}
-	return rest, nil
+	return entity.FromGrpcStructToRestaurant(r), nil
 }

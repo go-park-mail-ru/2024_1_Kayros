@@ -11,6 +11,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/route"
@@ -31,8 +33,17 @@ func Run(cfg *config.Project) {
 	//redisUnauthTokensDB := redis.Init(cfg, logger, cfg.Redis.DatabaseUnauthTokens)
 	minioDB := minio.Init(cfg, logger)
 
+	//rest microservice
+	restConn, err := grpc.Dial(":8081", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Printf("The server cannot be started.\n%v", err)
+	} else {
+		log.Println("The server is started at the address", 8081)
+	}
+	defer restConn.Close()
+
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger)
+	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, restConn)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -60,7 +71,7 @@ func Run(cfg *config.Project) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(srvConfig.ShutdownDuration))
 	defer cancel()
 
-	err := srv.Shutdown(ctx)
+	err = srv.Shutdown(ctx)
 	if err != nil {
 		log.Printf("The server urgently shut down with an error.\n%v", err)
 		os.Exit(1) //

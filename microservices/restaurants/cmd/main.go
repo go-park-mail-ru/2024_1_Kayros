@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net"
+	"strconv"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -15,12 +16,15 @@ import (
 	"2024_1_kayros/services/postgres"
 )
 
-func main() {
-	lis, err := net.Listen("tcp", ":8081")
-	if err != nil {
-		fmt.Println("can not listen port 8081: %s", err)
-	}
+const PORT = 8081
 
+func main() {
+	lis, err := net.Listen("tcp", ":"+strconv.Itoa(PORT))
+	if err != nil {
+		log.Println("The server cannot be started.\n%v", err)
+	} else {
+		log.Println("The server listen port", PORT)
+	}
 	logger := zap.Must(zap.NewProduction())
 	functions.InitDtoValidator(logger)
 	cfg := config.NewConfig(logger)
@@ -32,6 +36,6 @@ func main() {
 	rest.RegisterRestWorkerServer(server, usecase.NewRestLayer(repoRest))
 	err = server.Serve(lis)
 	if err != nil {
-		fmt.Println("error in serving server on port 8081 %s", err)
+		log.Printf("error in serving server on port %d -  %s", PORT, err)
 	}
 }
