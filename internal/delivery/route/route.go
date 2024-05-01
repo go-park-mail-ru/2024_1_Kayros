@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"net/http"
 
-	"2024_1_kayros/config"
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+
+	"2024_1_kayros/config"
 )
 
 func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsrf *redis.Client, minio *minio.Client, mux *mux.Router, logger *zap.Logger) http.Handler {

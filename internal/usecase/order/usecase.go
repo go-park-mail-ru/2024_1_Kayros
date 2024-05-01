@@ -164,7 +164,7 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 }
 
 func (uc *UsecaseLayer) Clean(ctx context.Context, orderId alias.OrderId) error {
-	err := uc.repoOrder.CleanBasket(ctx, orderId)
+	err := uc.repoOrder.DeleteBasket(ctx, orderId)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -173,11 +173,33 @@ func (uc *UsecaseLayer) Clean(ctx context.Context, orderId alias.OrderId) error 
 }
 
 func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId, count uint32, orderId alias.OrderId) error {
-	err := uc.repoOrder.AddToOrder(ctx, orderId, foodId, count)
+	//err := uc.repoOrder.AddToOrder(ctx, orderId, foodId, count)
+	//if err != nil {
+	//	return err
+	//}
+	//return err
+	//получаем блюдо по id
+	inputFood, err := uc.repoFood.GetById(ctx, foodId)
 	if err != nil {
 		return err
 	}
-	return err
+	fmt.Println(inputFood.RestaurantId)
+	//получаем заказ по id
+	Order, err := uc.repoOrder.GetOrderById(ctx, orderId)
+	//fmt.Println(Order.Food[0].RestaurantId)
+	//если ресторан блюд в корзине не совпадает с рестораном откуда новое блюдо
+	//то чистим корзину
+	if len(Order.Food) > 0 && inputFood.RestaurantId != Order.Food[0].RestaurantId {
+		err = uc.repoOrder.CleanBasket(ctx, orderId)
+		if err != nil {
+			return err
+		}
+	}
+	err = uc.repoOrder.AddToOrder(ctx, orderId, foodId, count)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (uc *UsecaseLayer) UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error) {

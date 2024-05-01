@@ -30,6 +30,7 @@ type Repo interface {
 	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
 	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) error
 	CleanBasket(ctx context.Context, orderId alias.OrderId) error
+	DeleteBasket(ctx context.Context, orderId alias.OrderId) error
 	SetUser(ctx context.Context, orderId alias.OrderId, userId alias.UserId) error
 }
 
@@ -394,6 +395,26 @@ func (repo *RepoLayer) DeleteFromOrder(ctx context.Context, orderId alias.OrderI
 }
 
 func (repo *RepoLayer) CleanBasket(ctx context.Context, id alias.OrderId) error {
+	res, err := repo.db.ExecContext(ctx,
+		`DELETE FROM food_order WHERE order_id=$1`, uint64(id))
+	if err != nil {
+		return err
+	}
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return myerrors.FailCleanBasket
+	}
+	err = repo.UpdateSum(ctx, 0, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RepoLayer) DeleteBasket(ctx context.Context, id alias.OrderId) error {
 	res, err := repo.db.ExecContext(ctx,
 		`DELETE FROM food_order WHERE order_id=$1`, uint64(id))
 	if err != nil {
