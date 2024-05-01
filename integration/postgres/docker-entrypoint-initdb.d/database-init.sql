@@ -148,3 +148,12 @@ CREATE TABLE IF NOT EXISTS quiz
     created_at  TIMESTAMPTZ
         CONSTRAINT quiz_time_create NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS "comment"
+(
+    id             INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id        INTEGER CONSTRAINT foreign_key CHECK (user_id > 0) NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    restaurant_id INTEGER CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0) NOT NULL REFERENCES restaurant (id) ON DELETE CASCADE,
+    text        TEXT CONSTRAINT comment_text_length CHECK (LENGTH(text) BETWEEN 3 AND 250),
+    rating     INTEGER CONSTRAINT non_negative_rating CHECK (rating >= 0) NOT NULL
+);
