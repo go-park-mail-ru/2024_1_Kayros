@@ -21,6 +21,7 @@ func AddOrderRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)
 
 	mux.HandleFunc("/order", handler.GetBasket).Methods("GET")
+	mux.HandleFunc("/order/current", handler.GetOrders).Methods("GET")
 	mux.HandleFunc("/order/update_address", handler.UpdateAddress).Methods("PUT")
 	mux.HandleFunc("/order/pay", handler.Pay).Methods("PUT")
 	mux.HandleFunc("/order/clean", handler.Clean).Methods("DELETE")

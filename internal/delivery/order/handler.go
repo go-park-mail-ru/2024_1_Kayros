@@ -77,6 +77,30 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	w = functions.JsonResponse(w, orderDTO)
 }
 
+func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
+		h.logger.Error(myerrors.UnauthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		return
+	}
+
+	orders, err := h.uc.GetOrders(r.Context(), email)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusInternalServerError)
+		}
+		return
+	}
+	ordersDTO := dto.NewOrders(orders)
+	w = functions.JsonResponse(w, ordersDTO)
+}
+
 func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)

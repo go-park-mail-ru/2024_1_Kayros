@@ -24,6 +24,7 @@ type Usecase interface {
 	GetBasketNoAuth(ctx context.Context, token string) (*entity.Order, error)
 	GetOrderById(ctx context.Context, id alias.OrderId) (*entity.Order, error)
 	Create(ctx context.Context, email string) (alias.OrderId, error)
+	GetOrders(ctx context.Context, email string) ([]*entity.Order, error)
 	CreateNoAuth(ctx context.Context, token string) (alias.OrderId, error)
 	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) error
 	Pay(ctx context.Context, orderId alias.OrderId, currentStatus string, email string, userId alias.UserId) (*entity.Order, error)
@@ -105,6 +106,18 @@ func (uc *UsecaseLayer) GetOrderById(ctx context.Context, id alias.OrderId) (*en
 		Order.RestaurantId = Order.Food[0].RestaurantId
 	}
 	return Order, nil
+}
+
+func (uc *UsecaseLayer) GetOrders(ctx context.Context, email string) ([]*entity.Order, error) {
+	u, err := uc.repoUser.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Payed, constants.Cooking, constants.OnTheWay)
+	if err != nil {
+		return nil, err
+	}
+	return orders, nil
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId, error) {

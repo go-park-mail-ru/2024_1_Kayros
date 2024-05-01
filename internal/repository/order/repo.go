@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ import (
 type Repo interface {
 	Create(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
 	CreateNoAuth(ctx context.Context, unauthId string) (alias.OrderId, error)
-	GetOrders(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error)
+	GetOrders(ctx context.Context, userId alias.UserId, status ...string) ([]*entity.Order, error)
 	GetBasketNoAuth(ctx context.Context, unauthId string) (*entity.Order, error)
 	GetBasketId(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
 	GetBasketIdNoAuth(ctx context.Context, unauthId string) (alias.OrderId, error)
@@ -77,16 +78,33 @@ func (repo *RepoLayer) CreateNoAuth(ctx context.Context, unauthId string) (alias
 	return alias.OrderId(id), nil
 }
 
-func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error) {
-	rows, err := repo.db.QueryContext(ctx, `SELECT id, user_id, created_at, received_at, status, address,
-      				extra_address, sum FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), status)
+func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, status ...string) ([]*entity.Order, error) {
+	var rows *sql.Rows
+	var err error
+	if len(status) == 1 {
+		rows, err = repo.db.QueryContext(ctx, `SELECT id, user_id, created_at, status, address,
+      				extra_address, sum FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), status[0])
+	} else {
+		str := "$2"
+		for i := range len(status) - 1 {
+			str = str + ", $" + strconv.Itoa(i+3)
+		}
+		query := `SELECT id, user_id, created_at, status, address, 
+       			extra_address, sum FROM "order" WHERE user_id= $1 AND status IN (` + str + `)`
+		args := make([]interface{}, len(status)+1)
+		args[0] = uint64(userId)
+		for i, a := range status {
+			args[i+1] = a
+		}
+		rows, err = repo.db.QueryContext(ctx, query, args...)
+	}
 	if err != nil {
 		return nil, err
 	}
 	orders := []*entity.Order{}
 	for rows.Next() {
 		var order entity.OrderDB
-		err = rows.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.ReceivedAt, &order.Status, &order.Address,
+		err = rows.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.Status, &order.Address,
 			&order.ExtraAddress, &order.Sum)
 		if err != nil {
 			return nil, err

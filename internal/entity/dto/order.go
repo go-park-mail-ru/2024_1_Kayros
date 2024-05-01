@@ -56,7 +56,7 @@ func NewOrder(order *entity.Order) *Order {
 
 func NewOrders(orderArray []*entity.Order) []*Order {
 	orderDTOArray := make([]*Order, len(orderArray))
-	for _, order := range orderArray {
+	for i, order := range orderArray {
 		food := order.Food
 		foodInOrder := NewFoodArray(food)
 		orderDTO := &Order{
@@ -72,7 +72,7 @@ func NewOrders(orderArray []*entity.Order) []*Order {
 			RestaurantId: order.RestaurantId,
 			Food:         foodInOrder,
 		}
-		orderDTOArray = append(orderDTOArray, orderDTO)
+		orderDTOArray[i] = orderDTO
 	}
 	return orderDTOArray
 }

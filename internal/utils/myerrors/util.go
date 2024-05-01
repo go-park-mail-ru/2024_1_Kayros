@@ -24,6 +24,7 @@ var (
 
 	SuccessCleanRu     = errors.New("Корзина очищена")
 	NoBasketRu         = errors.New("У Вас нет корзины")
+	NoOrdersRu         = errors.New("Нет заказов")
 	AlreadyPayedRu     = errors.New("Заказ уже оплачен")
 	NoAddFoodToOrderRu = errors.New("Не удалось добавить блюдо в заказ, попробуйте еще раз")
 	FailCleanBasketRu  = errors.New("Не удалось очистить корзину")
