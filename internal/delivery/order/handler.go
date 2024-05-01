@@ -77,6 +77,36 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	w = functions.JsonResponse(w, orderDTO)
 }
 
+func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	//unauthId := functions.GetCtxUnauthId(r)
+	if email == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusOK)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+
+	var order *entity.Order
+	order, err = h.uc.GetOrderById(r.Context(), alias.OrderId(id))
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	orderDTO := dto.NewOrder(order)
+	w = functions.JsonResponse(w, orderDTO)
+}
+
 func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
