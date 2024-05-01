@@ -12,9 +12,6 @@ import (
 type Rest interface {
 	GetAll(ctx context.Context, _ *rest.Empty) (*rest.RestList, error)
 	GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error)
-	CreateComment(context.Context, *rest.Comment) (*rest.Comment, error)
-	DeleteComment(context.Context, *rest.CommentId) (*rest.Empty, error)
-	GetCommentsByRest(context.Context, *rest.RestId) (*rest.CommentList, error)
 }
 
 type RestLayer struct {
@@ -47,14 +44,4 @@ func (uc *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, 
 		return nil, err
 	}
 	return rest, nil
-}
-
-func (uc *RestLayer) CreateComment(context.Context, *rest.Comment) (*rest.Comment, error) {
-	return nil, nil
-}
-func (uc *RestLayer) DeleteComment(context.Context, *rest.CommentId) (*rest.Empty, error) {
-	return nil, nil
-}
-func (uc *RestLayer) GetCommentsByRest(context.Context, *rest.RestId) (*rest.CommentList, error) {
-	return nil, nil
 }

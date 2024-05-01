@@ -20,9 +20,6 @@ const _ = grpc.SupportPackageIsVersion7
 type RestWorkerClient interface {
 	GetAll(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*RestList, error)
 	GetById(ctx context.Context, in *RestId, opts ...grpc.CallOption) (*Rest, error)
-	CreateComment(ctx context.Context, in *Comment, opts ...grpc.CallOption) (*Comment, error)
-	DeleteComment(ctx context.Context, in *CommentId, opts ...grpc.CallOption) (*Empty, error)
-	GetCommentsByRest(ctx context.Context, in *RestId, opts ...grpc.CallOption) (*CommentList, error)
 }
 
 type restWorkerClient struct {
@@ -51,42 +48,12 @@ func (c *restWorkerClient) GetById(ctx context.Context, in *RestId, opts ...grpc
 	return out, nil
 }
 
-func (c *restWorkerClient) CreateComment(ctx context.Context, in *Comment, opts ...grpc.CallOption) (*Comment, error) {
-	out := new(Comment)
-	err := c.cc.Invoke(ctx, "/rest.RestWorker/CreateComment", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *restWorkerClient) DeleteComment(ctx context.Context, in *CommentId, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/rest.RestWorker/DeleteComment", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *restWorkerClient) GetCommentsByRest(ctx context.Context, in *RestId, opts ...grpc.CallOption) (*CommentList, error) {
-	out := new(CommentList)
-	err := c.cc.Invoke(ctx, "/rest.RestWorker/GetCommentsByRest", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RestWorkerServer is the server API for RestWorker service.
 // All implementations must embed UnimplementedRestWorkerServer
 // for forward compatibility
 type RestWorkerServer interface {
 	GetAll(context.Context, *Empty) (*RestList, error)
 	GetById(context.Context, *RestId) (*Rest, error)
-	CreateComment(context.Context, *Comment) (*Comment, error)
-	DeleteComment(context.Context, *CommentId) (*Empty, error)
-	GetCommentsByRest(context.Context, *RestId) (*CommentList, error)
 	mustEmbedUnimplementedRestWorkerServer()
 }
 
@@ -99,15 +66,6 @@ func (UnimplementedRestWorkerServer) GetAll(context.Context, *Empty) (*RestList,
 }
 func (UnimplementedRestWorkerServer) GetById(context.Context, *RestId) (*Rest, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetById not implemented")
-}
-func (UnimplementedRestWorkerServer) CreateComment(context.Context, *Comment) (*Comment, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateComment not implemented")
-}
-func (UnimplementedRestWorkerServer) DeleteComment(context.Context, *CommentId) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteComment not implemented")
-}
-func (UnimplementedRestWorkerServer) GetCommentsByRest(context.Context, *RestId) (*CommentList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCommentsByRest not implemented")
 }
 func (UnimplementedRestWorkerServer) mustEmbedUnimplementedRestWorkerServer() {}
 
@@ -158,60 +116,6 @@ func _RestWorker_GetById_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RestWorker_CreateComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Comment)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RestWorkerServer).CreateComment(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rest.RestWorker/CreateComment",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RestWorkerServer).CreateComment(ctx, req.(*Comment))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RestWorker_DeleteComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CommentId)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RestWorkerServer).DeleteComment(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rest.RestWorker/DeleteComment",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RestWorkerServer).DeleteComment(ctx, req.(*CommentId))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RestWorker_GetCommentsByRest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RestId)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RestWorkerServer).GetCommentsByRest(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rest.RestWorker/GetCommentsByRest",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RestWorkerServer).GetCommentsByRest(ctx, req.(*RestId))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RestWorker_ServiceDesc is the grpc.ServiceDesc for RestWorker service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -226,18 +130,6 @@ var RestWorker_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetById",
 			Handler:    _RestWorker_GetById_Handler,
-		},
-		{
-			MethodName: "CreateComment",
-			Handler:    _RestWorker_CreateComment_Handler,
-		},
-		{
-			MethodName: "DeleteComment",
-			Handler:    _RestWorker_DeleteComment_Handler,
-		},
-		{
-			MethodName: "GetCommentsByRest",
-			Handler:    _RestWorker_GetCommentsByRest_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
