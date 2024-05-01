@@ -31,7 +31,7 @@ func NewCommentHandler(ucc comment.Usecase, loggerProps *zap.Logger) *CommentHan
 	}
 }
 
-func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
@@ -102,4 +102,47 @@ func (h *CommentHandler) GetComments(w http.ResponseWriter, r *http.Request) {
 
 	commentArrayDTO := dto.NewCommentArray(comments)
 	w = functions.JsonResponse(w, commentArrayDTO)
+}
+
+func (h *CommentHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
+		h.logger.Error(myerrors.UnauthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		return
+	}
+
+	var id uint64
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+	if err = r.Body.Close(); err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	err = json.Unmarshal(body, &id)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+
+	err = h.uc.DeleteComment(r.Context(), id)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsCommentRelation) {
+			w = functions.ErrorResponse(w, myerrors.FailCreateCommentRu, http.StatusInternalServerError)
+			return
+		}
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }

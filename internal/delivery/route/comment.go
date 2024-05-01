@@ -18,6 +18,7 @@ func AddCommentRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
 	ucComment := uc.NewUseCaseLayer(repoComment, repoUser)
 	handler := delivery.NewCommentHandler(ucComment, logger)
 
-	mux.HandleFunc("/comment", handler.Create).Methods("POST")
+	mux.HandleFunc("/comment", handler.CreateComment).Methods("POST")
 	mux.HandleFunc("/comments/{rest_id}", handler.GetComments).Methods("GET")
+	mux.HandleFunc("/comment", handler.DeleteComment).Methods("DELETE")
 }

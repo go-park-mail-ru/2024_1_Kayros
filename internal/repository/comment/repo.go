@@ -32,7 +32,7 @@ func NewRepoLayer(dbProps *sql.DB) Repo {
 
 func (repo *RepoLayer) Create(ctx context.Context, comment entity.Comment) (*entity.Comment, error) {
 	row := repo.db.QueryRowContext(ctx,
-		`INSERT INTO "comment" (user_id, restaurant_id, text, rating) VALUES ($1, $2, $3, $4) RETURNING id, user_id, text, rating`, comment.UserId, comment.RestId, comment.Text, comment.Rating)
+		`INSERT INTO "comment" (user_id, restaurant_id, text, rating) VALUES ($1, $2, $3, $4) RETURNING id, user_id, restaurant_id, text, rating`, comment.UserId, comment.RestId, comment.Text, comment.Rating)
 	res := entity.Comment{}
 	err := row.Scan(&res.Id, &res.UserId, &res.RestId, &res.Text, &res.Rating)
 	if err != nil {
