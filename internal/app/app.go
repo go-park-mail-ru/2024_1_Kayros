@@ -34,11 +34,11 @@ func Run(cfg *config.Project) {
 	minioDB := minio.Init(cfg, logger)
 
 	//rest microservice
-	restConn, err := grpc.Dial(":8081", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	restConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Printf("The server cannot be started.\n%v", err)
 	} else {
-		log.Println("The server is started at the address", 8081)
+		log.Printf("The server is started at the address %s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port)
 	}
 	defer restConn.Close()
 

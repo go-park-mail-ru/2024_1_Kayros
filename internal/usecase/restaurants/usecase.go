@@ -27,7 +27,7 @@ func (uc *UsecaseLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error
 	if err != nil {
 		return nil, err
 	}
-	return entity.FromGrpcStructToRestaurantArray(rests), nil
+	return FromGrpcStructToRestaurantArray(rests), nil
 }
 
 func (uc *UsecaseLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
@@ -35,5 +35,5 @@ func (uc *UsecaseLayer) GetById(ctx context.Context, restId alias.RestId) (*enti
 	if err != nil {
 		return nil, err
 	}
-	return entity.FromGrpcStructToRestaurant(r), nil
+	return FromGrpcStructToRestaurant(r), nil
 }
