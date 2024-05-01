@@ -1,10 +1,11 @@
 package entity
 
 type Comment struct {
-	UserId    int
+	Id        uint64
+	UserId    uint64
 	UserName  string
 	UserImage string
-	RestId    int
+	RestId    uint64
 	Text      string
-	Rating    int
+	Rating    uint8
 }
