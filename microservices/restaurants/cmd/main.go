@@ -36,6 +36,6 @@ func main() {
 	rest.RegisterRestWorkerServer(server, usecase.NewRestLayer(repoRest))
 	err = server.Serve(lis)
 	if err != nil {
-		log.Printf("error in serving server on port %d -  %s", cfg.RestGrpcServer.Port, err)
+		log.Fatalf("error in serving server on port %d -  %s", cfg.RestGrpcServer.Port, err)
 	}
 }

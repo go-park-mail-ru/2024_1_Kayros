@@ -36,6 +36,6 @@ func main() {
 	rest.RegisterCommentWorkerServer(server, usecase.NewCommentLayer(repoComment))
 	err = server.Serve(lis)
 	if err != nil {
-		log.Printf("error in serving server on port %d -  %s", cfg.CommentGrpcServer.Port, err)
+		log.Fatalf("error in serving server on port %d -  %s", cfg.CommentGrpcServer.Port, err)
 	}
 }

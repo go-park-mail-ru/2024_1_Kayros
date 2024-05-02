@@ -6,7 +6,6 @@ import (
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
-	"2024_1_kayros/internal/utils/myerrors"
 	comment "2024_1_kayros/microservices/comment/proto"
 )
 
@@ -53,8 +52,8 @@ func (uc *UsecaseLayer) GetCommentsByRest(ctx context.Context, restId alias.Rest
 	if err != nil {
 		return nil, err
 	}
-	if len(comments.GetComment()) == 0 {
-		return nil, myerrors.NoComments
+	if comments == nil {
+		return nil, nil
 	}
 	return FromGrpcStructToCommentArray(comments), nil
 }

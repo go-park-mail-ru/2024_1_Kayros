@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
+	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/usecase/comment"
 	"2024_1_kayros/internal/utils/alias"
 
@@ -19,23 +20,28 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 )
 
-type CommentHandler struct {
+type Delivery struct {
 	uc     comment.Usecase
 	logger *zap.Logger
 }
 
-func NewCommentHandler(ucc comment.Usecase, loggerProps *zap.Logger) *CommentHandler {
-	return &CommentHandler{
+func NewDelivery(ucc comment.Usecase, loggerProps *zap.Logger) *Delivery {
+	return &Delivery{
 		uc:     ucc,
 		logger: loggerProps,
 	}
 }
 
-type Input struct {
+type InputId struct {
 	Id uint64 `json:"id"`
 }
 
-func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
+type InputComment struct {
+	Text   string `json:"text"`
+	Rating uint32 `json:"rating"`
+}
+
+func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
@@ -45,7 +51,15 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var comDTO *dto.Comment
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
+		return
+	}
+
+	var inputComment *InputComment
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -58,14 +72,18 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	err = json.Unmarshal(body, &comDTO)
+	err = json.Unmarshal(body, &inputComment)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
-	com := dto.NewCommentFromDTO(comDTO)
+	com := entity.Comment{
+		RestId: uint64(id),
+		Text:   inputComment.Text,
+		Rating: inputComment.Rating,
+	}
 
 	res, err := h.uc.CreateComment(r.Context(), com, email)
 	if err != nil {
@@ -77,11 +95,11 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	comDTO = dto.NewComment(res)
+	comDTO := dto.NewComment(res)
 	w = functions.JsonResponse(w, comDTO)
 }
 
-func (h *CommentHandler) GetComments(w http.ResponseWriter, r *http.Request) {
+func (h *Delivery) GetComments(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 
@@ -96,11 +114,12 @@ func (h *CommentHandler) GetComments(w http.ResponseWriter, r *http.Request) {
 	comments, err := h.uc.GetCommentsByRest(r.Context(), alias.RestId(id))
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		if errors.Is(err, myerrors.NoComments) {
-			w = functions.ErrorResponse(w, myerrors.NoCommentsRu, http.StatusOK)
-			return
-		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+
+	if comments == nil {
+		w = functions.ErrorResponse(w, myerrors.NoCommentsRu, http.StatusOK)
 		return
 	}
 
@@ -108,7 +127,7 @@ func (h *CommentHandler) GetComments(w http.ResponseWriter, r *http.Request) {
 	w = functions.JsonResponse(w, commentArrayDTO)
 }
 
-func (h *CommentHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
+func (h *Delivery) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
@@ -118,31 +137,19 @@ func (h *CommentHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var id Input
-
-	body, err := io.ReadAll(r.Body)
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["com_id"])
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
-		return
-	}
-	if err = r.Body.Close(); err != nil {
-		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-		return
-	}
-	err = json.Unmarshal(body, &id)
-	if err != nil {
-		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		w = functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
 		return
 	}
 
-	err = h.uc.DeleteComment(r.Context(), id.Id)
+	err = h.uc.DeleteComment(r.Context(), uint64(id))
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsCommentRelation) {
-			w = functions.ErrorResponse(w, myerrors.FailCreateCommentRu, http.StatusInternalServerError)
+			w = functions.ErrorResponse(w, myerrors.FailCreateCommentRu, http.StatusNotFound)
 			return
 		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)

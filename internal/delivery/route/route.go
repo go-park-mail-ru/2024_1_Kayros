@@ -20,10 +20,10 @@ func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsr
 
 	AddAuthRouter(cfg, db, redisSession, redisCsrf, minio, mux, logger)
 	AddUserRouter(db, cfg, minio, redisSession, redisCsrf, mux, logger)
-	AddRestRouter(db, mux, logger, restConn)
+	AddRestRouter(db, mux, logger, restConn, commentConn)
 	AddOrderRouter(db, mux, logger)
 	AddQuizRouter(db, redisSession, redisCsrf, minio, mux, logger)
-	AddCommentRouter(db, mux, logger, commentConn)
+	//AddCommentRouter(db, mux, logger, commentConn)
 
 	handler := AddMiddleware(cfg, db, redisSession, redisCsrf, minio, mux, logger)
 	logger.Info("The end of handlers definition")

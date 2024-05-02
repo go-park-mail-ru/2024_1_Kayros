@@ -27,10 +27,9 @@ func NewCommentLayer(dbProps *sql.DB) Comment {
 }
 
 func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*comment.Comment, error) {
-	row := repo.db.QueryRowContext(ctx,
-		`INSERT INTO "comment" (user_id, restaurant_id, text, rating) VALUES ($1, $2, $3, $4) RETURNING id, restaurant_id, user_id, text, rating`, com.UserId, com.RestId, com.Text, com.Rating)
-	res := comment.Comment{}
-	err := row.Scan(&res.Id, &res.UserId, &res.RestId, &res.Text, &res.Rating)
+	var id uint64
+	err := repo.db.QueryRowContext(ctx,
+		`INSERT INTO "comment" (user_id, restaurant_id, text, rating) VALUES ($1, $2, $3, $4) RETURNING id`, com.UserId, com.RestId, com.Text, com.Rating).Scan(&id)
 	if err != nil {
 		fmt.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -38,7 +37,8 @@ func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*co
 		}
 		return nil, err
 	}
-	return &res, err
+	com.Id = id
+	return com, err
 }
 
 func (repo *CommentLayer) GetCommentsByRest(ctx context.Context, restId *comment.RestId) (*comment.CommentList, error) {
