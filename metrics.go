@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -10,13 +10,10 @@ import (
 )
 
 var (
-	requestsTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Total number of HTTP requests.",
-		},
-		[]string{"method"},
-	)
+	hits = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "hits",
+	}, []string{"status", "path"})
+
 	requestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "http_request_duration_seconds",
@@ -27,22 +24,19 @@ var (
 )
 
 func main() {
-	prometheus.MustRegister(requestsTotal, requestDuration)
+	prometheus.MustRegister(hits, requestDuration)
 
 	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-	defer func() {
-		method := r.Method
-		elapsed := time.Since(start).Seconds()
-		requestsTotal.WithLabelValues(method).Inc()
-		requestDuration.WithLabelValues(method).Observe(elapsed)
-	}()
-
-	// Ваш код обработки запроса здесь
-	fmt.Fprintf(w, "Hello, World!")
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		defer func() {
+			method := r.Method
+			elapsed := time.Since(start).Seconds()
+			hits.WithLabelValues(method, r.URL.String()).Inc()
+			requestDuration.WithLabelValues(method).Observe(elapsed)
+		}()
+	})
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalln("metrics server can't be started")
+	}
 }

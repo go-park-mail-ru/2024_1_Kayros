@@ -42,7 +42,7 @@ type FoodCount struct {
 func ChangingStatus(ctx context.Context, h *OrderHandler, id uint64, arr []string) {
 	requestId := ctx.Value(cnst.RequestId)
 	for _, s := range arr {
-		time.Sleep(2 * time.Minute)
+		time.Sleep(30 * time.Second)
 		_, err := h.uc.UpdateStatus(ctx, alias.OrderId(id), s)
 		if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId.(string)))

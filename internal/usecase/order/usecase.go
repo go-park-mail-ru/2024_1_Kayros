@@ -113,7 +113,7 @@ func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*
 	if err != nil {
 		return nil, err
 	}
-	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Payed, constants.Cooking, constants.OnTheWay)
+	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Created, constants.Cooking, constants.OnTheWay)
 	if err != nil {
 		return nil, err
 	}
