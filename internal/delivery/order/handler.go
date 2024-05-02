@@ -229,6 +229,10 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 
 	response := payedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
 	w = functions.JsonResponse(w, response)
+
+	go func() {
+
+	}()
 }
 
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
