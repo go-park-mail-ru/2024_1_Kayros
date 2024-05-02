@@ -1,11 +1,13 @@
 package delivery
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gorilla/mux"
@@ -227,12 +229,22 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	statuses := []string{cnst.Created, cnst.Cooking, cnst.OnTheWay, cnst.Delivered}
+
+	go func(id uint64, arr []string, ctx context.Context) {
+		time.Sleep(2 * time.Minute)
+		for _, s := range arr {
+			_, err := h.uc.UpdateStatus(ctx, alias.OrderId(id), s)
+			if err != nil {
+				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				return
+			}
+		}
+	}(payedOrder.Id, statuses, r.Context())
+
 	response := payedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
 	w = functions.JsonResponse(w, response)
 
-	go func() {
-
-	}()
 }
 
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {

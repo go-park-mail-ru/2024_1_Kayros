@@ -27,6 +27,7 @@ type Usecase interface {
 	CreateNoAuth(ctx context.Context, token string) (alias.OrderId, error)
 	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) error
 	Pay(ctx context.Context, orderId alias.OrderId, currentStatus string, email string, userId alias.UserId) (*entity.Order, error)
+	UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) (*entity.Order, error)
 	Clean(ctx context.Context, orderId alias.OrderId) error
 	AddFoodToOrder(ctx context.Context, foodId alias.FoodId, count uint32, orderId alias.OrderId) error
 	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error)
@@ -178,6 +179,21 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 		}
 	}
 	id, err := uc.repoOrder.UpdateStatus(ctx, orderId, constants.Payed)
+	if err != nil {
+		return nil, err
+	}
+	Order, err := uc.repoOrder.GetOrderById(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if len(Order.Food) != 0 {
+		Order.RestaurantId = Order.Food[0].RestaurantId
+	}
+	return Order, nil
+}
+
+func (uc *UsecaseLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) (*entity.Order, error) {
+	id, err := uc.repoOrder.UpdateStatus(ctx, orderId, status)
 	if err != nil {
 		return nil, err
 	}
