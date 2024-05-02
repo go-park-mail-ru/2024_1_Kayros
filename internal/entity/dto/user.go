@@ -2,6 +2,7 @@ package dto
 
 import (
 	"errors"
+	"log"
 	"mime/multipart"
 	"net/http"
 
@@ -46,6 +47,7 @@ func GetUpdatedUserData(r *http.Request) (multipart.File, *multipart.FileHeader,
 		return nil, nil, nil, err
 	}
 	if handler.Size > cnst.UploadedFileMaxSize {
+		log.Println(handler.Size)
 		return nil, nil, nil, myerrors.BigSizeFile
 	}
 

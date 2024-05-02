@@ -25,11 +25,22 @@ func Init(cfg *config.Project, logger *zap.Logger) *sql.DB {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	wasConnected := false
 
-	err = db.PingContext(ctx)
-	if err != nil {
-		logger.Fatal("Test queries to PostgreSQL failed", zap.Error(err))
+	for i := 0; i < 3; i++ {
+		err = db.PingContext(ctx)
+		if err != nil {
+			logger.Error("Test queries to PostgreSQL failed", zap.Error(err))
+		} else {
+			wasConnected = true
+			break
+		}
+		time.Sleep(3 * time.Second)
 	}
+	if !wasConnected {
+		logger.Fatal("Unable to connect to PostgreSQL", zap.Error(err))
+	}
+
 	// maximum number of open connections
 	db.SetMaxOpenConns(int(dbConfig.MaxOpenConns))
 	// maximum amount of time the connection can be reused

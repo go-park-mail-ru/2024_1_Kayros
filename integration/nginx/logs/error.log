@@ -1,0 +1,481 @@
+2024/05/02 17:21:33 [notice] 1#1: using the "epoll" event method
+2024/05/02 17:21:33 [notice] 1#1: nginx/1.25.4
+2024/05/02 17:21:33 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 17:21:33 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 17:21:33 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 17:21:33 [notice] 1#1: start worker processes
+2024/05/02 17:21:33 [notice] 1#1: start worker process 29
+2024/05/02 17:21:33 [notice] 1#1: start worker process 30
+2024/05/02 17:21:33 [notice] 1#1: start worker process 31
+2024/05/02 17:21:33 [notice] 1#1: start worker process 32
+2024/05/02 17:22:44 [error] 29#29: *14 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.0.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.0.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:23:06 [error] 29#29: *14 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.0.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.0.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:23:19 [error] 29#29: *14 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.0.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.0.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:23:26 [error] 29#29: *18 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.0.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.0.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:23:55 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 17:23:55 [notice] 29#29: gracefully shutting down
+2024/05/02 17:23:55 [notice] 30#30: gracefully shutting down
+2024/05/02 17:23:55 [notice] 31#31: gracefully shutting down
+2024/05/02 17:23:55 [notice] 32#32: gracefully shutting down
+2024/05/02 17:23:55 [notice] 31#31: exiting
+2024/05/02 17:23:55 [notice] 29#29: exiting
+2024/05/02 17:23:55 [notice] 30#30: exiting
+2024/05/02 17:23:55 [notice] 32#32: exiting
+2024/05/02 17:23:55 [notice] 29#29: exit
+2024/05/02 17:23:55 [notice] 30#30: exit
+2024/05/02 17:23:55 [notice] 31#31: exit
+2024/05/02 17:23:55 [notice] 32#32: exit
+2024/05/02 17:23:55 [notice] 1#1: signal 17 (SIGCHLD) received from 30
+2024/05/02 17:23:55 [notice] 1#1: worker process 30 exited with code 0
+2024/05/02 17:23:55 [notice] 1#1: worker process 31 exited with code 0
+2024/05/02 17:23:55 [notice] 1#1: worker process 32 exited with code 0
+2024/05/02 17:23:55 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 17:23:55 [notice] 1#1: signal 17 (SIGCHLD) received from 32
+2024/05/02 17:23:55 [notice] 1#1: worker process 29 exited with code 0
+2024/05/02 17:23:55 [notice] 1#1: exit
+2024/05/02 17:25:02 [notice] 1#1: using the "epoll" event method
+2024/05/02 17:25:02 [notice] 1#1: nginx/1.25.4
+2024/05/02 17:25:02 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 17:25:02 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 17:25:02 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 17:25:02 [notice] 1#1: start worker processes
+2024/05/02 17:25:02 [notice] 1#1: start worker process 22
+2024/05/02 17:25:02 [notice] 1#1: start worker process 23
+2024/05/02 17:25:02 [notice] 1#1: start worker process 24
+2024/05/02 17:25:02 [notice] 1#1: start worker process 25
+2024/05/02 17:25:20 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 17:25:20 [notice] 25#25: gracefully shutting down
+2024/05/02 17:25:20 [notice] 25#25: exiting
+2024/05/02 17:25:20 [notice] 22#22: gracefully shutting down
+2024/05/02 17:25:20 [notice] 24#24: gracefully shutting down
+2024/05/02 17:25:20 [notice] 23#23: gracefully shutting down
+2024/05/02 17:25:20 [notice] 25#25: exit
+2024/05/02 17:25:20 [notice] 22#22: exiting
+2024/05/02 17:25:20 [notice] 24#24: exiting
+2024/05/02 17:25:20 [notice] 23#23: exiting
+2024/05/02 17:25:20 [notice] 22#22: exit
+2024/05/02 17:25:20 [notice] 24#24: exit
+2024/05/02 17:25:20 [notice] 23#23: exit
+2024/05/02 17:25:20 [notice] 1#1: signal 17 (SIGCHLD) received from 25
+2024/05/02 17:25:20 [notice] 1#1: worker process 25 exited with code 0
+2024/05/02 17:25:20 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 17:25:20 [notice] 1#1: signal 17 (SIGCHLD) received from 22
+2024/05/02 17:25:20 [notice] 1#1: worker process 22 exited with code 0
+2024/05/02 17:25:20 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 17:25:20 [notice] 1#1: signal 17 (SIGCHLD) received from 24
+2024/05/02 17:25:20 [notice] 1#1: worker process 23 exited with code 0
+2024/05/02 17:25:20 [notice] 1#1: worker process 24 exited with code 0
+2024/05/02 17:25:20 [notice] 1#1: exit
+2024/05/02 17:26:51 [notice] 1#1: using the "epoll" event method
+2024/05/02 17:26:51 [notice] 1#1: nginx/1.25.4
+2024/05/02 17:26:51 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 17:26:51 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 17:26:51 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 17:26:51 [notice] 1#1: start worker processes
+2024/05/02 17:26:51 [notice] 1#1: start worker process 30
+2024/05/02 17:26:51 [notice] 1#1: start worker process 31
+2024/05/02 17:26:51 [notice] 1#1: start worker process 32
+2024/05/02 17:26:51 [notice] 1#1: start worker process 33
+2024/05/02 17:28:33 [error] 30#30: *13 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:30:08 [error] 30#30: *15 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:31:23 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 17:31:23 [notice] 30#30: gracefully shutting down
+2024/05/02 17:31:23 [notice] 31#31: gracefully shutting down
+2024/05/02 17:31:23 [notice] 31#31: exiting
+2024/05/02 17:31:23 [notice] 33#33: gracefully shutting down
+2024/05/02 17:31:23 [notice] 32#32: gracefully shutting down
+2024/05/02 17:31:23 [notice] 33#33: exiting
+2024/05/02 17:31:23 [notice] 30#30: exiting
+2024/05/02 17:31:23 [notice] 31#31: exit
+2024/05/02 17:31:23 [notice] 33#33: exit
+2024/05/02 17:31:23 [notice] 32#32: exiting
+2024/05/02 17:31:23 [notice] 32#32: exit
+2024/05/02 17:31:23 [notice] 30#30: exit
+2024/05/02 17:31:23 [notice] 1#1: signal 17 (SIGCHLD) received from 30
+2024/05/02 17:31:23 [notice] 1#1: worker process 30 exited with code 0
+2024/05/02 17:31:23 [notice] 1#1: worker process 31 exited with code 0
+2024/05/02 17:31:23 [notice] 1#1: worker process 32 exited with code 0
+2024/05/02 17:31:23 [notice] 1#1: worker process 33 exited with code 0
+2024/05/02 17:31:23 [notice] 1#1: exit
+2024/05/02 17:31:31 [notice] 1#1: using the "epoll" event method
+2024/05/02 17:31:31 [notice] 1#1: nginx/1.25.4
+2024/05/02 17:31:31 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 17:31:31 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 17:31:31 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 17:31:31 [notice] 1#1: start worker processes
+2024/05/02 17:31:31 [notice] 1#1: start worker process 22
+2024/05/02 17:31:31 [notice] 1#1: start worker process 23
+2024/05/02 17:31:31 [notice] 1#1: start worker process 24
+2024/05/02 17:31:31 [notice] 1#1: start worker process 25
+2024/05/02 17:31:37 [error] 22#22: *1 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:31:38 [error] 22#22: *1 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:36:14 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 17:36:14 [notice] 22#22: gracefully shutting down
+2024/05/02 17:36:14 [notice] 25#25: gracefully shutting down
+2024/05/02 17:36:14 [notice] 23#23: gracefully shutting down
+2024/05/02 17:36:14 [notice] 23#23: exiting
+2024/05/02 17:36:14 [notice] 24#24: gracefully shutting down
+2024/05/02 17:36:14 [notice] 22#22: exiting
+2024/05/02 17:36:14 [notice] 25#25: exiting
+2024/05/02 17:36:14 [notice] 24#24: exiting
+2024/05/02 17:36:14 [notice] 23#23: exit
+2024/05/02 17:36:14 [notice] 22#22: exit
+2024/05/02 17:36:14 [notice] 25#25: exit
+2024/05/02 17:36:14 [notice] 24#24: exit
+2024/05/02 17:36:14 [notice] 1#1: signal 17 (SIGCHLD) received from 25
+2024/05/02 17:36:14 [notice] 1#1: worker process 25 exited with code 0
+2024/05/02 17:36:14 [notice] 1#1: worker process 22 exited with code 0
+2024/05/02 17:36:14 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 17:36:14 [notice] 1#1: signal 17 (SIGCHLD) received from 22
+2024/05/02 17:36:14 [notice] 1#1: worker process 23 exited with code 0
+2024/05/02 17:36:14 [notice] 1#1: worker process 24 exited with code 0
+2024/05/02 17:36:14 [notice] 1#1: exit
+2024/05/02 17:36:30 [notice] 1#1: using the "epoll" event method
+2024/05/02 17:36:30 [notice] 1#1: nginx/1.25.4
+2024/05/02 17:36:30 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 17:36:30 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 17:36:30 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 17:36:30 [notice] 1#1: start worker processes
+2024/05/02 17:36:30 [notice] 1#1: start worker process 23
+2024/05/02 17:36:30 [notice] 1#1: start worker process 24
+2024/05/02 17:36:30 [notice] 1#1: start worker process 25
+2024/05/02 17:36:30 [notice] 1#1: start worker process 26
+2024/05/02 17:36:50 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 17:36:50 [notice] 24#24: gracefully shutting down
+2024/05/02 17:36:50 [notice] 26#26: gracefully shutting down
+2024/05/02 17:36:50 [notice] 23#23: gracefully shutting down
+2024/05/02 17:36:50 [notice] 25#25: gracefully shutting down
+2024/05/02 17:36:50 [notice] 25#25: exiting
+2024/05/02 17:36:50 [notice] 24#24: exiting
+2024/05/02 17:36:50 [notice] 26#26: exiting
+2024/05/02 17:36:50 [notice] 23#23: exiting
+2024/05/02 17:36:50 [notice] 25#25: exit
+2024/05/02 17:36:50 [notice] 24#24: exit
+2024/05/02 17:36:50 [notice] 26#26: exit
+2024/05/02 17:36:50 [notice] 23#23: exit
+2024/05/02 17:36:50 [notice] 1#1: signal 17 (SIGCHLD) received from 25
+2024/05/02 17:36:50 [notice] 1#1: worker process 25 exited with code 0
+2024/05/02 17:36:50 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 17:36:50 [notice] 1#1: signal 17 (SIGCHLD) received from 26
+2024/05/02 17:36:50 [notice] 1#1: worker process 26 exited with code 0
+2024/05/02 17:36:50 [notice] 1#1: worker process 24 exited with code 0
+2024/05/02 17:36:50 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 17:36:50 [notice] 1#1: signal 17 (SIGCHLD) received from 24
+2024/05/02 17:36:50 [notice] 1#1: signal 17 (SIGCHLD) received from 23
+2024/05/02 17:36:50 [notice] 1#1: worker process 23 exited with code 0
+2024/05/02 17:36:50 [notice] 1#1: exit
+2024/05/02 17:36:58 [notice] 1#1: using the "epoll" event method
+2024/05/02 17:36:58 [notice] 1#1: nginx/1.25.4
+2024/05/02 17:36:58 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 17:36:58 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 17:36:58 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 17:36:58 [notice] 1#1: start worker processes
+2024/05/02 17:36:58 [notice] 1#1: start worker process 22
+2024/05/02 17:36:58 [notice] 1#1: start worker process 23
+2024/05/02 17:36:58 [notice] 1#1: start worker process 24
+2024/05/02 17:36:58 [notice] 1#1: start worker process 25
+2024/05/02 17:36:59 [error] 22#22: *1 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:36:59 [error] 22#22: *1 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:37:11 [error] 23#23: *4 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/restaurants/1.jpg", host: "localhost"
+2024/05/02 17:51:57 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 17:51:57 [notice] 24#24: gracefully shutting down
+2024/05/02 17:51:57 [notice] 22#22: gracefully shutting down
+2024/05/02 17:51:57 [notice] 23#23: gracefully shutting down
+2024/05/02 17:51:57 [notice] 25#25: gracefully shutting down
+2024/05/02 17:51:57 [notice] 24#24: exiting
+2024/05/02 17:51:57 [notice] 22#22: exiting
+2024/05/02 17:51:57 [notice] 23#23: exiting
+2024/05/02 17:51:57 [notice] 25#25: exiting
+2024/05/02 17:51:57 [notice] 23#23: exit
+2024/05/02 17:51:57 [notice] 25#25: exit
+2024/05/02 17:51:57 [notice] 22#22: exit
+2024/05/02 17:51:57 [notice] 24#24: exit
+2024/05/02 17:51:57 [notice] 1#1: signal 17 (SIGCHLD) received from 23
+2024/05/02 17:51:57 [notice] 1#1: worker process 23 exited with code 0
+2024/05/02 17:51:57 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 17:51:57 [notice] 1#1: signal 17 (SIGCHLD) received from 22
+2024/05/02 17:51:57 [notice] 1#1: worker process 22 exited with code 0
+2024/05/02 17:51:57 [notice] 1#1: worker process 24 exited with code 0
+2024/05/02 17:51:57 [notice] 1#1: worker process 25 exited with code 0
+2024/05/02 17:51:57 [notice] 1#1: signal 17 (SIGCHLD) received from 24
+2024/05/02 17:51:57 [notice] 1#1: exit
+2024/05/02 18:01:44 [notice] 1#1: using the "epoll" event method
+2024/05/02 18:01:44 [notice] 1#1: nginx/1.25.4
+2024/05/02 18:01:44 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 18:01:44 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 18:01:44 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 18:01:44 [notice] 1#1: start worker processes
+2024/05/02 18:01:44 [notice] 1#1: start worker process 22
+2024/05/02 18:01:44 [notice] 1#1: start worker process 23
+2024/05/02 18:01:44 [notice] 1#1: start worker process 24
+2024/05/02 18:01:44 [notice] 1#1: start worker process 25
+2024/05/02 18:01:53 [error] 23#23: *1 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/users/default.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/users/default.jpg", host: "localhost"
+2024/05/02 18:02:05 [error] 24#24: *4 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/users/default.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/users/default.jpg", host: "localhost"
+2024/05/02 18:02:18 [error] 23#23: *7 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.16.1, server: localhost, request: "GET /api/v1/user HTTP/1.1", upstream: "http://192.168.16.5:8000/api/v1/user", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 18:02:18 [error] 23#23: *6 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.16.1, server: localhost, request: "GET /api/v1/restaurants HTTP/1.1", upstream: "http://192.168.16.5:8000/api/v1/restaurants", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 18:02:21 [error] 23#23: *7 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.16.1, server: localhost, request: "GET /api/v1/order HTTP/1.1", upstream: "http://192.168.16.5:8000/api/v1/order", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 18:05:03 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 18:05:03 [notice] 22#22: gracefully shutting down
+2024/05/02 18:05:03 [notice] 25#25: gracefully shutting down
+2024/05/02 18:05:03 [notice] 24#24: gracefully shutting down
+2024/05/02 18:05:03 [notice] 24#24: exiting
+2024/05/02 18:05:03 [notice] 23#23: gracefully shutting down
+2024/05/02 18:05:03 [notice] 22#22: exiting
+2024/05/02 18:05:03 [notice] 25#25: exiting
+2024/05/02 18:05:03 [notice] 24#24: exit
+2024/05/02 18:05:03 [notice] 23#23: exiting
+2024/05/02 18:05:03 [notice] 22#22: exit
+2024/05/02 18:05:03 [notice] 25#25: exit
+2024/05/02 18:05:03 [notice] 23#23: exit
+2024/05/02 18:05:03 [notice] 1#1: signal 17 (SIGCHLD) received from 24
+2024/05/02 18:05:03 [notice] 1#1: worker process 24 exited with code 0
+2024/05/02 18:05:03 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 18:05:03 [notice] 1#1: signal 17 (SIGCHLD) received from 25
+2024/05/02 18:05:03 [notice] 1#1: worker process 25 exited with code 0
+2024/05/02 18:05:03 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 18:05:03 [notice] 1#1: signal 17 (SIGCHLD) received from 23
+2024/05/02 18:05:03 [notice] 1#1: worker process 23 exited with code 0
+2024/05/02 18:05:03 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 18:05:03 [notice] 1#1: signal 17 (SIGCHLD) received from 22
+2024/05/02 18:05:03 [notice] 1#1: worker process 22 exited with code 0
+2024/05/02 18:05:03 [notice] 1#1: exit
+2024/05/02 18:05:11 [notice] 1#1: using the "epoll" event method
+2024/05/02 18:05:11 [notice] 1#1: nginx/1.25.4
+2024/05/02 18:05:11 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 18:05:11 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 18:05:11 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 18:05:11 [notice] 1#1: start worker processes
+2024/05/02 18:05:11 [notice] 1#1: start worker process 21
+2024/05/02 18:05:11 [notice] 1#1: start worker process 22
+2024/05/02 18:05:11 [notice] 1#1: start worker process 23
+2024/05/02 18:05:11 [notice] 1#1: start worker process 24
+2024/05/02 18:05:19 [error] 21#21: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 192.168.16.1, server: localhost, request: "GET /api/v1/user HTTP/1.1", upstream: "http://192.168.16.5:8000/api/v1/user", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 18:05:19 [error] 22#22: *2 connect() failed (111: Connection refused) while connecting to upstream, client: 192.168.16.1, server: localhost, request: "GET /api/v1/restaurants HTTP/1.1", upstream: "http://192.168.16.5:8000/api/v1/restaurants", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 18:05:19 [error] 21#21: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 192.168.16.1, server: localhost, request: "GET /api/v1/order HTTP/1.1", upstream: "http://192.168.16.5:8000/api/v1/order", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 18:07:25 [error] 21#21: *13 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/users/default.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/users/default.jpg", host: "localhost"
+2024/05/02 18:07:25 [error] 21#21: *15 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-api/users/default.jpg HTTP/1.1", upstream: "https://192.168.16.4:9000/minio-api/users/default.jpg", host: "localhost"
+2024/05/02 18:14:54 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 18:14:54 [notice] 22#22: gracefully shutting down
+2024/05/02 18:14:54 [notice] 21#21: gracefully shutting down
+2024/05/02 18:14:54 [notice] 23#23: gracefully shutting down
+2024/05/02 18:14:54 [notice] 23#23: exiting
+2024/05/02 18:14:54 [notice] 24#24: gracefully shutting down
+2024/05/02 18:14:54 [notice] 24#24: exiting
+2024/05/02 18:14:54 [notice] 22#22: exiting
+2024/05/02 18:14:54 [notice] 22#22: exit
+2024/05/02 18:14:54 [notice] 21#21: exiting
+2024/05/02 18:14:54 [notice] 23#23: exit
+2024/05/02 18:14:54 [notice] 24#24: exit
+2024/05/02 18:14:54 [notice] 21#21: exit
+2024/05/02 18:14:54 [notice] 1#1: signal 17 (SIGCHLD) received from 23
+2024/05/02 18:14:54 [notice] 1#1: worker process 23 exited with code 0
+2024/05/02 18:14:54 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 18:14:54 [notice] 1#1: signal 17 (SIGCHLD) received from 24
+2024/05/02 18:14:54 [notice] 1#1: worker process 22 exited with code 0
+2024/05/02 18:14:54 [notice] 1#1: worker process 24 exited with code 0
+2024/05/02 18:14:54 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 18:14:54 [notice] 1#1: signal 17 (SIGCHLD) received from 22
+2024/05/02 18:14:54 [notice] 1#1: signal 17 (SIGCHLD) received from 21
+2024/05/02 18:14:54 [notice] 1#1: worker process 21 exited with code 0
+2024/05/02 18:14:54 [notice] 1#1: exit
+2024/05/02 18:15:45 [notice] 1#1: using the "epoll" event method
+2024/05/02 18:15:45 [notice] 1#1: nginx/1.25.4
+2024/05/02 18:15:45 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 18:15:45 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 18:15:45 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 18:15:45 [notice] 1#1: start worker processes
+2024/05/02 18:15:45 [notice] 1#1: start worker process 22
+2024/05/02 18:15:45 [notice] 1#1: start worker process 23
+2024/05/02 18:15:45 [notice] 1#1: start worker process 24
+2024/05/02 18:15:45 [notice] 1#1: start worker process 25
+2024/05/02 18:15:49 [error] 23#23: *3 connect() failed (111: Connection refused) while connecting to upstream, client: 192.168.16.1, server: localhost, request: "GET /api/v1/restaurants HTTP/1.1", upstream: "http://192.168.16.5:8000/api/v1/restaurants", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 18:15:49 [error] 22#22: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 192.168.16.1, server: localhost, request: "GET /api/v1/user HTTP/1.1", upstream: "http://192.168.16.5:8000/api/v1/user", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 18:15:49 [error] 24#24: *2 connect() failed (111: Connection refused) while connecting to upstream, client: 192.168.16.1, server: localhost, request: "GET /api/v1/order HTTP/1.1", upstream: "http://192.168.16.5:8000/api/v1/order", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 18:17:34 [error] 22#22: *37 SSL_do_handshake() failed (SSL: error:0A00010B:SSL routines::wrong version number) while SSL handshaking to upstream, client: 192.168.16.1, server: localhost, request: "GET /minio-admin/restaurants/1.jpg HTTP/1.1", upstream: "https://192.168.16.4:9001/minio-admin/restaurants/1.jpg", host: "localhost"
+2024/05/02 18:24:43 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 18:24:43 [notice] 22#22: gracefully shutting down
+2024/05/02 18:24:43 [notice] 24#24: gracefully shutting down
+2024/05/02 18:24:43 [notice] 23#23: gracefully shutting down
+2024/05/02 18:24:43 [notice] 25#25: gracefully shutting down
+2024/05/02 18:24:43 [notice] 22#22: exiting
+2024/05/02 18:24:43 [notice] 24#24: exiting
+2024/05/02 18:24:43 [notice] 23#23: exiting
+2024/05/02 18:24:43 [notice] 25#25: exiting
+2024/05/02 18:24:43 [notice] 22#22: exit
+2024/05/02 18:24:43 [notice] 24#24: exit
+2024/05/02 18:24:43 [notice] 23#23: exit
+2024/05/02 18:24:43 [notice] 25#25: exit
+2024/05/02 18:24:43 [notice] 1#1: signal 17 (SIGCHLD) received from 22
+2024/05/02 18:24:43 [notice] 1#1: worker process 22 exited with code 0
+2024/05/02 18:24:43 [notice] 1#1: worker process 24 exited with code 0
+2024/05/02 18:24:43 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 18:24:43 [notice] 1#1: signal 17 (SIGCHLD) received from 24
+2024/05/02 18:24:43 [notice] 1#1: signal 17 (SIGCHLD) received from 23
+2024/05/02 18:24:43 [notice] 1#1: worker process 23 exited with code 0
+2024/05/02 18:24:43 [notice] 1#1: worker process 25 exited with code 0
+2024/05/02 18:24:43 [notice] 1#1: exit
+2024/05/02 18:24:54 [notice] 1#1: using the "epoll" event method
+2024/05/02 18:24:54 [notice] 1#1: nginx/1.25.4
+2024/05/02 18:24:54 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 18:24:54 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 18:24:54 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 18:24:54 [notice] 1#1: start worker processes
+2024/05/02 18:24:54 [notice] 1#1: start worker process 22
+2024/05/02 18:24:54 [notice] 1#1: start worker process 23
+2024/05/02 18:24:54 [notice] 1#1: start worker process 24
+2024/05/02 18:24:54 [notice] 1#1: start worker process 25
+2024/05/02 18:45:42 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 18:45:42 [notice] 23#23: gracefully shutting down
+2024/05/02 18:45:42 [notice] 24#24: gracefully shutting down
+2024/05/02 18:45:42 [notice] 22#22: gracefully shutting down
+2024/05/02 18:45:42 [notice] 25#25: gracefully shutting down
+2024/05/02 18:45:42 [notice] 24#24: exiting
+2024/05/02 18:45:42 [notice] 22#22: exiting
+2024/05/02 18:45:42 [notice] 25#25: exiting
+2024/05/02 18:45:42 [notice] 23#23: exiting
+2024/05/02 18:45:42 [notice] 22#22: exit
+2024/05/02 18:45:42 [notice] 24#24: exit
+2024/05/02 18:45:42 [notice] 25#25: exit
+2024/05/02 18:45:42 [notice] 23#23: exit
+2024/05/02 18:45:42 [notice] 1#1: signal 17 (SIGCHLD) received from 24
+2024/05/02 18:45:42 [notice] 1#1: worker process 24 exited with code 0
+2024/05/02 18:45:42 [notice] 1#1: worker process 22 exited with code 0
+2024/05/02 18:45:42 [notice] 1#1: worker process 23 exited with code 0
+2024/05/02 18:45:42 [notice] 1#1: worker process 25 exited with code 0
+2024/05/02 18:45:42 [notice] 1#1: exit
+2024/05/02 18:48:08 [notice] 1#1: using the "epoll" event method
+2024/05/02 18:48:08 [notice] 1#1: nginx/1.25.4
+2024/05/02 18:48:08 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 18:48:08 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 18:48:08 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 18:48:08 [notice] 1#1: start worker processes
+2024/05/02 18:48:08 [notice] 1#1: start worker process 29
+2024/05/02 18:48:08 [notice] 1#1: start worker process 30
+2024/05/02 18:48:08 [notice] 1#1: start worker process 31
+2024/05/02 18:48:08 [notice] 1#1: start worker process 32
+2024/05/02 19:05:10 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 19:05:10 [notice] 30#30: gracefully shutting down
+2024/05/02 19:05:10 [notice] 29#29: gracefully shutting down
+2024/05/02 19:05:10 [notice] 30#30: exiting
+2024/05/02 19:05:10 [notice] 31#31: gracefully shutting down
+2024/05/02 19:05:10 [notice] 32#32: gracefully shutting down
+2024/05/02 19:05:10 [notice] 29#29: exiting
+2024/05/02 19:05:10 [notice] 30#30: exit
+2024/05/02 19:05:10 [notice] 32#32: exiting
+2024/05/02 19:05:10 [notice] 32#32: exit
+2024/05/02 19:05:10 [notice] 31#31: exiting
+2024/05/02 19:05:10 [notice] 29#29: exit
+2024/05/02 19:05:10 [notice] 31#31: exit
+2024/05/02 19:05:10 [notice] 1#1: signal 17 (SIGCHLD) received from 29
+2024/05/02 19:05:10 [notice] 1#1: worker process 29 exited with code 0
+2024/05/02 19:05:10 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 19:05:10 [notice] 1#1: signal 17 (SIGCHLD) received from 32
+2024/05/02 19:05:10 [notice] 1#1: worker process 30 exited with code 0
+2024/05/02 19:05:10 [notice] 1#1: worker process 32 exited with code 0
+2024/05/02 19:05:10 [notice] 1#1: worker process 31 exited with code 0
+2024/05/02 19:05:10 [notice] 1#1: exit
+2024/05/02 19:11:32 [notice] 1#1: using the "epoll" event method
+2024/05/02 19:11:32 [notice] 1#1: nginx/1.25.4
+2024/05/02 19:11:32 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 19:11:32 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 19:11:32 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 19:11:32 [notice] 1#1: start worker processes
+2024/05/02 19:11:32 [notice] 1#1: start worker process 29
+2024/05/02 19:11:32 [notice] 1#1: start worker process 30
+2024/05/02 19:11:32 [notice] 1#1: start worker process 31
+2024/05/02 19:11:32 [notice] 1#1: start worker process 32
+2024/05/02 19:12:14 [error] 30#30: *2 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.80.1, server: localhost, request: "GET /api/v1/restaurants HTTP/1.1", upstream: "http://192.168.80.5:8000/api/v1/restaurants", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 19:12:14 [error] 29#29: *1 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.80.1, server: localhost, request: "GET /api/v1/user HTTP/1.1", upstream: "http://192.168.80.5:8000/api/v1/user", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 19:12:17 [error] 29#29: *1 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.80.1, server: localhost, request: "GET /api/v1/order HTTP/1.1", upstream: "http://192.168.80.5:8000/api/v1/order", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 19:19:34 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 19:19:34 [notice] 30#30: gracefully shutting down
+2024/05/02 19:19:34 [notice] 29#29: gracefully shutting down
+2024/05/02 19:19:34 [notice] 29#29: exiting
+2024/05/02 19:19:34 [notice] 31#31: gracefully shutting down
+2024/05/02 19:19:34 [notice] 32#32: gracefully shutting down
+2024/05/02 19:19:34 [notice] 30#30: exiting
+2024/05/02 19:19:34 [notice] 31#31: exiting
+2024/05/02 19:19:34 [notice] 29#29: exit
+2024/05/02 19:19:34 [notice] 32#32: exiting
+2024/05/02 19:19:34 [notice] 30#30: exit
+2024/05/02 19:19:34 [notice] 31#31: exit
+2024/05/02 19:19:34 [notice] 32#32: exit
+2024/05/02 19:19:34 [notice] 1#1: signal 17 (SIGCHLD) received from 29
+2024/05/02 19:19:34 [notice] 1#1: worker process 29 exited with code 0
+2024/05/02 19:19:34 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 19:19:34 [notice] 1#1: signal 17 (SIGCHLD) received from 32
+2024/05/02 19:19:34 [notice] 1#1: worker process 32 exited with code 0
+2024/05/02 19:19:34 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 19:19:34 [notice] 1#1: signal 17 (SIGCHLD) received from 30
+2024/05/02 19:19:34 [notice] 1#1: worker process 30 exited with code 0
+2024/05/02 19:19:34 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 19:19:34 [notice] 1#1: signal 17 (SIGCHLD) received from 31
+2024/05/02 19:19:34 [notice] 1#1: worker process 31 exited with code 0
+2024/05/02 19:19:34 [notice] 1#1: exit
+2024/05/02 19:19:55 [notice] 1#1: using the "epoll" event method
+2024/05/02 19:19:55 [notice] 1#1: nginx/1.25.4
+2024/05/02 19:19:55 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 19:19:55 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 19:19:55 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 19:19:55 [notice] 1#1: start worker processes
+2024/05/02 19:19:55 [notice] 1#1: start worker process 29
+2024/05/02 19:19:55 [notice] 1#1: start worker process 30
+2024/05/02 19:19:55 [notice] 1#1: start worker process 31
+2024/05/02 19:19:55 [notice] 1#1: start worker process 32
+2024/05/02 19:30:25 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 19:30:25 [notice] 31#31: gracefully shutting down
+2024/05/02 19:30:25 [notice] 29#29: gracefully shutting down
+2024/05/02 19:30:25 [notice] 32#32: gracefully shutting down
+2024/05/02 19:30:25 [notice] 30#30: gracefully shutting down
+2024/05/02 19:30:25 [notice] 31#31: exiting
+2024/05/02 19:30:25 [notice] 29#29: exiting
+2024/05/02 19:30:25 [notice] 32#32: exiting
+2024/05/02 19:30:25 [notice] 30#30: exiting
+2024/05/02 19:30:25 [notice] 31#31: exit
+2024/05/02 19:30:25 [notice] 29#29: exit
+2024/05/02 19:30:25 [notice] 32#32: exit
+2024/05/02 19:30:25 [notice] 30#30: exit
+2024/05/02 19:30:25 [notice] 1#1: signal 17 (SIGCHLD) received from 31
+2024/05/02 19:30:25 [notice] 1#1: worker process 31 exited with code 0
+2024/05/02 19:30:25 [notice] 1#1: signal 17 (SIGCHLD) received from 29
+2024/05/02 19:30:25 [notice] 1#1: worker process 29 exited with code 0
+2024/05/02 19:30:25 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 19:30:25 [notice] 1#1: signal 29 (SIGIO) received
+2024/05/02 19:30:25 [notice] 1#1: signal 17 (SIGCHLD) received from 32
+2024/05/02 19:30:25 [notice] 1#1: worker process 30 exited with code 0
+2024/05/02 19:30:25 [notice] 1#1: worker process 32 exited with code 0
+2024/05/02 19:30:25 [notice] 1#1: exit
+2024/05/02 19:30:32 [notice] 1#1: using the "epoll" event method
+2024/05/02 19:30:32 [notice] 1#1: nginx/1.25.4
+2024/05/02 19:30:32 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2024/05/02 19:30:32 [notice] 1#1: OS: Linux 5.15.49-linuxkit
+2024/05/02 19:30:32 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2024/05/02 19:30:32 [notice] 1#1: start worker processes
+2024/05/02 19:30:32 [notice] 1#1: start worker process 22
+2024/05/02 19:30:32 [notice] 1#1: start worker process 23
+2024/05/02 19:30:32 [notice] 1#1: start worker process 24
+2024/05/02 19:30:32 [notice] 1#1: start worker process 25
+2024/05/02 19:31:16 [error] 22#22: *1 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.96.1, server: localhost, request: "GET /api/v1/user HTTP/1.1", upstream: "http://192.168.96.5:8000/api/v1/user", host: "localhost", referrer: "http://localhost/restaurants/2"
+2024/05/02 19:31:16 [error] 23#23: *3 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.96.1, server: localhost, request: "GET /api/v1/order HTTP/1.1", upstream: "http://192.168.96.5:8000/api/v1/order", host: "localhost", referrer: "http://localhost/restaurants/2"
+2024/05/02 19:31:19 [error] 23#23: *3 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.96.1, server: localhost, request: "GET /api/v1/order HTTP/1.1", upstream: "http://192.168.96.5:8000/api/v1/order", host: "localhost", referrer: "http://localhost/restaurants/2"
+2024/05/02 19:31:19 [error] 25#25: *8 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.96.1, server: localhost, request: "GET /api/v1/restaurants HTTP/1.1", upstream: "http://192.168.96.5:8000/api/v1/restaurants", host: "localhost", referrer: "http://localhost/restaurants"
+2024/05/02 19:31:19 [error] 22#22: *1 connect() failed (113: No route to host) while connecting to upstream, client: 192.168.96.1, server: localhost, request: "GET /api/v1/restaurants/2 HTTP/1.1", upstream: "http://192.168.96.5:8000/api/v1/restaurants/2", host: "localhost", referrer: "http://localhost/restaurants/2"
+2024/05/02 19:38:40 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2024/05/02 19:38:40 [notice] 23#23: gracefully shutting down
+2024/05/02 19:38:40 [notice] 22#22: gracefully shutting down
+2024/05/02 19:38:40 [notice] 25#25: gracefully shutting down
+2024/05/02 19:38:40 [notice] 24#24: gracefully shutting down
+2024/05/02 19:38:40 [notice] 23#23: exiting
+2024/05/02 19:38:40 [notice] 24#24: exiting
+2024/05/02 19:38:40 [notice] 22#22: exiting
+2024/05/02 19:38:40 [notice] 25#25: exiting
+2024/05/02 19:38:40 [notice] 22#22: exit
+2024/05/02 19:38:40 [notice] 23#23: exit
+2024/05/02 19:38:40 [notice] 24#24: exit
+2024/05/02 19:38:40 [notice] 25#25: exit
+2024/05/02 19:38:40 [notice] 1#1: signal 17 (SIGCHLD) received from 23
+2024/05/02 19:38:40 [notice] 1#1: worker process 22 exited with code 0
+2024/05/02 19:38:40 [notice] 1#1: worker process 23 exited with code 0
+2024/05/02 19:38:40 [notice] 1#1: worker process 24 exited with code 0
+2024/05/02 19:38:40 [notice] 1#1: worker process 25 exited with code 0
+2024/05/02 19:38:40 [notice] 1#1: exit
