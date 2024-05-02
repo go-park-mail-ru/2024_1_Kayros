@@ -31,6 +31,10 @@ func NewCommentHandler(ucc comment.Usecase, loggerProps *zap.Logger) *CommentHan
 	}
 }
 
+type Input struct {
+	Id uint64 `json:"id"`
+}
+
 func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
@@ -114,7 +118,7 @@ func (h *CommentHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var id uint64
+	var id Input
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -134,7 +138,7 @@ func (h *CommentHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.uc.DeleteComment(r.Context(), id)
+	err = h.uc.DeleteComment(r.Context(), id.Id)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsCommentRelation) {

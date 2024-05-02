@@ -42,8 +42,17 @@ func Run(cfg *config.Project) {
 	}
 	defer restConn.Close()
 
+	//comment microservice
+	commentConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.CommentGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Printf("The server cannot be started.\n%v", err)
+	} else {
+		log.Printf("The server is started at the address %s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port)
+	}
+	defer restConn.Close()
+
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, restConn)
+	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, restConn, commentConn)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)

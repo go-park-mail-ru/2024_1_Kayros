@@ -29,7 +29,7 @@ message CommentList {
 }
 
 service CommentWorker {
-  rpc Create(Comment) returns (Comment) {};
-  rpc Delete(CommentId) returns (Empty) {};
+  rpc CreateComment(Comment) returns (Comment) {};
+  rpc DeleteComment(CommentId) returns (Empty) {};
   rpc GetCommentsByRest(RestId) returns (CommentList) {};
 }

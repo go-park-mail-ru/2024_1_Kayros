@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"2024_1_kayros/internal/entity"
-	"2024_1_kayros/internal/repository/comment"
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/internal/utils/myerrors"
+	comment "2024_1_kayros/microservices/comment/proto"
 )
 
 type Usecase interface {
@@ -17,41 +17,47 @@ type Usecase interface {
 }
 
 type UsecaseLayer struct {
-	repoComment comment.Repo
-	repoUser    user.Repo
+	grpcClient comment.CommentWorkerClient
+	repoUser   user.Repo
 }
 
-func NewUseCaseLayer(repoComProps comment.Repo, repoUserProps user.Repo) Usecase {
+func NewUseCaseLayer(commentClient comment.CommentWorkerClient, repoUserProps user.Repo) Usecase {
 	return &UsecaseLayer{
-		repoComment: repoComProps,
-		repoUser:    repoUserProps,
+		grpcClient: commentClient,
+		repoUser:   repoUserProps,
 	}
 }
 
-func (uc *UsecaseLayer) CreateComment(ctx context.Context, comment entity.Comment, email string) (*entity.Comment, error) {
+func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, email string) (*entity.Comment, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, email)
-	comment.UserId = u.Id
 	if err != nil {
 		return nil, err
 	}
-	res, err := uc.repoComment.Create(ctx, comment)
+	c := comment.Comment{
+		UserId: u.Id,
+		RestId: com.RestId,
+		Text:   com.Text,
+		Rating: com.Rating,
+	}
+	res, err := uc.grpcClient.CreateComment(ctx, &c)
 	if err != nil {
 		return nil, err
 	}
-	return res, nil
+	return FromGrpcStructToComment(res), nil
 }
 
 func (uc *UsecaseLayer) GetCommentsByRest(ctx context.Context, restId alias.RestId) ([]*entity.Comment, error) {
-	comments, err := uc.repoComment.GetCommentsByRest(ctx, restId)
+	comments, err := uc.grpcClient.GetCommentsByRest(ctx, &comment.RestId{Id: uint64(restId)})
 	if err != nil {
 		return nil, err
 	}
-	if len(comments) == 0 {
+	if len(comments.GetComment()) == 0 {
 		return nil, myerrors.NoComments
 	}
-	return comments, nil
+	return FromGrpcStructToCommentArray(comments), nil
 }
 
 func (uc *UsecaseLayer) DeleteComment(ctx context.Context, id uint64) error {
-	return uc.repoComment.Delete(ctx, id)
+	_, err := uc.grpcClient.DeleteComment(ctx, &comment.CommentId{Id: id})
+	return err
 }

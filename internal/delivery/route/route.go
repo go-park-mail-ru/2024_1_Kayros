@@ -13,7 +13,7 @@ import (
 	"2024_1_kayros/config"
 )
 
-func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsrf *redis.Client, minio *minio.Client, mux *mux.Router, logger *zap.Logger, restConn *grpc.ClientConn) http.Handler {
+func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsrf *redis.Client, minio *minio.Client, mux *mux.Router, logger *zap.Logger, restConn, commentConn *grpc.ClientConn) http.Handler {
 	logger.Info("The begin of handlers definition")
 	mux = mux.PathPrefix("/api/v1").Subrouter()
 	mux.StrictSlash(true)
@@ -23,7 +23,7 @@ func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsr
 	AddRestRouter(db, mux, logger, restConn)
 	AddOrderRouter(db, mux, logger)
 	AddQuizRouter(db, redisSession, redisCsrf, minio, mux, logger)
-	AddCommentRouter(db, mux, logger)
+	AddCommentRouter(db, mux, logger, commentConn)
 
 	handler := AddMiddleware(cfg, db, redisSession, redisCsrf, minio, mux, logger)
 	logger.Info("The end of handlers definition")

@@ -7,5 +7,5 @@ type Comment struct {
 	UserImage string
 	RestId    uint64
 	Text      string
-	Rating    uint8
+	Rating    uint32
 }

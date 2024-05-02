@@ -5,17 +5,19 @@ import (
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
 	delivery "2024_1_kayros/internal/delivery/comment"
-	repo "2024_1_kayros/internal/repository/comment"
 	rUser "2024_1_kayros/internal/repository/user"
 	uc "2024_1_kayros/internal/usecase/comment"
+	comment "2024_1_kayros/microservices/comment/proto"
 )
 
-func AddCommentRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
-	repoComment := repo.NewRepoLayer(db)
+func AddCommentRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, conn *grpc.ClientConn) {
+	//repoComment := repo.NewRepoLayer(db)
 	repoUser := rUser.NewRepoLayer(db)
-	ucComment := uc.NewUseCaseLayer(repoComment, repoUser)
+	grpcComment := comment.NewCommentWorkerClient(conn)
+	ucComment := uc.NewUseCaseLayer(grpcComment, repoUser)
 	handler := delivery.NewCommentHandler(ucComment, logger)
 
 	mux.HandleFunc("/comment", handler.CreateComment).Methods("POST")

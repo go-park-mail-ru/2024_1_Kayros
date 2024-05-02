@@ -28,7 +28,7 @@ func NewCommentLayer(dbProps *sql.DB) Comment {
 
 func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*comment.Comment, error) {
 	row := repo.db.QueryRowContext(ctx,
-		`INSERT INTO "comment" (user_id, restaurant_id, text, rating) VALUES ($1, $2, $3, $4) RETURNING id, user_id, text, rating`, com.UserId, com.RestId, com.Text, com.Rating)
+		`INSERT INTO "comment" (user_id, restaurant_id, text, rating) VALUES ($1, $2, $3, $4) RETURNING id, restaurant_id, user_id, text, rating`, com.UserId, com.RestId, com.Text, com.Rating)
 	res := comment.Comment{}
 	err := row.Scan(&res.Id, &res.UserId, &res.RestId, &res.Text, &res.Rating)
 	if err != nil {
@@ -43,7 +43,7 @@ func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*co
 
 func (repo *CommentLayer) GetCommentsByRest(ctx context.Context, restId *comment.RestId) (*comment.CommentList, error) {
 	rows, err := repo.db.QueryContext(ctx,
-		`SELECT c.id, u.name, u.img_url, c.text, c.rating FROM "comment" AS c JOIN "user" AS u ON c.user_id = u.id WHERE restaurant_id=$1`, restId)
+		`SELECT c.id, u.name, u.img_url, c.text, c.rating FROM "comment" AS c JOIN "user" AS u ON c.user_id = u.id WHERE restaurant_id=$1`, restId.Id)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -63,7 +63,7 @@ func (repo *CommentLayer) GetCommentsByRest(ctx context.Context, restId *comment
 
 func (repo *CommentLayer) Delete(ctx context.Context, id *comment.CommentId) error {
 	res, err := repo.db.ExecContext(ctx,
-		`DELETE FROM "comment" WHERE id=$1`, id)
+		`DELETE FROM "comment" WHERE id=$1`, id.Id)
 	if err != nil {
 		return err
 	}

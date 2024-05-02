@@ -9,7 +9,7 @@ type Comment struct {
 	UserImage string `json:"user_img"`
 	RestId    uint64 `json:"rest_id,omitempty"`
 	Text      string `json:"text"`
-	Rating    uint8  `json:"rating"`
+	Rating    uint32 `json:"rating"`
 }
 
 func NewComment(com *entity.Comment) *Comment {
