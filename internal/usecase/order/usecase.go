@@ -5,12 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"go.uber.org/zap"
-
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/repository/food"
 	"2024_1_kayros/internal/repository/order"
+	"2024_1_kayros/internal/repository/restaurants"
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/internal/utils/constants"
@@ -24,7 +23,7 @@ type Usecase interface {
 	GetBasketNoAuth(ctx context.Context, token string) (*entity.Order, error)
 	GetOrderById(ctx context.Context, id alias.OrderId) (*entity.Order, error)
 	Create(ctx context.Context, email string) (alias.OrderId, error)
-	GetOrders(ctx context.Context, email string) ([]*entity.Order, error)
+	GetCurrentOrders(ctx context.Context, email string) ([]*entity.ShortOrder, error)
 	CreateNoAuth(ctx context.Context, token string) (alias.OrderId, error)
 	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) error
 	Pay(ctx context.Context, orderId alias.OrderId, currentStatus string, email string, userId alias.UserId) (*entity.Order, error)
@@ -38,15 +37,15 @@ type UsecaseLayer struct {
 	repoOrder order.Repo
 	repoUser  user.Repo
 	repoFood  food.Repo
-	logger    *zap.Logger
+	repoRest  restaurants.Repo
 }
 
-func NewUsecaseLayer(repoOrderProps order.Repo, repoFoodProps food.Repo, repoUserProps user.Repo, loggerProps *zap.Logger) Usecase {
+func NewUsecaseLayer(repoOrderProps order.Repo, repoFoodProps food.Repo, repoUserProps user.Repo, repoRestProps restaurants.Repo) Usecase {
 	return &UsecaseLayer{
 		repoOrder: repoOrderProps,
 		repoUser:  repoUserProps,
 		repoFood:  repoFoodProps,
-		logger:    loggerProps,
+		repoRest:  repoRestProps,
 	}
 }
 
@@ -108,7 +107,7 @@ func (uc *UsecaseLayer) GetOrderById(ctx context.Context, id alias.OrderId) (*en
 	return Order, nil
 }
 
-func (uc *UsecaseLayer) GetOrders(ctx context.Context, email string) ([]*entity.Order, error) {
+func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*entity.ShortOrder, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, err
@@ -117,7 +116,23 @@ func (uc *UsecaseLayer) GetOrders(ctx context.Context, email string) ([]*entity.
 	if err != nil {
 		return nil, err
 	}
-	return orders, nil
+	res := []*entity.ShortOrder{}
+	for _, o := range orders {
+		id := o.Food[0].RestaurantId
+		rest, err := uc.repoRest.GetById(ctx, alias.RestId(id))
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, &entity.ShortOrder{
+			Id:             o.Id,
+			UserId:         o.UserId,
+			Status:         o.Status,
+			Time:           "",
+			RestaurantId:   o.RestaurantId,
+			RestaurantName: rest.Name,
+		})
+	}
+	return res, nil
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId, error) {

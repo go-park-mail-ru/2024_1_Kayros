@@ -9,6 +9,7 @@ import (
 	"2024_1_kayros/internal/delivery/order"
 	rFood "2024_1_kayros/internal/repository/food"
 	rOrder "2024_1_kayros/internal/repository/order"
+	rRest "2024_1_kayros/internal/repository/restaurants"
 	rUser "2024_1_kayros/internal/repository/user"
 	ucOrder "2024_1_kayros/internal/usecase/order"
 )
@@ -17,12 +18,13 @@ func AddOrderRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
 	repoOrder := rOrder.NewRepoLayer(db, logger)
 	repoFood := rFood.NewRepoLayer(db)
 	repoUser := rUser.NewRepoLayer(db)
-	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, repoUser, logger)
+	repoRest := rRest.NewRepoLayer(db)
+	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, repoUser, repoRest)
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)
 
 	mux.HandleFunc("/order", handler.GetBasket).Methods("GET")
 	mux.HandleFunc("/order/{id}", handler.GetOrderById).Methods("GET")
-	mux.HandleFunc("/orders/current", handler.GetOrders).Methods("GET")
+	mux.HandleFunc("/orders/current", handler.GetCurrentOrders).Methods("GET")
 	mux.HandleFunc("/order/update_address", handler.UpdateAddress).Methods("PUT")
 	mux.HandleFunc("/order/pay", handler.Pay).Methods("PUT")
 	mux.HandleFunc("/order/clean", handler.Clean).Methods("DELETE")

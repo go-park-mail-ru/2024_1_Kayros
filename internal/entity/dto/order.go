@@ -20,6 +20,15 @@ type Order struct {
 	Food         []*FoodInOrder `json:"food" valid:"-"`
 }
 
+type ShortOrder struct {
+	Id             uint64 `json:"id" valid:"-"`
+	UserId         uint64 `json:"user_id" valid:"-"`
+	Status         string `json:"status" valid:"-"`
+	Time           string `json:"time" valid:"-"`
+	RestaurantId   uint64 `json:"restaurant_id,omitempty" valid:"-"`
+	RestaurantName string `json:"restaurant_name" valid:"-"`
+}
+
 type FullAddress struct {
 	Address      string `json:"address" valid:"user_address_domain"`
 	ExtraAddress string `json:"extra_address" valid:"user_extra_address_domain"`
@@ -93,4 +102,23 @@ func NewOrderFromDTO(order *Order) *entity.Order {
 		RestaurantId: order.RestaurantId,
 		Food:         foodInOrder,
 	}
+}
+
+func NewShortOrder(order *entity.ShortOrder) *ShortOrder {
+	return &ShortOrder{
+		Id:             order.Id,
+		UserId:         order.UserId,
+		Status:         order.Status,
+		Time:           order.Time,
+		RestaurantId:   order.RestaurantId,
+		RestaurantName: order.RestaurantName,
+	}
+}
+
+func NewShortOrderArray(arr []*entity.ShortOrder) []*ShortOrder {
+	orderArray := make([]*ShortOrder, len(arr))
+	for i, o := range arr {
+		orderArray[i] = NewShortOrder(o)
+	}
+	return orderArray
 }

@@ -107,7 +107,7 @@ func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
 	w = functions.JsonResponse(w, orderDTO)
 }
 
-func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
+func (h *OrderHandler) GetCurrentOrders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
@@ -117,7 +117,7 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orders, err := h.uc.GetOrders(r.Context(), email)
+	orders, err := h.uc.GetCurrentOrders(r.Context(), email)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
@@ -127,7 +127,7 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	ordersDTO := dto.NewOrders(orders)
+	ordersDTO := dto.NewShortOrderArray(orders)
 	w = functions.JsonResponse(w, ordersDTO)
 }
 

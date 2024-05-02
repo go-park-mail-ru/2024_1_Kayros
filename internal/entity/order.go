@@ -4,6 +4,15 @@ import (
 	"database/sql"
 )
 
+type ShortOrder struct {
+	Id             uint64
+	UserId         uint64
+	Status         string
+	Time           string
+	RestaurantId   uint64
+	RestaurantName string
+}
+
 type Order struct {
 	Id           uint64
 	UserId       uint64
