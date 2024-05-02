@@ -43,6 +43,8 @@ func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, e
 	if err != nil {
 		return nil, err
 	}
+	res.UserName = u.Name
+	res.Image = u.ImgUrl
 	return FromGrpcStructToComment(res), nil
 }
 
