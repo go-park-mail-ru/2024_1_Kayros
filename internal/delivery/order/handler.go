@@ -39,6 +39,18 @@ type FoodCount struct {
 	Count  uint32       `json:"count" valid:"positive"`
 }
 
+func ChangingStatus(ctx context.Context, h *OrderHandler, id uint64, arr []string) {
+	requestId := ctx.Value(cnst.RequestId)
+	for _, s := range arr {
+		time.Sleep(2 * time.Minute)
+		_, err := h.uc.UpdateStatus(ctx, alias.OrderId(id), s)
+		if err != nil {
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId.(string)))
+			return
+		}
+	}
+}
+
 func (d *FoodCount) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
@@ -231,16 +243,9 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 
 	statuses := []string{cnst.Created, cnst.Cooking, cnst.OnTheWay, cnst.Delivered}
 
-	go func(id uint64, arr []string, ctx context.Context) {
-		time.Sleep(2 * time.Minute)
-		for _, s := range arr {
-			_, err := h.uc.UpdateStatus(ctx, alias.OrderId(id), s)
-			if err != nil {
-				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				return
-			}
-		}
-	}(payedOrder.Id, statuses, r.Context())
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, cnst.RequestId, requestId)
+	go ChangingStatus(ctx, h, payedOrder.Id, statuses)
 
 	response := payedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
 	w = functions.JsonResponse(w, response)
