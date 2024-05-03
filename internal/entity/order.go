@@ -14,17 +14,18 @@ type ShortOrder struct {
 }
 
 type Order struct {
-	Id           uint64
-	UserId       uint64
-	CreatedAt    string
-	UpdatedAt    string
-	ReceivedAt   string
-	Status       string
-	Address      string
-	ExtraAddress string
-	Sum          uint64
-	RestaurantId uint64
-	Food         []*FoodInOrder
+	Id             uint64
+	UserId         uint64
+	CreatedAt      string
+	UpdatedAt      string
+	ReceivedAt     string
+	Status         string
+	Address        string
+	ExtraAddress   string
+	Sum            uint64
+	RestaurantId   uint64
+	RestaurantName string
+	Food           []*FoodInOrder
 }
 
 type OrderDB struct {

@@ -104,6 +104,11 @@ func (uc *UsecaseLayer) GetOrderById(ctx context.Context, id alias.OrderId) (*en
 	}
 	if len(Order.Food) != 0 {
 		Order.RestaurantId = Order.Food[0].RestaurantId
+		r, err := uc.repoRest.GetById(ctx, alias.RestId(Order.RestaurantId))
+		if err != nil {
+			return nil, err
+		}
+		Order.RestaurantName = r.Name
 	}
 	return Order, nil
 }

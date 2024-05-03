@@ -7,17 +7,18 @@ import (
 )
 
 type Order struct {
-	Id           uint64         `json:"id" valid:"-"`
-	UserId       uint64         `json:"user_id" valid:"-"`
-	CreatedAt    string         `json:"created_at" valid:"-"`
-	UpdatedAt    string         `json:"-" valid:"-"`
-	ReceivedAt   string         `json:"received_at,omitempty" valid:"-"`
-	Status       string         `json:"status" valid:"-"`
-	Address      string         `json:"address" valid:"-"`
-	ExtraAddress string         `json:"extra_address" valid:"-"`
-	Sum          uint64         `json:"sum" valid:"-"`
-	RestaurantId uint64         `json:"restaurant_id"`
-	Food         []*FoodInOrder `json:"food" valid:"-"`
+	Id             uint64         `json:"id" valid:"-"`
+	UserId         uint64         `json:"user_id" valid:"-"`
+	CreatedAt      string         `json:"created_at" valid:"-"`
+	UpdatedAt      string         `json:"-" valid:"-"`
+	ReceivedAt     string         `json:"received_at,omitempty" valid:"-"`
+	Status         string         `json:"status" valid:"-"`
+	Address        string         `json:"address" valid:"-"`
+	ExtraAddress   string         `json:"extra_address" valid:"-"`
+	Sum            uint64         `json:"sum" valid:"-"`
+	RestaurantId   uint64         `json:"restaurant_id"`
+	RestaurantName string         `json:"restaurant_name"`
+	Food           []*FoodInOrder `json:"food" valid:"-"`
 }
 
 type ShortOrder struct {
@@ -49,17 +50,18 @@ func NewOrder(order *entity.Order) *Order {
 	}
 	foodInOrder := NewFoodArray(food)
 	return &Order{
-		Id:           order.Id,
-		UserId:       order.UserId,
-		CreatedAt:    order.CreatedAt,
-		UpdatedAt:    order.UpdatedAt,
-		ReceivedAt:   order.ReceivedAt,
-		Status:       order.Status,
-		Address:      order.Address,
-		ExtraAddress: order.ExtraAddress,
-		Sum:          order.Sum,
-		RestaurantId: order.RestaurantId,
-		Food:         foodInOrder,
+		Id:             order.Id,
+		UserId:         order.UserId,
+		CreatedAt:      order.CreatedAt,
+		UpdatedAt:      order.UpdatedAt,
+		ReceivedAt:     order.ReceivedAt,
+		Status:         order.Status,
+		Address:        order.Address,
+		ExtraAddress:   order.ExtraAddress,
+		Sum:            order.Sum,
+		RestaurantId:   order.RestaurantId,
+		RestaurantName: order.RestaurantName,
+		Food:           foodInOrder,
 	}
 }
 

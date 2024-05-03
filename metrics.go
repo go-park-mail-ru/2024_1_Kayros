@@ -23,7 +23,20 @@ var (
 	)
 )
 
+func NewMetrics(reg prometheus.Registerer) *metrics {
+	m := &metrics{Hits: prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "hits",
+	}, []string{"status", "path"})}
+	reg.MustRegister(m.Hits)
+	return m
+}
+
+type metrics struct {
+	Hits prometheus.CounterVec
+}
+
 func main() {
+	reg := prometheus.NewRegistry()
 	prometheus.MustRegister(hits, requestDuration)
 
 	http.Handle("/metrics", promhttp.Handler())
