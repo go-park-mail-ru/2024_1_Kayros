@@ -8,6 +8,10 @@ message RestId {
   uint64 id = 1;
 }
 
+message Filter {
+  string filter = 1;
+}
+
 message Empty {}
 
 message Rest {
@@ -26,4 +30,5 @@ message RestList {
 service RestWorker {
   rpc GetAll(Empty) returns (RestList) {};
   rpc GetById(RestId) returns (Rest) {};
+  rpc GetByFilter(Filter) returns (RestList) {};
 }

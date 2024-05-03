@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
+	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	foodUc "2024_1_kayros/internal/usecase/food"
 	restUc "2024_1_kayros/internal/usecase/restaurants"
@@ -42,11 +43,23 @@ func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase, loggerProps *z
 func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
-	rests, err := h.ucRest.GetAll(r.Context())
-	if err != nil {
-		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-		return
+	filter := r.URL.Query().Get("filter")
+	var rests []*entity.Restaurant
+	var err error
+	if filter != "" {
+		rests, err = h.ucRest.GetByFilter(r.Context(), filter)
+		if err != nil {
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+	} else {
+		rests, err = h.ucRest.GetAll(r.Context())
+		if err != nil {
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
 	}
 	restsDTO := dto.NewRestaurantArray(rests)
 	w = functions.JsonResponse(w, restsDTO)

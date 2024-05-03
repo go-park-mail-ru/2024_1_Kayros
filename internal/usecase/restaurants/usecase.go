@@ -11,6 +11,7 @@ import (
 type Usecase interface {
 	GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 	GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error)
+	GetByFilter(ctx context.Context, filter string) ([]*entity.Restaurant, error)
 }
 type UsecaseLayer struct {
 	grpcClient rest.RestWorkerClient
@@ -36,4 +37,12 @@ func (uc *UsecaseLayer) GetById(ctx context.Context, restId alias.RestId) (*enti
 		return nil, err
 	}
 	return FromGrpcStructToRestaurant(r), nil
+}
+
+func (uc *UsecaseLayer) GetByFilter(ctx context.Context, filter string) ([]*entity.Restaurant, error) {
+	rests, err := uc.grpcClient.GetByFilter(ctx, &rest.Filter{Filter: filter})
+	if err != nil {
+		return nil, err
+	}
+	return FromGrpcStructToRestaurantArray(rests), nil
 }

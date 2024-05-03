@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type RestWorkerClient interface {
 	GetAll(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*RestList, error)
 	GetById(ctx context.Context, in *RestId, opts ...grpc.CallOption) (*Rest, error)
+	GetByFilter(ctx context.Context, in *Filter, opts ...grpc.CallOption) (*RestList, error)
 }
 
 type restWorkerClient struct {
@@ -48,12 +49,22 @@ func (c *restWorkerClient) GetById(ctx context.Context, in *RestId, opts ...grpc
 	return out, nil
 }
 
+func (c *restWorkerClient) GetByFilter(ctx context.Context, in *Filter, opts ...grpc.CallOption) (*RestList, error) {
+	out := new(RestList)
+	err := c.cc.Invoke(ctx, "/rest.RestWorker/GetByFilter", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RestWorkerServer is the server API for RestWorker service.
 // All implementations must embed UnimplementedRestWorkerServer
 // for forward compatibility
 type RestWorkerServer interface {
 	GetAll(context.Context, *Empty) (*RestList, error)
 	GetById(context.Context, *RestId) (*Rest, error)
+	GetByFilter(context.Context, *Filter) (*RestList, error)
 	mustEmbedUnimplementedRestWorkerServer()
 }
 
@@ -66,6 +77,9 @@ func (UnimplementedRestWorkerServer) GetAll(context.Context, *Empty) (*RestList,
 }
 func (UnimplementedRestWorkerServer) GetById(context.Context, *RestId) (*Rest, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetById not implemented")
+}
+func (UnimplementedRestWorkerServer) GetByFilter(context.Context, *Filter) (*RestList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByFilter not implemented")
 }
 func (UnimplementedRestWorkerServer) mustEmbedUnimplementedRestWorkerServer() {}
 
@@ -116,6 +130,24 @@ func _RestWorker_GetById_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RestWorker_GetByFilter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Filter)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RestWorkerServer).GetByFilter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rest.RestWorker/GetByFilter",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RestWorkerServer).GetByFilter(ctx, req.(*Filter))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RestWorker_ServiceDesc is the grpc.ServiceDesc for RestWorker service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -130,6 +162,10 @@ var RestWorker_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetById",
 			Handler:    _RestWorker_GetById_Handler,
+		},
+		{
+			MethodName: "GetByFilter",
+			Handler:    _RestWorker_GetByFilter_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

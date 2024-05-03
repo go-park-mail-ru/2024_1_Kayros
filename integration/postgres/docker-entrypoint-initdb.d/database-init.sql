@@ -61,6 +61,16 @@ CREATE TABLE IF NOT EXISTS restaurant
 --     address           TEXT CONSTRAINT rest_address CHECK (LENGTH(address) BETWEEN 14 AND 100) UNIQUE NOT NULL
 -- );
 
+
+CREATE TABLE IF NOT EXISTS rest_categories
+(
+    restaurant_id    INTEGER
+    CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0) REFERENCES restaurant (id) ON DELETE CASCADE,
+    category_id   INTEGER
+    CONSTRAINT foreign_key_cat CHECK (category_id > 0) REFERENCES category (id) ON DELETE CASCADE,
+    PRIMARY KEY (rest_id, category_id)
+);
+
 CREATE TABLE IF NOT EXISTS "order"
 (
     id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
