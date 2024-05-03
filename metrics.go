@@ -1,55 +1,31 @@
-package main
+package metrics
 
 import (
-	"log"
-	"net/http"
-	"time"
-
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var (
-	hits = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "hits",
-	}, []string{"status", "path"})
-
-	requestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name: "http_request_duration_seconds",
-			Help: "Duration of HTTP requests.",
-		},
-		[]string{"method"},
-	)
-)
-
-func NewMetrics(reg prometheus.Registerer) *metrics {
-	m := &metrics{Hits: prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "hits",
-	}, []string{"status", "path"})}
-	reg.MustRegister(m.Hits)
-	return m
+type Metrics struct {
+	Hits     *prometheus.CounterVec
+	Duration *prometheus.HistogramVec
 }
 
-type metrics struct {
-	Hits prometheus.CounterVec
-}
-
-func main() {
-	reg := prometheus.NewRegistry()
-	prometheus.MustRegister(hits, requestDuration)
-
-	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		defer func() {
-			method := r.Method
-			elapsed := time.Since(start).Seconds()
-			hits.WithLabelValues(method, r.URL.String()).Inc()
-			requestDuration.WithLabelValues(method).Observe(elapsed)
-		}()
-	})
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatalln("metrics server can't be started")
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	m := &Metrics{
+		Hits: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "hits",
+				Help: "Number of hits.",
+			},
+			[]string{"path", "status"},
+		),
+		Duration: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name: "duration",
+				Help: "Duration of request",
+			},
+			[]string{"path", "status"},
+		),
 	}
+	reg.MustRegister(m.Hits, m.Duration)
+	return m
 }

@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
+	metrics "2024_1_kayros"
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/route"
 	"2024_1_kayros/internal/utils/functions"
@@ -32,7 +34,10 @@ func Run(cfg *config.Project) {
 	minioDB := minio.Init(cfg, logger)
 
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger)
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics(reg)
+
+	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, m)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)

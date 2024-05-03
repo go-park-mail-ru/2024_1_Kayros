@@ -5,8 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"2024_1_kayros/internal/utils/myerrors"
 	"go.uber.org/zap"
+
+	"2024_1_kayros/internal/utils/myerrors"
 
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/usecase/session"
@@ -19,7 +20,6 @@ import (
 func SessionAuthentication(handler http.Handler, ucUser user.Repo, ucSession session.Usecase, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := functions.GetCtxRequestId(r)
-
 		sessionId, err := functions.GetCookieSessionValue(r)
 		if err != nil {
 			logger.Warn(err.Error(), zap.String(cnst.RequestId, requestId))
