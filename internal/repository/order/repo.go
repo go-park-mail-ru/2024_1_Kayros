@@ -145,17 +145,18 @@ func (repo *RepoLayer) GetBasketNoAuth(ctx context.Context, unauthId string) (*e
 }
 
 func (repo *RepoLayer) GetOrderById(ctx context.Context, orderId alias.OrderId) (*entity.Order, error) {
-	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, created_at, updated_at, received_at, status, address,
+	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, order_created_at, delivered_at, status, address,
       				extra_address, sum FROM "order" WHERE id= $1`, uint64(orderId))
 	var order entity.OrderDB
-	err := row.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
-		&order.ExtraAddress, &order.Sum)
+	err := row.Scan(&order.Id, &order.UserId, &order.OrderCreatedAt, &order.DeliveredAt,
+		&order.Status, &order.Address, &order.ExtraAddress, &order.Sum)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsOrderRelation
 		}
 		return nil, err
 	}
+	fmt.Println(order.UserId)
 	foodArray, err := repo.GetFood(ctx, orderId)
 	if err != nil {
 		return nil, err
@@ -228,9 +229,17 @@ func (repo *RepoLayer) UpdateAddress(ctx context.Context, address string, extraA
 }
 
 func (repo *RepoLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) (alias.OrderId, error) {
-	row := repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1 WHERE id=$2 RETURNING id`, status, uint64(orderId))
 	var id uint64
-	err := row.Scan(&id)
+	var err error
+	if status == cnst.Created {
+		timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+		err = repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1, order_created_at=$2 WHERE id=$3 RETURNING id`, status, timeNow, uint64(orderId)).Scan(&id)
+	} else if status == cnst.Delivered {
+		timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+		err = repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1, delivered_at=$2 WHERE id=$3 RETURNING id`, status, timeNow, uint64(orderId)).Scan(&id)
+	} else {
+		err = repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1 WHERE id=$2 RETURNING id`, status, uint64(orderId)).Scan(&id)
+	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, myerrors.SqlNoRowsOrderRelation

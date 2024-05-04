@@ -82,6 +82,10 @@ CREATE TABLE IF NOT EXISTS "order"
         CONSTRAINT user_time_last_updated NOT NULL,
     received_at   TIMESTAMPTZ
         CONSTRAINT user_time_received NULL
+    order_created_at   TIMESTAMPTZ
+        CONSTRAINT order_time_payed NULL
+    delivered_at   TIMESTAMPTZ
+    CONSTRAINT order_time_delivered NULL
 );
 
 -- БЖУ хранятся в МГ

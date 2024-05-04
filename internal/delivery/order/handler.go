@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -42,8 +43,10 @@ type FoodCount struct {
 func ChangingStatus(ctx context.Context, h *OrderHandler, id uint64, arr []string) {
 	requestId := ctx.Value(cnst.RequestId)
 	for _, s := range arr {
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
+		fmt.Println(s)
 		_, err := h.uc.UpdateStatus(ctx, alias.OrderId(id), s)
+		fmt.Println(err)
 		if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId.(string)))
 			return

@@ -118,7 +118,7 @@ func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*
 	if err != nil {
 		return nil, err
 	}
-	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Created, constants.Cooking, constants.OnTheWay)
+	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Payed, constants.Created, constants.Cooking, constants.OnTheWay)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +200,7 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 func (uc *UsecaseLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) (*entity.Order, error) {
 	id, err := uc.repoOrder.UpdateStatus(ctx, orderId, status)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	Order, err := uc.repoOrder.GetOrderById(ctx, id)
