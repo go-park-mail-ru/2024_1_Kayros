@@ -81,9 +81,9 @@ CREATE TABLE IF NOT EXISTS "order"
     updated_at    TIMESTAMPTZ
         CONSTRAINT user_time_last_updated NOT NULL,
     received_at   TIMESTAMPTZ
-        CONSTRAINT user_time_received NULL
+        CONSTRAINT user_time_received NULL,
     order_created_at   TIMESTAMPTZ
-        CONSTRAINT order_time_payed NULL
+        CONSTRAINT order_time_payed NULL,
     delivered_at   TIMESTAMPTZ
     CONSTRAINT order_time_delivered NULL
 );
