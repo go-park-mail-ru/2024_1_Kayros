@@ -7,10 +7,28 @@ import (
 
 type (
 	Project struct {
-		Server   `yaml:"server"`
-		Postgres `yaml:"postgresql"`
-		Minio    `yaml:"minio"`
-		Redis    `yaml:"redis"`
+		Server            `yaml:"server"`
+		Postgres          `yaml:"postgresql"`
+		Minio             `yaml:"minio"`
+		Redis             `yaml:"redis"`
+		RestGrpcServer    `yaml:"rest-grpc-server"`
+		AuthGrpcServer    `yaml:"auth-grpc-server"`
+		CommentGrpcServer `yaml:"comment-grpc-server"`
+	}
+
+	RestGrpcServer struct {
+		Host string `yaml:"host" env:"REST_GRPC_HOST"`
+		Port uint16 `yaml:"port" env:"REST_GRPC_PORT"`
+	}
+
+	AuthGrpcServer struct {
+		Host string `yaml:"host" env:"AUTH_GRPC_HOST"`
+		Port uint16 `yaml:"port" env:"AUTH_GRPC_PORT"`
+	}
+
+	CommentGrpcServer struct {
+		Host string `yaml:"host" env:"CMNT_GRPC_HOST"`
+		Port uint16 `yaml:"port" env:"CMNT_GRPC_PORT"`
 	}
 
 	Server struct {

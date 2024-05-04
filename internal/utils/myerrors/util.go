@@ -22,11 +22,14 @@ var (
 
 	QuizAddRu = errors.New("Произошла ошибка. Пожалуйста, еще раз проголосуйте")
 
-	NoBasketRu         = errors.New("У Вас нет корзины")
-	AlreadyPayedRu     = errors.New("Заказ уже оплачен")
-	NoAddFoodToOrderRu = errors.New("Не удалось добавить блюдо в заказ, попробуйте еще раз")
-	FailCleanBasketRu  = errors.New("Не удалось очистить корзину")
-	NoDeleteFoodRu     = errors.New("Не удалось убрать блюдо из заказа, попробуйте еще раз")
+	NoCommentsRu        = errors.New("У ресторана пока нет отзывов")
+	SuccessCleanRu      = errors.New("Корзина очищена")
+	NoBasketRu          = errors.New("У Вас нет корзины")
+	AlreadyPayedRu      = errors.New("Заказ уже оплачен")
+	NoAddFoodToOrderRu  = errors.New("Не удалось добавить блюдо в заказ, попробуйте еще раз")
+	FailCleanBasketRu   = errors.New("Не удалось очистить корзину")
+	FailCreateCommentRu = errors.New("Не удалось добавить отзыв")
+	NoDeleteFoodRu      = errors.New("Не удалось убрать блюдо из заказа, попробуйте еще раз")
 )
 
 // Response errors (external) ENGLISH
@@ -66,6 +69,7 @@ var (
 	FailCleanBasket  = errors.New("can't clean basket")
 	InvalidAddressEn = errors.New("invalid length of address")
 
+	NoComments   = errors.New("restaurant doesn't have comments")
 	QuizAdd      = errors.New("answer was not added to the quiz")
 	NoBasket     = errors.New("basket doesn't exist")
 	AlreadyPayed = errors.New("order has already been paid")
@@ -75,6 +79,7 @@ var (
 	SqlNoRowsRestaurantRelation = errors.New("no such record exists for restaurant")
 	SqlNoRowsFoodRelation       = errors.New("no such record exists for food")
 	SqlNoRowsOrderRelation      = errors.New("no such record exists for \"order\"")
+	SqlNoRowsCommentRelation    = errors.New("no such record exists for \"comment\"")
 	SqlNoRowsFoodOrderRelation  = errors.New("no such record exists for food_order")
 	SqlNoRowsQuizRelation       = errors.New("no such record exists for quiz")
 	RedisNoData                 = errors.New("no such record exists in Redis")

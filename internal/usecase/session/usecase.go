@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate mockgen -source=./usecase.go -destination=./usecase_mock.go -package=session
 type Usecase interface {
 	GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error)
 	SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error

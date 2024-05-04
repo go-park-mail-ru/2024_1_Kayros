@@ -1,3 +1,5 @@
+# service backend
+
 FROM golang:1.22 AS building
 RUN mkdir /app
 WORKDIR /app
@@ -11,7 +13,6 @@ CMD ["/app/main"]
 
 #FROM alpine:3.13
 #WORKDIR /usr/bin
-#
 #COPY --from=build /app/config/config.yaml /go/bin/config/coni
 #COPY --from=build /app/bin /go/bin
 #EXPOSE 8000
