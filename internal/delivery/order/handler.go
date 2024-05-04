@@ -297,12 +297,11 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if basketId == 0 --> user doesn't have basket
 	if basketId == 0 {
-		if unauthId != "" {
-			basketId, err = h.uc.CreateNoAuth(r.Context(), unauthId)
-		} else if email != "" {
+		if email != "" {
 			basketId, err = h.uc.Create(r.Context(), email)
+		} else if unauthId != "" {
+			basketId, err = h.uc.CreateNoAuth(r.Context(), unauthId)
 		}
 		if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))

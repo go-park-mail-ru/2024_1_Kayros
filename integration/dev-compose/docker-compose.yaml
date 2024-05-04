@@ -41,11 +41,17 @@ services:
       - MINIO_ROOT_PASSWORD=resto123
     command: server /data --console-address ":9001"
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:latest
     ports:
       - "9090:9090"
     volumes:
-      - ../prometheus:/etc/prometheus
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - node-exporter
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+       - "9100:9100"
   grafana:
     image: grafana/grafana
     ports:
