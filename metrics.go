@@ -16,14 +16,15 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 				Name: "hits",
 				Help: "Number of hits.",
 			},
-			[]string{"path", "status"},
+			[]string{"path"},
 		),
 		Duration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name: "duration",
-				Help: "Duration of request",
+				Name:    "duration",
+				Help:    "Duration of request",
+				Buckets: prometheus.DefBuckets,
 			},
-			[]string{"path", "status"},
+			[]string{"path", "method"},
 		),
 	}
 	reg.MustRegister(m.Hits, m.Duration)
