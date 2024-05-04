@@ -9,7 +9,7 @@ import (
 type Category struct {
 	Id   uint64  `json:"id" valid:"-"`
 	Name string  `json:"name" valid:"-"`
-	Food []*Food `json:"food" valid:"-"`
+	Food []*Food `json:"food,omitempty" valid:"-"`
 }
 
 type RestaurantAndFood struct {

@@ -93,3 +93,16 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 	restDTO := dto.NewRestaurantAndFood(rest, categories)
 	w = functions.JsonResponse(w, restDTO)
 }
+
+func (h *RestaurantHandler) CategoryList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	categories, err := h.ucRest.GetCategoryList(r.Context())
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	catsDTO := dto.NewCategoryArray(categories)
+	w = functions.JsonResponse(w, catsDTO)
+}

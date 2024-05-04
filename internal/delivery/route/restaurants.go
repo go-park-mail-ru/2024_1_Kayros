@@ -39,5 +39,5 @@ func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn *gr
 	mux.HandleFunc("/restaurants/{id}/comment", deliveryComment.CreateComment).Methods("POST").Name("create-comment")
 	mux.HandleFunc("/restaurants/{id}/comment/{com_id}", deliveryComment.DeleteComment).Methods("DELETE").Name("delete-comment")
 	mux.HandleFunc("/restaurants/{id}/comments", deliveryComment.GetComments).Methods("GET").Name("comments-list")
-
+	mux.HandleFunc("/restaurants/category", deliveryRest.CategoryList).Methods("GET").Name("category-list")
 }

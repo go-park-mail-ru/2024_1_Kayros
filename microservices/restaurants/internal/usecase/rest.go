@@ -12,6 +12,7 @@ type Rest interface {
 	GetAll(ctx context.Context, _ *rest.Empty) (*rest.RestList, error)
 	GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error)
 	GetByFilter(ctx context.Context, filter *rest.Filter) (*rest.RestList, error)
+	GetCategoryList(ctx context.Context, _ *rest.Empty) (*rest.CategoryList, error)
 }
 
 type RestLayer struct {
@@ -51,4 +52,12 @@ func (uc *RestLayer) GetByFilter(ctx context.Context, filter *rest.Filter) (*res
 		return nil, err
 	}
 	return rests, nil
+}
+
+func (uc *RestLayer) GetCategoryList(ctx context.Context, _ *rest.Empty) (*rest.CategoryList, error) {
+	cats, err := uc.repoRest.GetCategoryList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return cats, nil
 }
