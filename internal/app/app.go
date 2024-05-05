@@ -9,17 +9,18 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gorilla/mux"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
+	metrics "2024_1_kayros"
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/route"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/minio"
 	"2024_1_kayros/services/postgres"
 	"2024_1_kayros/services/redis"
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Run creates all services and run the handler goroutines
@@ -30,8 +31,11 @@ func Run(cfg *config.Project) {
 	postgreDB := postgres.Init(cfg, logger)
 	redisSessionDB := redis.Init(cfg, logger, cfg.Redis.DatabaseSession)
 	redisCsrfDB := redis.Init(cfg, logger, cfg.Redis.DatabaseCsrf)
+	// нужно будет фронтовский идентификатор ставить на 2 недели
 	//redisUnauthTokensDB := redis.Init(cfg, logger, cfg.Redis.DatabaseUnauthTokens)
 	minioDB := minio.Init(cfg, logger)
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics(reg)
 
 	//rest microservice
 	restConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -52,7 +56,7 @@ func Run(cfg *config.Project) {
 	defer restConn.Close()
 
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, restConn, commentConn)
+	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, restConn, commentConn, m)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)

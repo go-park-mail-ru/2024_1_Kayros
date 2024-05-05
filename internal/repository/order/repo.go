@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ import (
 type Repo interface {
 	Create(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
 	CreateNoAuth(ctx context.Context, unauthId string) (alias.OrderId, error)
-	GetOrders(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error)
+	GetOrders(ctx context.Context, userId alias.UserId, status ...string) ([]*entity.Order, error)
 	GetBasketNoAuth(ctx context.Context, unauthId string) (*entity.Order, error)
 	GetBasketId(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
 	GetBasketIdNoAuth(ctx context.Context, unauthId string) (alias.OrderId, error)
@@ -30,6 +31,7 @@ type Repo interface {
 	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
 	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) error
 	CleanBasket(ctx context.Context, orderId alias.OrderId) error
+	DeleteBasket(ctx context.Context, orderId alias.OrderId) error
 	SetUser(ctx context.Context, orderId alias.OrderId, userId alias.UserId) error
 }
 
@@ -76,16 +78,33 @@ func (repo *RepoLayer) CreateNoAuth(ctx context.Context, unauthId string) (alias
 	return alias.OrderId(id), nil
 }
 
-func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, status string) ([]*entity.Order, error) {
-	rows, err := repo.db.QueryContext(ctx, `SELECT id, user_id, created_at, received_at, status, address,
-      				extra_address, sum FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), status)
+func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, status ...string) ([]*entity.Order, error) {
+	var rows *sql.Rows
+	var err error
+	if len(status) == 1 {
+		rows, err = repo.db.QueryContext(ctx, `SELECT id, user_id, created_at, status, address,
+      				extra_address, sum FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), status[0])
+	} else {
+		str := "$2"
+		for i := range len(status) - 1 {
+			str = str + ", $" + strconv.Itoa(i+3)
+		}
+		query := `SELECT id, user_id, created_at, status, address, 
+       			extra_address, sum FROM "order" WHERE user_id= $1 AND status IN (` + str + `)`
+		args := make([]interface{}, len(status)+1)
+		args[0] = uint64(userId)
+		for i, a := range status {
+			args[i+1] = a
+		}
+		rows, err = repo.db.QueryContext(ctx, query, args...)
+	}
 	if err != nil {
 		return nil, err
 	}
 	orders := []*entity.Order{}
 	for rows.Next() {
 		var order entity.OrderDB
-		err = rows.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.ReceivedAt, &order.Status, &order.Address,
+		err = rows.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.Status, &order.Address,
 			&order.ExtraAddress, &order.Sum)
 		if err != nil {
 			return nil, err
@@ -126,17 +145,18 @@ func (repo *RepoLayer) GetBasketNoAuth(ctx context.Context, unauthId string) (*e
 }
 
 func (repo *RepoLayer) GetOrderById(ctx context.Context, orderId alias.OrderId) (*entity.Order, error) {
-	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, created_at, updated_at, received_at, status, address,
+	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, order_created_at, delivered_at, status, address,
       				extra_address, sum FROM "order" WHERE id= $1`, uint64(orderId))
 	var order entity.OrderDB
-	err := row.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
-		&order.ExtraAddress, &order.Sum)
+	err := row.Scan(&order.Id, &order.UserId, &order.OrderCreatedAt, &order.DeliveredAt,
+		&order.Status, &order.Address, &order.ExtraAddress, &order.Sum)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsOrderRelation
 		}
 		return nil, err
 	}
+	fmt.Println(order.UserId)
 	foodArray, err := repo.GetFood(ctx, orderId)
 	if err != nil {
 		return nil, err
@@ -209,9 +229,17 @@ func (repo *RepoLayer) UpdateAddress(ctx context.Context, address string, extraA
 }
 
 func (repo *RepoLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) (alias.OrderId, error) {
-	row := repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1 WHERE id=$2 RETURNING id`, status, uint64(orderId))
 	var id uint64
-	err := row.Scan(&id)
+	var err error
+	if status == cnst.Created {
+		timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+		err = repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1, order_created_at=$2 WHERE id=$3 RETURNING id`, status, timeNow, uint64(orderId)).Scan(&id)
+	} else if status == cnst.Delivered {
+		timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+		err = repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1, delivered_at=$2 WHERE id=$3 RETURNING id`, status, timeNow, uint64(orderId)).Scan(&id)
+	} else {
+		err = repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1 WHERE id=$2 RETURNING id`, status, uint64(orderId)).Scan(&id)
+	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, myerrors.SqlNoRowsOrderRelation
@@ -394,6 +422,26 @@ func (repo *RepoLayer) DeleteFromOrder(ctx context.Context, orderId alias.OrderI
 }
 
 func (repo *RepoLayer) CleanBasket(ctx context.Context, id alias.OrderId) error {
+	res, err := repo.db.ExecContext(ctx,
+		`DELETE FROM food_order WHERE order_id=$1`, uint64(id))
+	if err != nil {
+		return err
+	}
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return myerrors.FailCleanBasket
+	}
+	err = repo.UpdateSum(ctx, 0, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RepoLayer) DeleteBasket(ctx context.Context, id alias.OrderId) error {
 	res, err := repo.db.ExecContext(ctx,
 		`DELETE FROM food_order WHERE order_id=$1`, uint64(id))
 	if err != nil {

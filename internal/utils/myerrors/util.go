@@ -12,7 +12,7 @@ var (
 
 	UnauthorizedRu   = errors.New("Вы не авторизованы")
 	RegisteredRu     = errors.New("Вы уже зарегистрированы")
-	AuthorizedRu     = errors.New("Вы уже авторизованы")
+	AuthorizedRu     = errors.New("Необходимо авторизоваться")
 	SignOutAlreadyRu = errors.New("Вы уже вышли из аккаунта")
 
 	BigSizeFileRu              = errors.New("Превышен максимальный размер файла")
@@ -22,8 +22,11 @@ var (
 
 	QuizAddRu = errors.New("Произошла ошибка. Пожалуйста, еще раз проголосуйте")
 
-	NoCommentsRu        = errors.New("У ресторана пока нет отзывов")
+	NoCommentsRu = errors.New(
+		"У ресторана пока нет отзывов",
+	)
 	SuccessCleanRu      = errors.New("Корзина очищена")
+	NoOrdersRu          = errors.New("Нет заказов")
 	NoBasketRu          = errors.New("У Вас нет корзины")
 	AlreadyPayedRu      = errors.New("Заказ уже оплачен")
 	NoAddFoodToOrderRu  = errors.New("Не удалось добавить блюдо в заказ, попробуйте еще раз")

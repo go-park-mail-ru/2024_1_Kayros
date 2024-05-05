@@ -16,9 +16,14 @@ const (
 
 // Статусы заказа
 const (
-	Draft    = "draft"
-	Payed    = "payed"
-	OnTheWay = "on-the-way"
+	Draft = "draft"
+	Payed = "payed"
+	//статусы заказ после оплаты
+	Created   = "created"
+	Cooking   = "cooking"
+	OnTheWay  = "on-the-way"
+	Delivered = "delivered"
+	Cancelled = "cancelled"
 )
 
 // Настройка хэширования с помощью Argon2

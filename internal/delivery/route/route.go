@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"net/http"
 
+	metrics "2024_1_kayros"
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -13,10 +15,11 @@ import (
 	"2024_1_kayros/config"
 )
 
-func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsrf *redis.Client, minio *minio.Client, mux *mux.Router, logger *zap.Logger, restConn, commentConn *grpc.ClientConn) http.Handler {
+func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsrf *redis.Client, minio *minio.Client, mux *mux.Router, logger *zap.Logger, restConn, commentConn *grpc.ClientConn, m *metrics.Metrics) http.Handler {
 	logger.Info("The begin of handlers definition")
 	mux = mux.PathPrefix("/api/v1").Subrouter()
 	mux.StrictSlash(true)
+	mux.PathPrefix("/metrics").Handler(promhttp.Handler())
 
 	AddAuthRouter(cfg, db, redisSession, redisCsrf, minio, mux, logger)
 	AddUserRouter(db, cfg, minio, redisSession, redisCsrf, mux, logger)
@@ -25,7 +28,7 @@ func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsr
 	AddQuizRouter(db, redisSession, redisCsrf, minio, mux, logger)
 	//AddCommentRouter(db, mux, logger, commentConn)
 
-	handler := AddMiddleware(cfg, db, redisSession, redisCsrf, minio, mux, logger)
+	handler := AddMiddleware(cfg, db, redisSession, redisCsrf, mux, logger, m)
 	logger.Info("The end of handlers definition")
 	return handler
 }

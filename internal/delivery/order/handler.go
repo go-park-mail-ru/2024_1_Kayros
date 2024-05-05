@@ -1,11 +1,14 @@
 package delivery
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gorilla/mux"
@@ -35,6 +38,20 @@ func NewOrderHandler(u ucOrder.Usecase, loggerProps *zap.Logger) *OrderHandler {
 type FoodCount struct {
 	FoodId alias.FoodId `json:"food_id" valid:"positive"`
 	Count  uint32       `json:"count" valid:"positive"`
+}
+
+func ChangingStatus(ctx context.Context, h *OrderHandler, id uint64, arr []string) {
+	requestId := ctx.Value(cnst.RequestId)
+	for _, s := range arr {
+		time.Sleep(10 * time.Second)
+		fmt.Println(s)
+		_, err := h.uc.UpdateStatus(ctx, alias.OrderId(id), s)
+		fmt.Println(err)
+		if err != nil {
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId.(string)))
+			return
+		}
+	}
 }
 
 func (d *FoodCount) Validate() (bool, error) {
@@ -75,6 +92,59 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	}
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)
+}
+
+func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusOK)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+
+	var order *entity.Order
+	order, err = h.uc.GetOrderById(r.Context(), alias.OrderId(id))
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	orderDTO := dto.NewOrder(order)
+	w = functions.JsonResponse(w, orderDTO)
+}
+
+func (h *OrderHandler) GetCurrentOrders(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
+		h.logger.Error(myerrors.UnauthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		return
+	}
+
+	orders, err := h.uc.GetCurrentOrders(r.Context(), email)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusInternalServerError)
+		}
+		return
+	}
+	ordersDTO := dto.NewShortOrderArray(orders)
+	w = functions.JsonResponse(w, ordersDTO)
 }
 
 func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
@@ -143,15 +213,13 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
-	unauthId := functions.GetCtxUnauthId(r)
-
-	var basket *entity.Order
-	var err error
-	if unauthId != "" {
-		basket, err = h.uc.GetBasketNoAuth(r.Context(), unauthId)
-	} else {
-		basket, err = h.uc.GetBasket(r.Context(), email)
+	if email == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusOK)
+		return
 	}
+
+	basket, err := h.uc.GetBasket(r.Context(), email)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
@@ -173,8 +241,15 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	statuses := []string{cnst.Created, cnst.Cooking, cnst.OnTheWay, cnst.Delivered}
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, cnst.RequestId, requestId)
+	go ChangingStatus(ctx, h, payedOrder.Id, statuses)
+
 	response := payedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
 	w = functions.JsonResponse(w, response)
+
 }
 
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
@@ -222,12 +297,11 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if basketId == 0 --> user doesn't have basket
 	if basketId == 0 {
-		if unauthId != "" {
-			basketId, err = h.uc.CreateNoAuth(r.Context(), unauthId)
-		} else if email != "" {
+		if email != "" {
 			basketId, err = h.uc.Create(r.Context(), email)
+		} else if unauthId != "" {
+			basketId, err = h.uc.CreateNoAuth(r.Context(), unauthId)
 		}
 		if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))

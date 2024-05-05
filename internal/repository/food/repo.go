@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"2024_1_kayros/internal/utils/myerrors"
 	"go.uber.org/zap"
+
+	"2024_1_kayros/internal/utils/myerrors"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
@@ -50,10 +51,10 @@ func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]
 
 func (repo *RepoLayer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {
 	row := repo.db.QueryRowContext(ctx,
-		`SELECT id, name, description, restaurant_id, category_id, weight, price, img_url
+		`SELECT id, name, restaurant_id, category_id, weight, price, img_url
 				FROM food WHERE id=$1`, uint64(foodId))
 	var item entity.Food
-	err := row.Scan(&item.Id, &item.Name, &item.Description, &item.RestaurantId,
+	err := row.Scan(&item.Id, &item.Name, &item.RestaurantId,
 		&item.Category, &item.Weight, &item.Price, &item.ImgUrl)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
