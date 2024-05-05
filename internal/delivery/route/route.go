@@ -27,6 +27,7 @@ func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsr
 	AddRestRouter(db, mux, logger, restConn, commentConn)
 	AddOrderRouter(db, mux, logger)
 	AddQuizRouter(db, redisSession, redisCsrf, minio, mux, logger)
+	AddPaymentRouter(db, redisSession, redisCsrf, mux, logger, &cfg.Payment)
 
 	handler := AddMiddleware(cfg, db, redisSession, redisCsrf, mux, logger, m)
 	logger.Info("The end of handlers definition")
