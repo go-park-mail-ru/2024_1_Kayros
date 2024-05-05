@@ -21,6 +21,7 @@ func SetCookie(w http.ResponseWriter, r *http.Request, props *props.SetCookiePro
 		Value:    sessionId,
 		Expires:  expiration,
 		HttpOnly: false,
+		Path:     "/",
 	}
 	err := props.UsecaseSession.SetValue(r.Context(), alias.SessionKey(sessionId), alias.SessionValue(props.Email))
 	if err != nil {
@@ -41,6 +42,7 @@ func SetCookie(w http.ResponseWriter, r *http.Request, props *props.SetCookiePro
 		Value:    csrfToken,
 		Expires:  expiration,
 		HttpOnly: false,
+		Path:     "/",
 	}
 	http.SetCookie(w, &csrfCookie)
 	return w, nil
