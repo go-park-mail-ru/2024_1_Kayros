@@ -78,7 +78,8 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if unauthId != "" {
 		order, err = h.uc.GetBasketNoAuth(r.Context(), unauthId)
-	} else if email != "" {
+	}
+	if email != "" && order == nil {
 		order, err = h.uc.GetBasket(r.Context(), email)
 	}
 	if err != nil {
@@ -216,7 +217,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	unauthId := functions.GetCtxUnauthId(r)
 	if email == "" && unauthId == "" {
 		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusOK)
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
 		return
 	}
 

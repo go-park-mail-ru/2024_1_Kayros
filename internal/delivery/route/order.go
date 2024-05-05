@@ -15,7 +15,7 @@ import (
 )
 
 func AddOrderRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
-	repoOrder := rOrder.NewRepoLayer(db, logger)
+	repoOrder := rOrder.NewRepoLayer(db)
 	repoFood := rFood.NewRepoLayer(db)
 	repoUser := rUser.NewRepoLayer(db)
 	repoRest := rRest.NewRepoLayer(db)

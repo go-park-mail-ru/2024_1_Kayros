@@ -14,6 +14,7 @@ type (
 		RestGrpcServer    `yaml:"rest-grpc-server"`
 		AuthGrpcServer    `yaml:"auth-grpc-server"`
 		CommentGrpcServer `yaml:"comment-grpc-server"`
+		Payment           `yaml:"payment"`
 	}
 
 	RestGrpcServer struct {
@@ -71,6 +72,11 @@ type (
 		DatabaseUnauthTokens int    `yaml:"database-unauth-tokens" env:"R_DB_UNAUTH_TOKENS"`
 		User                 string `yaml:"user" env:"R_USER"`
 		Password             string `yaml:"password" env:"R_PASSWORD"`
+	}
+
+	Payment struct {
+		SecretKey string `yaml:"secret-key" env:"P_SECRET_KEY"`
+		StoreId   string `yaml:"store-id" env:"P_STORE_ID"`
 	}
 )
 
