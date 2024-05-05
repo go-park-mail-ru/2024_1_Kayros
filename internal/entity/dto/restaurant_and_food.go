@@ -18,7 +18,7 @@ type RestaurantAndFood struct {
 	ShortDescription string      `json:"short_description,omitempty" valid:"-"`
 	LongDescription  string      `json:"long_description,omitempty" valid:"-"`
 	ImgUrl           string      `json:"img_url" valid:"url"`
-	Rating           uint32      `json:"rating"`
+	Rating           float64     `json:"rating"`
 	CommentCount     uint32      `json:"comment_count"`
 	Categories       []*Category `json:"categories" valid:"-"`
 }

@@ -212,14 +212,14 @@ type Rest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id               uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name             string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	ShortDescription string `protobuf:"bytes,3,opt,name=short_description,json=shortDescription,proto3" json:"short_description,omitempty"`
-	LongDescription  string `protobuf:"bytes,4,opt,name=long_description,json=longDescription,proto3" json:"long_description,omitempty"`
-	Address          string `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
-	ImgUrl           string `protobuf:"bytes,6,opt,name=imgUrl,proto3" json:"imgUrl,omitempty"`
-	Rating           uint32 `protobuf:"varint,7,opt,name=rating,proto3" json:"rating,omitempty"`
-	CommentCount     uint32 `protobuf:"varint,8,opt,name=comment_count,json=commentCount,proto3" json:"comment_count,omitempty"`
+	Id               uint64  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name             string  `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ShortDescription string  `protobuf:"bytes,3,opt,name=short_description,json=shortDescription,proto3" json:"short_description,omitempty"`
+	LongDescription  string  `protobuf:"bytes,4,opt,name=long_description,json=longDescription,proto3" json:"long_description,omitempty"`
+	Address          string  `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
+	ImgUrl           string  `protobuf:"bytes,6,opt,name=imgUrl,proto3" json:"imgUrl,omitempty"`
+	Rating           float32 `protobuf:"fixed32,7,opt,name=rating,proto3" json:"rating,omitempty"`
+	CommentCount     uint32  `protobuf:"varint,8,opt,name=comment_count,json=commentCount,proto3" json:"comment_count,omitempty"`
 }
 
 func (x *Rest) Reset() {
@@ -296,7 +296,7 @@ func (x *Rest) GetImgUrl() string {
 	return ""
 }
 
-func (x *Rest) GetRating() uint32 {
+func (x *Rest) GetRating() float32 {
 	if x != nil {
 		return x.Rating
 	}
@@ -427,7 +427,7 @@ var file_rest_proto_rawDesc = []byte{
 	0x09, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x69, 0x6d,
 	0x67, 0x55, 0x72, 0x6c, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x69, 0x6d, 0x67, 0x55,
 	0x72, 0x6c, 0x12, 0x16, 0x0a, 0x06, 0x72, 0x61, 0x74, 0x69, 0x6e, 0x67, 0x18, 0x07, 0x20, 0x01,
-	0x28, 0x0d, 0x52, 0x06, 0x72, 0x61, 0x74, 0x69, 0x6e, 0x67, 0x12, 0x23, 0x0a, 0x0d, 0x63, 0x6f,
+	0x28, 0x02, 0x52, 0x06, 0x72, 0x61, 0x74, 0x69, 0x6e, 0x67, 0x12, 0x23, 0x0a, 0x0d, 0x63, 0x6f,
 	0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x5f, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x08, 0x20, 0x01, 0x28,
 	0x0d, 0x52, 0x0c, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x22,
 	0x2a, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x1e, 0x0a, 0x04, 0x72,
