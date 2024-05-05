@@ -38,38 +38,43 @@ func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*co
 		return nil, err
 	}
 	com.Id = id
-	//rest := restCommentInfoDB{}
-	//err = repo.db.QueryRowContext(ctx,
-	//	`SELECT rating, comment_count FROM restaurant WHERE id=$1`, com.RestId).Scan(&rest.Rating, &rest.CommentCount)
-	//if err != nil {
-	//	if errors.Is(err, sql.ErrNoRows) {
-	//		return nil, myerrors.SqlNoRowsCommentRelation
-	//	}
-	//	return nil, err
-	//}
-	//r := fromNull(rest)
-	//newRating := (r.Rating*r.CommentCount + com.Rating) / (r.CommentCount + 1)
-	//row, err := repo.db.ExecContext(ctx,
-	//	`UPDATE restaurant SET rating=$1, comment_count=$2 WHERE id=$3`, newRating, r.CommentCount+1, com.RestId)
-	//if err != nil {
-	//	if errors.Is(err, sql.ErrNoRows) {
-	//		return nil, myerrors.SqlNoRowsCommentRelation
-	//	}
-	//	return nil, err
-	//}
-	//numRows, err := row.RowsAffected()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//if numRows == 0 {
-	//	return nil, myerrors.SqlNoRowsUserRelation
-	//}
-	//if err != nil {
-	//	if errors.Is(err, sql.ErrNoRows) {
-	//		return nil, myerrors.SqlNoRowsCommentRelation
-	//	}
-	//	return nil, err
-	//}
+	rest := restCommentInfoDB{}
+	row := repo.db.QueryRowContext(ctx,
+		`SELECT rating, comment_count FROM restaurant WHERE id=$1`, com.RestId)
+	err = row.Scan(&rest.Rating, &rest.CommentCount)
+	if err != nil {
+		fmt.Println(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.SqlNoRowsCommentRelation
+		}
+		return nil, err
+	}
+	r := fromNull(rest)
+	fmt.Println("rest", r.Rating, r.CommentCount)
+	newRating := (r.Rating*float64(r.CommentCount) + float64(com.Rating)) / (float64(r.CommentCount) + 1)
+	fmt.Println("new rating", newRating)
+	res, err := repo.db.ExecContext(ctx,
+		`UPDATE restaurant SET rating=$1, comment_count=$2 WHERE id=$3`, newRating, r.CommentCount+1, com.RestId)
+	if err != nil {
+		fmt.Println(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.SqlNoRowsCommentRelation
+		}
+		return nil, err
+	}
+	numRows, err := res.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if numRows == 0 {
+		return nil, myerrors.SqlNoRowsUserRelation
+	}
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.SqlNoRowsCommentRelation
+		}
+		return nil, err
+	}
 	return com, err
 }
 
@@ -110,20 +115,28 @@ func (repo *CommentLayer) Delete(ctx context.Context, id *comment.CommentId) err
 }
 
 type restCommentInfoDB struct {
-	Rating       sql.NullInt32
+	Rating       sql.NullFloat64
 	CommentCount sql.NullInt32
 }
 
 type restCommentInfo struct {
-	Rating       uint32
+	Rating       float64
 	CommentCount uint32
 }
 
 func fromNull(r restCommentInfoDB) restCommentInfo {
 	return restCommentInfo{
-		Rating:       Int(r.Rating),
+		Rating:       Float(r.Rating),
 		CommentCount: Int(r.CommentCount),
 	}
+}
+
+func Float(element sql.NullFloat64) float64 {
+	fmt.Println(element)
+	if element.Valid {
+		return float64(element.Float64)
+	}
+	return 0
 }
 
 func Int(element sql.NullInt32) uint32 {
