@@ -12,19 +12,19 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 )
 
-type SearchDelivery struct {
+type Delivery struct {
 	ucSearch search.Usecase
 	logger   *zap.Logger
 }
 
-func NewSearchDelivery(ucs search.Usecase, loggerProps *zap.Logger) *SearchDelivery {
-	return &SearchDelivery{
+func NewDelivery(ucs search.Usecase, loggerProps *zap.Logger) *Delivery {
+	return &Delivery{
 		ucSearch: ucs,
 		logger:   loggerProps,
 	}
 }
 
-func (h *SearchDelivery) Search(w http.ResponseWriter, r *http.Request) {
+func (h *Delivery) Search(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	str := r.URL.Query().Get("search")

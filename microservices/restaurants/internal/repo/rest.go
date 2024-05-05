@@ -13,6 +13,7 @@ type Rest interface {
 	GetAll(ctx context.Context) (*rest.RestList, error)
 	GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error)
 	GetByFilter(ctx context.Context, filter *rest.Filter) (*rest.RestList, error)
+	GetCategoryList(ctx context.Context) (*rest.CategoryList, error)
 }
 
 type RestLayer struct {
@@ -84,4 +85,22 @@ func (repo *RestLayer) GetByFilter(ctx context.Context, filter *rest.Filter) (*r
 		return nil, nil
 	}
 	return &rests, nil
+}
+
+func (repo *RestLayer) GetCategoryList(ctx context.Context) (*rest.CategoryList, error) {
+	rows, err := repo.db.QueryContext(ctx,
+		`SELECT id, name FROM category WHERE type='rest'`)
+	if err != nil {
+		return nil, err
+	}
+	categories := rest.CategoryList{}
+	for rows.Next() {
+		cat := rest.Category{}
+		err = rows.Scan(&cat.Id, &cat.Name)
+		if err != nil {
+			return nil, err
+		}
+		categories.C = append(categories.C, &cat)
+	}
+	return &categories, nil
 }
