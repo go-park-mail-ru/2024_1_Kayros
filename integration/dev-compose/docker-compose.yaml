@@ -52,7 +52,6 @@ services:
       - "80:80"
     depends_on:
       - backend
-    command: server /data --console-address ":9001"
   prometheus:
     image: prom/prometheus:latest
     ports:

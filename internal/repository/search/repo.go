@@ -37,7 +37,7 @@ func (repo *RepoLayer) Search(ctx context.Context, search string) ([]*dto.Restau
 	}
 	if len(rests) == 0 {
 		rows, err = repo.db.QueryContext(ctx,
-			`SELECT r.id, r.name, r.img_url FROM restaurant AS r
+			`SELECT DISTINCT r.id, r.name, r.img_url FROM restaurant AS r
 			JOIN rest_categories AS rc ON r.id=rc.restaurant_id JOIN category AS c
             ON rc.category_id=c.id WHERE LOWER(c.name) LIKE LOWER('%' || $1 || '%')`, search)
 		if err != nil {
