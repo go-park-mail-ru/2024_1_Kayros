@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"net/http"
 
-	metrics "2024_1_kayros"
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+
+	metrics "2024_1_kayros"
 
 	"2024_1_kayros/config"
 )
@@ -26,7 +27,6 @@ func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsr
 	AddRestRouter(db, mux, logger, restConn, commentConn)
 	AddOrderRouter(db, mux, logger)
 	AddQuizRouter(db, redisSession, redisCsrf, minio, mux, logger)
-	//AddCommentRouter(db, mux, logger, commentConn)
 
 	handler := AddMiddleware(cfg, db, redisSession, redisCsrf, mux, logger, m)
 	logger.Info("The end of handlers definition")

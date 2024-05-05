@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"2024_1_kayros/microservices/restaurants/internal/repo"
@@ -12,6 +11,8 @@ import (
 type Rest interface {
 	GetAll(ctx context.Context, _ *rest.Empty) (*rest.RestList, error)
 	GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error)
+	GetByFilter(ctx context.Context, filter *rest.Id) (*rest.RestList, error)
+	GetCategoryList(ctx context.Context, _ *rest.Empty) (*rest.CategoryList, error)
 }
 
 type RestLayer struct {
@@ -34,14 +35,29 @@ func (uc *RestLayer) GetAll(ctx context.Context, _ *rest.Empty) (*rest.RestList,
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("we are in microservice")
 	return rests, nil
 }
 
 func (uc *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error) {
-	rest, err := uc.repoRest.GetById(ctx, id)
+	r, err := uc.repoRest.GetById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return rest, nil
+	return r, nil
+}
+
+func (uc *RestLayer) GetByFilter(ctx context.Context, filter *rest.Id) (*rest.RestList, error) {
+	rests, err := uc.repoRest.GetByFilter(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	return rests, nil
+}
+
+func (uc *RestLayer) GetCategoryList(ctx context.Context, _ *rest.Empty) (*rest.CategoryList, error) {
+	cats, err := uc.repoRest.GetCategoryList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return cats, nil
 }
