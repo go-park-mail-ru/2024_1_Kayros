@@ -33,7 +33,7 @@ func NewRestaurant(r *entity.Restaurant) *Restaurant {
 
 func NewRestaurantArray(restArray []*entity.Restaurant) []*Restaurant {
 	if restArray == nil {
-		return nil
+		return []*Restaurant{}
 	}
 	restArrayDTO := make([]*Restaurant, len(restArray))
 	for i, rest := range restArray {

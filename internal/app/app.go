@@ -31,29 +31,41 @@ func Run(cfg *config.Project) {
 	postgreDB := postgres.Init(cfg, logger)
 	redisSessionDB := redis.Init(cfg, logger, cfg.Redis.DatabaseSession)
 	redisCsrfDB := redis.Init(cfg, logger, cfg.Redis.DatabaseCsrf)
-	// нужно будет фронтовский идентификатор ставить на 2 недели
-	//redisUnauthTokensDB := redis.Init(cfg, logger, cfg.Redis.DatabaseUnauthTokens)
 	minioDB := minio.Init(cfg, logger)
 	reg := prometheus.NewRegistry()
 	m := metrics.NewMetrics(reg)
+	// нужно будет фронтовский идентификатор ставить на 2 недели
+	//redisUnauthTokensDB := redis.Init(cfg, logger, cfg.Redis.DatabaseUnauthTokens)
 
 	//rest microservice
 	restConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Printf("The server cannot be started.\n%v", err)
+		errMsg := fmt.Sprintf("The restaurant service cannot be started.\n%v", err)
+		logger.Error(errMsg)
 	} else {
-		log.Printf("The server is started at the address %s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port)
+		errMsg := fmt.Sprintf("The restaurant service has started at the address %s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port)
+		logger.Info(errMsg)
 	}
-	defer restConn.Close()
+	defer func(restConn *grpc.ClientConn) {
+		err := restConn.Close()
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}(restConn)
 
 	//comment microservice
 	commentConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.CommentGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Printf("The server cannot be started.\n%v", err)
+		log.Printf("The comment service cannot be started.\n%v", err)
 	} else {
-		log.Printf("The server is started at the address %s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port)
+		log.Printf("The comment service has started at the address %s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port)
 	}
-	defer restConn.Close()
+	defer func(restConn *grpc.ClientConn) {
+		err := restConn.Close()
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}(commentConn)
 
 	r := mux.NewRouter()
 	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, restConn, commentConn, m)
@@ -71,9 +83,9 @@ func Run(cfg *config.Project) {
 	srvConfig := cfg.Server
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Printf("The server cannot be started.\n%v", err)
+			log.Printf("The main service cannot be started.\n%v", err)
 		} else {
-			log.Printf("The server is started at the address %s:%d", srvConfig.Host, srvConfig.Port)
+			log.Printf("The main service has started at the address %s:%d", srvConfig.Host, srvConfig.Port)
 		}
 	}()
 
@@ -86,10 +98,10 @@ func Run(cfg *config.Project) {
 
 	err = srv.Shutdown(ctx)
 	if err != nil {
-		log.Printf("The server urgently shut down with an error.\n%v", err)
+		log.Printf("The main service urgently shut down with an error.\n%v", err)
 		os.Exit(1) //
 	}
 
-	log.Println("The server has shut down")
+	log.Println("The main service has shut down")
 	os.Exit(0)
 }

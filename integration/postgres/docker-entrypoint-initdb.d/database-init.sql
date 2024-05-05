@@ -69,38 +69,38 @@ CREATE TABLE IF NOT EXISTS restaurant
 
 CREATE TABLE IF NOT EXISTS rest_categories
 (
-    restaurant_id    INTEGER
-    CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0) REFERENCES restaurant (id) ON DELETE CASCADE,
+    restaurant_id INTEGER
+        CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0) REFERENCES restaurant (id) ON DELETE CASCADE,
     category_id   INTEGER
-    CONSTRAINT foreign_key_cat CHECK (category_id > 0) REFERENCES category (id) ON DELETE CASCADE,
-    PRIMARY KEY (rest_id, category_id)
+        CONSTRAINT foreign_key_cat CHECK (category_id > 0) REFERENCES category (id) ON DELETE CASCADE,
+    PRIMARY KEY (restaurant_id, category_id)
 );
 
 CREATE TABLE IF NOT EXISTS "order"
 (
-    id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id       INTEGER
+    id               INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id          INTEGER
         CONSTRAINT foreign_key CHECK (user_id > 0) REFERENCES "user" (id) ON DELETE CASCADE  NULL,
-    sum           INTEGER
+    sum              INTEGER
         CONSTRAINT positive_sum CHECK (sum >= 0)                                             NULL,
-    status        TEXT
+    status           TEXT
         CONSTRAINT order_status_domain NOT NULL DEFAULT 'draft',
-    unauth_token  TEXT
+    unauth_token     TEXT
         CONSTRAINT unauth_token_domain CHECK (length(unauth_token) = 36)                     NULL,
-    address       TEXT
+    address          TEXT
         CONSTRAINT order_address_length CHECK (LENGTH(address) BETWEEN 14 AND 100)           NULL,
-    extra_address TEXT
+    extra_address    TEXT
         CONSTRAINT order_extra_address_length CHECK (LENGTH(extra_address) BETWEEN 2 AND 30) NULL,
-    created_at    TIMESTAMPTZ
+    created_at       TIMESTAMPTZ
         CONSTRAINT user_time_create NOT NULL,
-    updated_at    TIMESTAMPTZ
+    updated_at       TIMESTAMPTZ
         CONSTRAINT user_time_last_updated NOT NULL,
-    received_at   TIMESTAMPTZ
+    received_at      TIMESTAMPTZ
         CONSTRAINT user_time_received NULL,
-    order_created_at   TIMESTAMPTZ
+    order_created_at TIMESTAMPTZ
         CONSTRAINT order_time_payed NULL,
-    delivered_at   TIMESTAMPTZ
-    CONSTRAINT order_time_delivered NULL
+    delivered_at     TIMESTAMPTZ
+        CONSTRAINT order_time_delivered NULL
 );
 
 -- БЖУ хранятся в МГ
@@ -183,9 +183,13 @@ CREATE TABLE IF NOT EXISTS quiz
 
 CREATE TABLE IF NOT EXISTS "comment"
 (
-    id             INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id        INTEGER CONSTRAINT foreign_key CHECK (user_id > 0) NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
-    restaurant_id INTEGER CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0) NOT NULL REFERENCES restaurant (id) ON DELETE CASCADE,
-    text        TEXT CONSTRAINT comment_text_length CHECK (LENGTH(text) BETWEEN 3 AND 250),
-    rating     INTEGER CONSTRAINT non_negative_rating CHECK (rating >= 0) NOT NULL
+    id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id       INTEGER
+        CONSTRAINT foreign_key CHECK (user_id > 0)            NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    restaurant_id INTEGER
+        CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0) NOT NULL REFERENCES restaurant (id) ON DELETE CASCADE,
+    text          TEXT
+        CONSTRAINT comment_text_length CHECK (LENGTH(text) BETWEEN 3 AND 250),
+    rating        INTEGER
+        CONSTRAINT non_negative_rating CHECK (rating >= 0)    NOT NULL
 );
