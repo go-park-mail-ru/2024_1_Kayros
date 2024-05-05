@@ -80,19 +80,6 @@ func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, unauthId s
 		return nil, myerrors.BadAuthPassword
 	}
 
-	address, err := uc.repoUser.GetAddressByUnauthId(ctx, unauthId)
-	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
-		return nil, err
-	}
-	if address != "" && u.Address == "" {
-		uDataChange := entity.Copy(u)
-		uDataChange.Address = address
-		err = uc.repoUser.Update(ctx, uDataChange, email)
-		if err != nil {
-			return nil, err
-		}
-		u.Address = address
-	}
 	return u, nil
 }
 
