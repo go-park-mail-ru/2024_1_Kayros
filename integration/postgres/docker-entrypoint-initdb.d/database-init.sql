@@ -53,6 +53,10 @@ CREATE TABLE IF NOT EXISTS restaurant
         CONSTRAINT rest_address CHECK (LENGTH(address) BETWEEN 14 AND 100) UNIQUE                                NOT NULL,
     img_url           TEXT
         CONSTRAINT restaurant_img_url CHECK (LENGTH(img_url) <= 60) DEFAULT '/minio-api/restaurants/default.jpg' NOT NULL,
+    rating            NUMERIC(2,1)
+        CONSTRAINT rest_rating CHECK (rating >= 0) NULL,
+    comment_count     INTEGER
+        CONSTRAINT rest_comment_count CHECK (comment_count >= 0) NULL,
     CONSTRAINT rest_unique UNIQUE (name, address)
 );
 
