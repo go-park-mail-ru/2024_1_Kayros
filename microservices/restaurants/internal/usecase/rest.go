@@ -39,9 +39,10 @@ func (uc *RestLayer) GetAll(ctx context.Context, _ *rest.Empty) (*rest.RestList,
 }
 
 func (uc *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error) {
-	rest, err := uc.repoRest.GetById(ctx, id)
+	r, err := uc.repoRest.GetById(ctx, id)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
-	return rest, nil
+	return r, nil
 }

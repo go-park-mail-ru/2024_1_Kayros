@@ -44,7 +44,7 @@ func (repo *RestLayer) GetAll(ctx context.Context) (*rest.RestList, error) {
 
 func (repo *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error) {
 	row := repo.db.QueryRowContext(ctx,
-		`SELECT id, name, long_description, address, img_url FROM restaurant WHERE id=$1`, id)
+		`SELECT id, name, long_description, address, img_url FROM restaurant WHERE id=$1`, id.Id)
 	r := rest.Rest{}
 	err := row.Scan(&r.Id, &r.Name, &r.LongDescription, &r.Address, &r.ImgUrl)
 	if err != nil {
