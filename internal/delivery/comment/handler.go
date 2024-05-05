@@ -104,7 +104,7 @@ func (h *Delivery) GetComments(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["rest_id"])
+	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)

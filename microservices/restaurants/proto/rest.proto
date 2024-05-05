@@ -8,6 +8,15 @@ message RestId {
   uint64 id = 1;
 }
 
+message Category {
+  uint64 id = 1;
+  string name = 2;
+}
+
+message Id {
+  uint64 id= 1;
+}
+
 message Empty {}
 
 message Rest {
@@ -23,7 +32,13 @@ message RestList {
   repeated Rest rest= 1;
 }
 
+message CategoryList {
+  repeated Category c= 1;
+}
+
 service RestWorker {
   rpc GetAll(Empty) returns (RestList) {};
   rpc GetById(RestId) returns (Rest) {};
+  rpc GetByFilter(Id) returns (RestList) {};
+  rpc GetCategoryList(Empty) returns (CategoryList) {};
 }
