@@ -3,7 +3,6 @@ package functions
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/utils/alias"
@@ -35,25 +34,22 @@ func DeleteCookiesFromDB(r *http.Request, ucCsrf session.Usecase, ucSession sess
 
 // CookieExpired - method set cookie expired
 func CookieExpired(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, error) {
-	sessionCookie, err := r.Cookie(cnst.SessionCookieName)
-	if err != nil {
-		if errors.Is(err, http.ErrNoCookie) {
-			return w, nil
-		}
-		return w, err
+	sessionCookie := &http.Cookie{
+		Name:     cnst.SessionCookieName,
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: false,
+		Path:     "/",
 	}
-	csrfCookie, err := r.Cookie(cnst.CsrfCookieName)
-	if err != nil {
-		if errors.Is(err, http.ErrNoCookie) {
-			return w, nil
-		}
-		return w, err
-	}
-
-	sessionCookie.Expires = time.Now().AddDate(0, 0, -1)
 	http.SetCookie(w, sessionCookie)
 
-	csrfCookie.Expires = time.Now().AddDate(0, 0, -1)
+	csrfCookie := &http.Cookie{
+		Name:     cnst.CsrfCookieName,
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: false,
+		Path:     "/",
+	}
 	http.SetCookie(w, csrfCookie)
 
 	return w, nil
@@ -68,10 +64,8 @@ func FlashCookie(r *http.Request, w http.ResponseWriter, ucCsrf session.Usecase,
 	}
 
 	w, err = CookieExpired(w, r)
-	if err != nil {
-		if !errors.Is(err, http.ErrNoCookie) {
-			return w, err
-		}
+	if err != nil && !errors.Is(err, http.ErrNoCookie) {
+		return w, err
 	}
 	return w, nil
 }

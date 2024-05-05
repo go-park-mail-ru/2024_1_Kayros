@@ -57,8 +57,7 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 	}
 	if unauthAddress != "" {
 		address = unauthAddress
-	}
-	if u != nil && u.Address != "" {
+	} else if u != nil && u.Address != "" {
 		address = u.Address
 	}
 
