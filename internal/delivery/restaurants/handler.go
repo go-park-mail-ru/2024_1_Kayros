@@ -44,13 +44,17 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	filter := r.URL.Query().Get("filter")
-	id, err := strconv.Atoi(filter)
-	if err != nil || id <= 0 {
-		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
-		return
+	var id = 0
+	if filter != "" {
+		id, err := strconv.Atoi(filter)
+		if err != nil || id < 0 {
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+			return
+		}
 	}
 	var rests []*entity.Restaurant
+	var err error
 	if filter != "" {
 		rests, err = h.ucRest.GetByFilter(r.Context(), alias.CategoryId(id))
 		if err != nil {
@@ -66,6 +70,7 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
+
 	restsDTO := dto.NewRestaurantArray(rests)
 	w = functions.JsonResponse(w, restsDTO)
 }
