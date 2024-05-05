@@ -12,7 +12,7 @@ var (
 
 	UnauthorizedRu   = errors.New("Вы не авторизованы")
 	RegisteredRu     = errors.New("Вы уже зарегистрированы")
-	AuthorizedRu     = errors.New("Необходимо авторизоваться")
+	AuthorizedRu     = errors.New("Вы уже авторизованы")
 	SignOutAlreadyRu = errors.New("Вы уже вышли из аккаунта")
 
 	BigSizeFileRu              = errors.New("Превышен максимальный размер файла")
