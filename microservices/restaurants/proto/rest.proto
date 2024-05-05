@@ -26,6 +26,8 @@ message Rest {
   string long_description = 4;
   string address = 5;
   string imgUrl = 6;
+  uint32 rating = 7;
+  uint32 comment_count = 8;
 }
 
 message RestList {

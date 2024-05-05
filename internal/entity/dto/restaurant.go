@@ -14,6 +14,8 @@ type Restaurant struct {
 	LongDescription  string `json:"long_description" valid:"-"`
 	Address          string `json:"address" valid:"-"`
 	ImgUrl           string `json:"img_url" valid:"url"`
+	Rating           uint32 `json:"rating"`
+	CommentCount     uint32 `json:"comment_count"`
 }
 
 func (d *Restaurant) Validate() (bool, error) {
@@ -28,6 +30,8 @@ func NewRestaurant(r *entity.Restaurant) *Restaurant {
 		LongDescription:  r.LongDescription,
 		Address:          r.Address,
 		ImgUrl:           r.ImgUrl,
+		Rating:           r.Rating,
+		CommentCount:     r.CommentCount,
 	}
 }
 

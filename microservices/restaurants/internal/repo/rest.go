@@ -46,9 +46,9 @@ func (repo *RestLayer) GetAll(ctx context.Context) (*rest.RestList, error) {
 
 func (repo *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error) {
 	row := repo.db.QueryRowContext(ctx,
-		`SELECT id, name, long_description, address, img_url FROM restaurant WHERE id=$1`, id.Id)
+		`SELECT id, name, long_description, address, img_url, rating, comment_count FROM restaurant WHERE id=$1`, id.Id)
 	r := rest.Rest{}
-	err := row.Scan(&r.Id, &r.Name, &r.LongDescription, &r.Address, &r.ImgUrl)
+	err := row.Scan(&r.Id, &r.Name, &r.LongDescription, &r.Address, &r.ImgUrl, &r.Rating, &r.CommentCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsRestaurantRelation
@@ -59,11 +59,6 @@ func (repo *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest
 }
 
 func (repo *RestLayer) GetByFilter(ctx context.Context, id *rest.Id) (*rest.RestList, error) {
-	//var id uint64
-	//err := repo.db.QueryRowContext(ctx, `SELECT id FROM category WHERE LOWER(name)=LOWER($1)`, filter.Filter).Scan(&id)
-	//if err != nil {
-	//	return nil, err
-	//}
 	rows, err := repo.db.QueryContext(ctx,
 		`SELECT r.id, r.name, r.short_description, r.img_url FROM restaurant as r 
 				JOIN rest_categories AS rc ON r.id=rc.restaurant_id WHERE rc.category_id=$1`, id.Id)

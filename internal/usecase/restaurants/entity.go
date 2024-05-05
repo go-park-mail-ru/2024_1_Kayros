@@ -13,6 +13,8 @@ func FromGrpcStructToRestaurant(grpcRest *rest.Rest) *entity.Restaurant {
 		ShortDescription: grpcRest.ShortDescription,
 		LongDescription:  grpcRest.LongDescription,
 		ImgUrl:           grpcRest.ImgUrl,
+		Rating:           grpcRest.Rating,
+		CommentCount:     grpcRest.CommentCount,
 	}
 }
 

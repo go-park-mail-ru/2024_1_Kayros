@@ -70,7 +70,6 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-
 	restsDTO := dto.NewRestaurantArray(rests)
 	w = functions.JsonResponse(w, restsDTO)
 }

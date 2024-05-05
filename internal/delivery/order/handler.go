@@ -213,13 +213,20 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
-	if email == "" {
+	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
 		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusOK)
 		return
 	}
 
-	basket, err := h.uc.GetBasket(r.Context(), email)
+	var basket *entity.Order
+	var err error
+	if unauthId != "" {
+		basket, err = h.uc.GetBasketNoAuth(r.Context(), unauthId)
+	} else if email != "" {
+		basket, err = h.uc.GetBasket(r.Context(), email)
+	}
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {

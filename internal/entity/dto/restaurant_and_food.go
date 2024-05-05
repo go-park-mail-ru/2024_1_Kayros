@@ -18,6 +18,8 @@ type RestaurantAndFood struct {
 	ShortDescription string      `json:"short_description,omitempty" valid:"-"`
 	LongDescription  string      `json:"long_description,omitempty" valid:"-"`
 	ImgUrl           string      `json:"img_url" valid:"url"`
+	Rating           uint32      `json:"rating"`
+	CommentCount     uint32      `json:"comment_count"`
 	Categories       []*Category `json:"categories" valid:"-"`
 }
 
@@ -51,6 +53,8 @@ func NewRestaurantAndFood(r *entity.Restaurant, categories []*entity.Category) *
 		ShortDescription: r.ShortDescription,
 		LongDescription:  r.LongDescription,
 		ImgUrl:           r.ImgUrl,
+		Rating:           r.Rating,
+		CommentCount:     r.CommentCount,
 		Categories:       NewCategoryArray(categories),
 	}
 }
