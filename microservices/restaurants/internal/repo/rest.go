@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"2024_1_kayros/internal/utils/myerrors"
 	rest "2024_1_kayros/microservices/restaurants/proto"
@@ -50,6 +51,7 @@ func (repo *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest
 	r := rest.Rest{}
 	err := row.Scan(&r.Id, &r.Name, &r.LongDescription, &r.Address, &r.ImgUrl, &r.Rating, &r.CommentCount)
 	if err != nil {
+		fmt.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsRestaurantRelation
 		}
@@ -65,7 +67,6 @@ func (repo *RestLayer) GetByFilter(ctx context.Context, id *rest.Id) (*rest.Rest
 	if err != nil {
 		return nil, err
 	}
-
 	rests := rest.RestList{}
 	for rows.Next() {
 		r := rest.Rest{}

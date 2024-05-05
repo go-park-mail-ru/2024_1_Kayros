@@ -7,6 +7,6 @@ type Restaurant struct {
 	LongDescription  string
 	Address          string
 	ImgUrl           string
-	Rating           uint32
+	Rating           float64
 	CommentCount     uint32
 }

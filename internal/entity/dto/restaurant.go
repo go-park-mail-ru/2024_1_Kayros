@@ -8,14 +8,14 @@ import (
 
 // нужно будет узнать минимальную длину описания и имени
 type Restaurant struct {
-	Id               uint64 `json:"id" valid:"-"`
-	Name             string `json:"name" valid:"-"`
-	ShortDescription string `json:"short_description" valid:"-"`
-	LongDescription  string `json:"long_description" valid:"-"`
-	Address          string `json:"address" valid:"-"`
-	ImgUrl           string `json:"img_url" valid:"url"`
-	Rating           uint32 `json:"rating"`
-	CommentCount     uint32 `json:"comment_count"`
+	Id               uint64  `json:"id" valid:"-"`
+	Name             string  `json:"name" valid:"-"`
+	ShortDescription string  `json:"short_description" valid:"-"`
+	LongDescription  string  `json:"long_description" valid:"-"`
+	Address          string  `json:"address" valid:"-"`
+	ImgUrl           string  `json:"img_url" valid:"url"`
+	Rating           float64 `json:"rating"`
+	CommentCount     uint32  `json:"comment_count"`
 }
 
 func (d *Restaurant) Validate() (bool, error) {

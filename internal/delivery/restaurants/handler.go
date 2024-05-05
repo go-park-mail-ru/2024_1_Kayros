@@ -86,8 +86,8 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 	}
 	rest, err := h.ucRest.GetById(r.Context(), alias.RestId(id))
 	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsRestaurantRelation) {
-			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			w = functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
 		}
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
