@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -23,7 +24,6 @@ type AccessLogStart struct {
 }
 
 type AccessLogEnd struct {
-	ResponseSize int64
 	LatencyHuman string
 	LatencyMs    string
 	EndTime      string
@@ -36,7 +36,11 @@ func Access(handler http.Handler, logger *zap.Logger) http.Handler {
 		timeNow := time.Now().UTC()
 		LogInitRequest(r, logger, timeNow, requestId)
 
-		unauthId, _ := functions.GetCookieUnauthIdValue(r)
+		unauthId, err := functions.GetCookieUnauthIdValue(r)
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			return
+		}
 		ctx := context.WithValue(r.Context(), cnst.UnauthIdCookieName, unauthId)
 		ctx = context.WithValue(ctx, cnst.RequestId, requestId)
 		r = r.WithContext(ctx)
@@ -71,13 +75,11 @@ func LogInitRequest(r *http.Request, logger *zap.Logger, timeNow time.Time, requ
 func LogEndRequest(logger *zap.Logger, timeNow time.Time, requestId string) {
 	msg := fmt.Sprintf("request done %s", requestId)
 	endLog := &AccessLogEnd{
-		ResponseSize: 10,
 		EndTime:      timeNow.Format(cnst.Timestamptz),
 		LatencyHuman: time.Since(timeNow).String(),
 		LatencyMs:    time.Since(timeNow).String(),
 	}
 	logger.Info(msg,
-		zap.Int64("response_size", endLog.ResponseSize),
 		zap.String("end_time", endLog.EndTime),
 		zap.String("latency_human", endLog.LatencyHuman),
 		zap.String("latency_human_ms", endLog.LatencyMs),

@@ -1,12 +1,15 @@
 package middleware
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
+	"2024_1_kayros/internal/utils/alias"
+	"2024_1_kayros/internal/utils/myerrors"
 	"go.uber.org/zap"
 
 	"2024_1_kayros/config"
@@ -16,40 +19,71 @@ import (
 )
 
 // Csrf checks for csrf_token availability in the request | Method `Signed Double-Submit Cookie`
-func Csrf(handler http.Handler, ucCsrfTokens session.Usecase, cfg *config.Project, logger *zap.Logger) http.Handler {
+func Csrf(handler http.Handler, ucCsrfTokens session.Usecase, ucSession session.Usecase, cfg *config.Project, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//requestId := functions.GetCtxRequestId(r)
-		unauthId := functions.GetCtxUnauthId(r)
-		//csrfToken, err := functions.GetCookieCsrfValue(r)
-		//if err != nil {
-		//	logger.Warn(err.Error(), zap.String(cnst.RequestId, requestId))
-		//	w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
-		//	return
-		//}
-		//
-		//isValid := csrfTokenIsValid(csrfToken, cfg.Server.CsrfSecretKey)
-		//if !isValid {
-		//	logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		//	w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
-		//	return
-		//}
-		//
-		//xCsrfTokenHeader := r.Header.Get(cnst.XCsrfHeader)
-		//if xCsrfTokenHeader != csrfToken {
-		//	logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		//	w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
-		//	return
-		//}
-		//
-		//_, err = ucCsrfTokens.GetValue(r.Context(), alias.SessionKey(csrfToken))
-		//if err != nil {
-		//	logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		//	w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
-		//	return
-		//}
+		requestId := functions.GetCtxRequestId(r)
+		csrfToken, err := functions.GetCookieCsrfValue(r)
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		sessionId, err := functions.GetCookieSessionValue(r)
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
 
-		ctx := context.WithValue(r.Context(), cnst.UnauthIdCookieName, unauthId)
-		r = r.WithContext(ctx)
+		isAuthURI := r.RequestURI == "/api/v1/signup" || r.RequestURI == "/api/v1/signin"
+		// we don't check csrf token when:
+		// 1) user try to authorize
+		// 2) user aren't authorized
+		if isAuthURI || sessionId == "" {
+			handler.ServeHTTP(w, r)
+			return
+		}
+
+		isValid := csrfTokenIsValid(csrfToken, cfg.Server.CsrfSecretKey)
+		if !isValid {
+			errMsg := fmt.Sprintf("%s:%s", invalidCsrfToken, csrfToken)
+			logger.Error(errMsg, zap.String(cnst.RequestId, requestId))
+			w, err = functions.FlashCookie(r, w, ucCsrfTokens, ucSession)
+			if err != nil {
+				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				return
+			}
+			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+			return
+		}
+
+		xCsrfTokenHeader := r.Header.Get(cnst.XCsrfHeader)
+		if xCsrfTokenHeader != csrfToken {
+			logger.Error(headerCsrfTokenMissing, zap.String(cnst.RequestId, requestId))
+			w, err = functions.FlashCookie(r, w, ucCsrfTokens, ucSession)
+			if err != nil {
+				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				return
+			}
+			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
+			return
+		}
+
+		_, err = ucCsrfTokens.GetValue(r.Context(), alias.SessionKey(csrfToken))
+		if err != nil {
+			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w, err = functions.FlashCookie(r, w, ucCsrfTokens, ucSession)
+			if err != nil {
+				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				return
+			}
+			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
+			return
+		}
+
 		handler.ServeHTTP(w, r)
 	})
 }
@@ -69,3 +103,8 @@ func csrfTokenIsValid(csrfToken string, secretKey string) bool {
 	hmac := hex.EncodeToString(hash.Sum(nil))
 	return parts[0] == hmac
 }
+
+var (
+	invalidCsrfToken       = "csrf-token is invalid"
+	headerCsrfTokenMissing = fmt.Sprintf("header '%s' missing", cnst.XCsrfHeader)
+)

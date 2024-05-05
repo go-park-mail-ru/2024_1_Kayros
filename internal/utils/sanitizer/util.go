@@ -16,3 +16,8 @@ func User(u *entity.User) *entity.User {
 	u.ImgUrl = sanitizer.Sanitize(u.ImgUrl)
 	return u
 }
+
+func Address(address string) string {
+	sanitizer := bluemonday.UGCPolicy()
+	return sanitizer.Sanitize(address)
+}

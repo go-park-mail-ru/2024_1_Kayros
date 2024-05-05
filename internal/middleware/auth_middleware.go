@@ -21,8 +21,10 @@ func SessionAuthentication(handler http.Handler, ucUser user.Repo, ucSession ses
 		requestId := functions.GetCtxRequestId(r)
 
 		sessionId, err := functions.GetCookieSessionValue(r)
-		if err != nil {
-			logger.Warn(err.Error(), zap.String(cnst.RequestId, requestId))
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
 		}
 
 		email, err := ucSession.GetValue(r.Context(), alias.SessionKey(sessionId))

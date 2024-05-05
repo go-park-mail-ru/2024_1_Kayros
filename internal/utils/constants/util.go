@@ -6,7 +6,7 @@ const (
 	UnauthIdCookieName = "unauth_id"
 
 	RequestId   = "request_id"
-	XCsrfHeader = "XCSRF_Token"
+	XCsrfHeader = "XCSRF-Token"
 )
 
 const (

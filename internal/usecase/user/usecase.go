@@ -19,8 +19,10 @@ import (
 
 type Usecase interface {
 	GetData(ctx context.Context, email string) (*entity.User, error)
+	UpdateAddressByUnauthId(ctx context.Context, unauthId string, address string) error
+	GetAddressByUnauthId(ctx context.Context, unauthId string) (string, error)
 	UpdateData(ctx context.Context, data *props.UpdateUserDataProps) (*entity.User, error)
-	UpdateAddress(ctx context.Context, email string, address string) (*entity.User, error)
+	UpdateAddress(ctx context.Context, email string, address string) error
 	SetNewPassword(ctx context.Context, email string, pwds *props.SetNewUserPasswordProps) error
 }
 
@@ -90,24 +92,34 @@ func (uc *UsecaseLayer) UpdateData(ctx context.Context, data *props.UpdateUserDa
 }
 
 // UpdateAddress - method updates only address.
-func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email string, address string) (*entity.User, error) {
+func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email string, address string) error {
 	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	u.Address = address
 	err = uc.repoUser.Update(ctx, u, email)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	uDB, err := uc.repoUser.GetByEmail(ctx, email)
+	return nil
+}
+
+func (uc *UsecaseLayer) GetAddressByUnauthId(ctx context.Context, unauthId string) (string, error) {
+	return uc.repoUser.GetAddressByUnauthId(ctx, unauthId)
+}
+
+func (uc *UsecaseLayer) UpdateAddressByUnauthId(ctx context.Context, unauthId string, addressUpdate string) error {
+	_, err := uc.repoUser.GetAddressByUnauthId(ctx, unauthId)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
+			return uc.repoUser.CreateAddressByUnauthId(ctx, unauthId, addressUpdate)
+		}
+		return err
 	}
-
-	return uDB, nil
+	return uc.repoUser.UpdateAddressByUnauthId(ctx, unauthId, addressUpdate)
 }
 
 // SetNewPassword - method used to set new password.

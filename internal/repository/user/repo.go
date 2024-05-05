@@ -14,6 +14,9 @@ import (
 
 type Repo interface {
 	GetByEmail(ctx context.Context, email string) (*entity.User, error)
+	GetAddressByUnauthId(ctx context.Context, unauthId string) (string, error)
+	UpdateAddressByUnauthId(ctx context.Context, unauthId string, address string) error
+	CreateAddressByUnauthId(ctx context.Context, unauthId string, address string) error
 	DeleteByEmail(ctx context.Context, email string) error
 	Create(ctx context.Context, u *entity.User) error
 	Update(ctx context.Context, uDataChange *entity.User, email string) error
@@ -58,11 +61,58 @@ func (repo *RepoLayer) DeleteByEmail(ctx context.Context, email string) error {
 	return nil
 }
 
+func (repo *RepoLayer) GetAddressByUnauthId(ctx context.Context, unauthId string) (string, error) {
+	row := repo.database.QueryRowContext(ctx,
+		`SELECT address  FROM unauth_address WHERE unauth_id = $1`, unauthId)
+	var address sql.NullString
+	err := row.Scan(&address)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", myerrors.SqlNoRowsUnauthAddressRelation
+		}
+		return "", err
+	}
+	if !address.Valid {
+		return "", nil
+	}
+	return address.String, nil
+}
+
+func (repo *RepoLayer) UpdateAddressByUnauthId(ctx context.Context, unauthId string, address string) error {
+	row, err := repo.database.ExecContext(ctx, `UPDATE unauth_address SET address = $1 WHERE unauth_id= $2`, functions.MaybeNullString(address), unauthId)
+	if err != nil {
+		return err
+	}
+	numRows, err := row.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if numRows == 0 {
+		return myerrors.SqlNoRowsUnauthAddressRelation
+	}
+	return nil
+}
+
+func (repo *RepoLayer) CreateAddressByUnauthId(ctx context.Context, unauthId string, address string) error {
+	row, err := repo.database.ExecContext(ctx, `INSERT INTO unauth_address (unauth_id, address) VALUES ($1, $2)`, unauthId, address)
+	if err != nil {
+		return err
+	}
+	numRows, err := row.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if numRows == 0 {
+		return myerrors.SqlNoRowsUnauthAddressRelation
+	}
+	return nil
+}
+
 func (repo *RepoLayer) Create(ctx context.Context, u *entity.User) error {
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	row, err := repo.database.ExecContext(ctx,
-		`INSERT INTO "user" (name, email, password, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
-		u.Name, u.Email, u.Password, timeNow, timeNow)
+		`INSERT INTO "user" (name, email, password, address, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+		u.Name, u.Email, u.Password, functions.MaybeNullString(u.Address), timeNow, timeNow)
 	if err != nil {
 		return err
 	}

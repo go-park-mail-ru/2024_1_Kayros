@@ -29,8 +29,9 @@ func AddUserRouter(db *sql.DB, cfg *config.Project, minio *minio.Client, clientR
 	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrf, logger)
 	deliveryUser := dUser.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, usecaseCsrf, logger)
 
-	mux.HandleFunc("/user", deliveryUser.UserData).Methods("GET").Name("userdata")
+	mux.HandleFunc("/user", deliveryUser.UserData).Methods("GET").Name("user_data")
 	mux.HandleFunc("/user", deliveryUser.UpdateInfo).Methods("PUT").Name("update_user")
 	mux.HandleFunc("/user/address", deliveryUser.UpdateAddress).Methods("PUT").Name("update_user_address")
+	mux.HandleFunc("/user/address", deliveryUser.UserAddress).Methods("GET").Name("user_address")
 	mux.HandleFunc("/user/new_password", deliveryUser.UpdatePassword).Methods("PUT").Name("update_user_password")
 }

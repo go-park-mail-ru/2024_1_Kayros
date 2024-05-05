@@ -12,8 +12,8 @@ import (
 )
 
 type Usecase interface {
-	SignUpUser(ctx context.Context, email string, signupData *entity.User) (*entity.User, error)
-	SignInUser(ctx context.Context, email string, password string) (*entity.User, error)
+	SignUpUser(ctx context.Context, email string, unauthId string, signupData *entity.User) (*entity.User, error)
+	SignInUser(ctx context.Context, email string, unauthId string, password string) (*entity.User, error)
 }
 
 type UsecaseLayer struct {
@@ -26,7 +26,7 @@ func NewUsecaseLayer(repoUserProps user.Repo) Usecase {
 	}
 }
 
-func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, signupData *entity.User) (*entity.User, error) {
+func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, unauthId string, signupData *entity.User) (*entity.User, error) {
 	isExist, err := uc.isExistByEmail(ctx, email)
 	if err != nil {
 		// we can skip error `myerrors.SqlNoRowsUserRelation`, because user must not to be
@@ -37,6 +37,12 @@ func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, signupData
 	if isExist {
 		return nil, myerrors.UserAlreadyExist
 	}
+
+	address, err := uc.repoUser.GetAddressByUnauthId(ctx, unauthId)
+	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
+		return nil, err
+	}
+	signupData.Address = address
 
 	// we do copy for clean function
 	uCopy := entity.Copy(signupData)
@@ -60,7 +66,7 @@ func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, signupData
 	return uDB, nil
 }
 
-func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, password string) (*entity.User, error) {
+func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, unauthId string, password string) (*entity.User, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, err
@@ -72,6 +78,20 @@ func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, password s
 	}
 	if !isEqual {
 		return nil, myerrors.BadAuthPassword
+	}
+
+	address, err := uc.repoUser.GetAddressByUnauthId(ctx, unauthId)
+	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
+		return nil, err
+	}
+	if address != "" && u.Address == "" {
+		uDataChange := entity.Copy(u)
+		uDataChange.Address = address
+		err = uc.repoUser.Update(ctx, uDataChange, email)
+		if err != nil {
+			return nil, err
+		}
+		u.Address = address
 	}
 	return u, nil
 }

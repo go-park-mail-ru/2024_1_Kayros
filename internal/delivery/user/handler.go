@@ -37,6 +37,35 @@ func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, 
 	}
 }
 
+func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+
+	address := ""
+	u, err := d.ucUser.GetData(r.Context(), email)
+	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	unauthAddress, err := d.ucUser.GetAddressByUnauthId(r.Context(), unauthId)
+	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	if unauthAddress != "" {
+		address = unauthAddress
+	}
+	if u != nil && u.Address != "" {
+		address = u.Address
+	}
+
+	address = sanitizer.Address(address)
+	w = functions.JsonResponse(w, map[string]string{"address": address})
+}
+
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
@@ -141,10 +170,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
-	if email == "" {
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
-		return
-	}
+	unauthId := functions.GetCtxUnauthId(r)
 
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -162,34 +188,39 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	isValid, err := address.Validate()
-	if address.Data == "" {
-		isValid = true
-	}
 	if err != nil || !isValid {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
-	uUpdated, err := d.ucUser.UpdateAddress(r.Context(), email, address.Data)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			w, err = functions.FlashCookie(r, w, d.ucCsrf, d.ucSession)
-			if err != nil {
-				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+	if email != "" {
+		err = d.ucUser.UpdateAddress(r.Context(), email, address.Data)
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+				w, err = functions.FlashCookie(r, w, d.ucCsrf, d.ucSession)
+				if err != nil {
+					d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+					w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+					return
+				}
+				w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 				return
 			}
-			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-		return
 	}
-	uSanitizer := sanitizer.User(uUpdated)
-	uDTO := dto.NewUserData(uSanitizer)
-	w = functions.JsonResponse(w, uDTO)
+	if unauthId != "" {
+		err = d.ucUser.UpdateAddressByUnauthId(r.Context(), unauthId, address.Data)
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+	}
+	w = functions.JsonResponse(w, map[string]string{"detail": "Адрес успешно добавлен"})
 }
 
 func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
