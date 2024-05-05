@@ -125,6 +125,5 @@ func (d *Payment) OrderPay(w http.ResponseWriter, r *http.Request) {
 
 	// receiving 'confirmation_url'
 	confirmationURL := data["confirmation"].(map[string]interface{})["confirmation_url"].(string)
-
-	fmt.Println("Confirmation URL:", confirmationURL)
+	w = functions.JsonResponse(w, map[string]string{"url": confirmationURL})
 }
