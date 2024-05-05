@@ -225,7 +225,8 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if unauthId != "" {
 		basket, err = h.uc.GetBasketNoAuth(r.Context(), unauthId)
-	} else if email != "" {
+	}
+	if email != "" && basket == nil {
 		basket, err = h.uc.GetBasket(r.Context(), email)
 	}
 	if err != nil {
@@ -265,6 +266,11 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
+		return
+	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -296,7 +302,8 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	var basketId alias.OrderId
 	if unauthId != "" {
 		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
-	} else if email != "" {
+	}
+	if email != "" && basketId == 0 {
 		basketId, err = h.uc.GetBasketId(r.Context(), email)
 	}
 	if err != nil && !errors.Is(err, myerrors.SqlNoRowsOrderRelation) {

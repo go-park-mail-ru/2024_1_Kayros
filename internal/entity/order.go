@@ -2,7 +2,6 @@ package entity
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 type ShortOrder struct {
@@ -71,7 +70,6 @@ func String(element sql.NullString) string {
 }
 
 func Int(element sql.NullInt64) uint64 {
-	fmt.Println(element)
 	if element.Valid {
 		return uint64(element.Int64)
 	}
