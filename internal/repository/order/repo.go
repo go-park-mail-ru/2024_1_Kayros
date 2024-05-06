@@ -145,17 +145,16 @@ func (repo *RepoLayer) GetBasketNoAuth(ctx context.Context, unauthId string) (*e
 
 func (repo *RepoLayer) GetOrderById(ctx context.Context, orderId alias.OrderId) (*entity.Order, error) {
 	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, order_created_at, delivered_at, status, address,
-      				extra_address, sum FROM "order" WHERE id= $1`, uint64(orderId))
+      				extra_address, sum, commented FROM "order" WHERE id= $1`, uint64(orderId))
 	var order entity.OrderDB
 	err := row.Scan(&order.Id, &order.UserId, &order.OrderCreatedAt, &order.DeliveredAt,
-		&order.Status, &order.Address, &order.ExtraAddress, &order.Sum)
+		&order.Status, &order.Address, &order.ExtraAddress, &order.Sum, &order.Commented)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsOrderRelation
 		}
 		return nil, err
 	}
-	fmt.Println(order.UserId)
 	foodArray, err := repo.GetFood(ctx, orderId)
 	if err != nil {
 		return nil, err

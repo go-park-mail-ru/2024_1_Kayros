@@ -1,5 +1,4 @@
 # service backend
-
 FROM golang:1.22 AS building
 RUN mkdir /app
 WORKDIR /app

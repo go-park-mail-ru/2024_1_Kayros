@@ -233,13 +233,15 @@ func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId,
 	if err != nil {
 		return err
 	}
-	fmt.Println(inputFood.RestaurantId)
 	//получаем заказ по id
 	Order, err := uc.repoOrder.GetOrderById(ctx, orderId)
+	if err != nil {
+		return err
+	}
 	//fmt.Println(Order.Food[0].RestaurantId)
 	//если ресторан блюд в корзине не совпадает с рестораном откуда новое блюдо
 	//то чистим корзину
-	if len(Order.Food) > 0 && inputFood.RestaurantId != Order.Food[0].RestaurantId {
+	if len(Order.Food) > 0 && (inputFood.RestaurantId != Order.Food[0].RestaurantId) {
 		err = uc.repoOrder.CleanBasket(ctx, orderId)
 		if err != nil {
 			return err

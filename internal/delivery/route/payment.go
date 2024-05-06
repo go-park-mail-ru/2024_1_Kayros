@@ -31,5 +31,5 @@ func AddPaymentRouter(db *sql.DB, clientRedisSession *redis.Client, clientRedisC
 	usecaseOrder := order.NewUsecaseLayer(repoOrder, repoFood, repoUser, repoRest)
 	deliveryPayment := payment.NewPaymentDelivery(logger, usecaseOrder, usecaseCsrf, usecaseSession, cfg)
 
-	mux.HandleFunc("/order/pay/url", deliveryPayment.OrderPay).Methods("GET").Name("get-pay-url")
+	mux.HandleFunc("/order/pay/url", deliveryPayment.OrderGetPayUrl).Methods("GET").Name("get-pay-url")
 }

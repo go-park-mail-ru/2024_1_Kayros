@@ -29,7 +29,7 @@ func NewRestLayer(dbProps *sql.DB) Rest {
 
 func (repo *RestLayer) GetAll(ctx context.Context) (*rest.RestList, error) {
 	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, name, short_description, address, img_url FROM restaurant`)
+		`SELECT id, name, short_description, address, img_url FROM restaurant ORDER BY rating DESC`)
 	if err != nil {
 		return nil, err
 	}

@@ -34,7 +34,6 @@ func Run(cfg *config.Project) {
 	minioDB := minio.Init(cfg, logger)
 	reg := prometheus.NewRegistry()
 	m := metrics.NewMetrics(reg)
-	// нужно будет фронтовский идентификатор ставить на 2 недели
 	//redisUnauthTokensDB := redis.Init(cfg, logger, cfg.Redis.DatabaseUnauthTokens)
 
 	//rest microservice

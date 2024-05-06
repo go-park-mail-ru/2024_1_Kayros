@@ -50,19 +50,38 @@ func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*co
 		return nil, err
 	}
 	r := fromNull(rest)
-	fmt.Println("rest", r.Rating, r.CommentCount)
 	newRating := (r.Rating*float64(r.CommentCount) + float64(com.Rating)) / (float64(r.CommentCount) + 1)
-	fmt.Println("new rating", newRating)
 	res, err := repo.db.ExecContext(ctx,
 		`UPDATE restaurant SET rating=$1, comment_count=$2 WHERE id=$3`, newRating, r.CommentCount+1, com.RestId)
 	if err != nil {
-		fmt.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsCommentRelation
 		}
 		return nil, err
 	}
 	numRows, err := res.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if numRows == 0 {
+		return nil, myerrors.SqlNoRowsUserRelation
+	}
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.SqlNoRowsCommentRelation
+		}
+		return nil, err
+	}
+	fmt.Println(com.OrderId)
+	res, err = repo.db.ExecContext(ctx,
+		`UPDATE "order" SET commented=true WHERE id=$1`, com.OrderId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.SqlNoRowsCommentRelation
+		}
+		return nil, err
+	}
+	numRows, err = res.RowsAffected()
 	if err != nil {
 		return nil, err
 	}

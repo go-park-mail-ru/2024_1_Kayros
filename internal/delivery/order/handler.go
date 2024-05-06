@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -44,9 +43,7 @@ func ChangingStatus(ctx context.Context, h *OrderHandler, id uint64, arr []strin
 	requestId := ctx.Value(cnst.RequestId)
 	for _, s := range arr {
 		time.Sleep(10 * time.Second)
-		fmt.Println(s)
 		_, err := h.uc.UpdateStatus(ctx, alias.OrderId(id), s)
-		fmt.Println(err)
 		if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId.(string)))
 			return
@@ -225,7 +222,8 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if unauthId != "" {
 		basket, err = h.uc.GetBasketNoAuth(r.Context(), unauthId)
-	} else if email != "" {
+	}
+	if email != "" && basket == nil {
 		basket, err = h.uc.GetBasket(r.Context(), email)
 	}
 	if err != nil {
@@ -254,10 +252,8 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, cnst.RequestId, requestId)
 	go ChangingStatus(ctx, h, payedOrder.Id, statuses)
-
 	response := payedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
 	w = functions.JsonResponse(w, response)
-
 }
 
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
@@ -265,6 +261,11 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
+		return
+	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -296,7 +297,8 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	var basketId alias.OrderId
 	if unauthId != "" {
 		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
-	} else if email != "" {
+	}
+	if email != "" && basketId == 0 {
 		basketId, err = h.uc.GetBasketId(r.Context(), email)
 	}
 	if err != nil && !errors.Is(err, myerrors.SqlNoRowsOrderRelation) {

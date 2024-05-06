@@ -53,10 +53,10 @@ CREATE TABLE IF NOT EXISTS restaurant
         CONSTRAINT rest_address CHECK (LENGTH(address) BETWEEN 14 AND 100) UNIQUE                                NOT NULL,
     img_url           TEXT
         CONSTRAINT restaurant_img_url CHECK (LENGTH(img_url) <= 60) DEFAULT '/minio-api/restaurants/default.jpg' NOT NULL,
-    rating            NUMERIC(2,1)
-        CONSTRAINT rest_rating CHECK (rating >= 0) DEFAULT 0 NOT NULL,
+    rating            NUMERIC(2, 1)
+        CONSTRAINT rest_rating CHECK (rating >= 0)                  DEFAULT 0                                    NOT NULL,
     comment_count     INTEGER
-        CONSTRAINT rest_comment_count CHECK (comment_count >= 0) NULL,
+        CONSTRAINT rest_comment_count CHECK (comment_count >= 0)    DEFAULT 0                                    NOT NULL,
     CONSTRAINT rest_unique UNIQUE (name, address)
 );
 
@@ -100,7 +100,8 @@ CREATE TABLE IF NOT EXISTS "order"
     order_created_at TIMESTAMPTZ
         CONSTRAINT order_time_payed NULL,
     delivered_at     TIMESTAMPTZ
-        CONSTRAINT order_time_delivered NULL
+        CONSTRAINT order_time_delivered NULL,
+    commented BOOLEAN DEFAULT FALSE
 );
 
 -- БЖУ хранятся в МГ

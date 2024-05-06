@@ -10,7 +10,7 @@ import (
 )
 
 type Usecase interface {
-	CreateComment(ctx context.Context, comment entity.Comment, email string) (*entity.Comment, error)
+	CreateComment(ctx context.Context, comment entity.Comment, email string, orderId uint64) (*entity.Comment, error)
 	GetCommentsByRest(ctx context.Context, restId alias.RestId) ([]*entity.Comment, error)
 	DeleteComment(ctx context.Context, id uint64) error
 }
@@ -27,16 +27,17 @@ func NewUseCaseLayer(commentClient comment.CommentWorkerClient, repoUserProps us
 	}
 }
 
-func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, email string) (*entity.Comment, error) {
+func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, email string, orderId uint64) (*entity.Comment, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, err
 	}
 	c := comment.Comment{
-		UserId: u.Id,
-		RestId: com.RestId,
-		Text:   com.Text,
-		Rating: com.Rating,
+		UserId:  u.Id,
+		RestId:  com.RestId,
+		Text:    com.Text,
+		Rating:  com.Rating,
+		OrderId: orderId,
 	}
 	res, err := uc.grpcClient.CreateComment(ctx, &c)
 	if err != nil {
