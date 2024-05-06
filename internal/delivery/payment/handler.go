@@ -82,6 +82,7 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 				"number": "5555555555554477"
 		}
 		},
+		"capture": true,
 		"confirmation": {
 		"type": "redirect",
 			"return_url": "https://resto-go.ru"

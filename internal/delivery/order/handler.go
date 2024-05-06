@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -254,6 +255,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		ctx = context.WithValue(ctx, cnst.RequestId, requestId)
 		go ChangingStatus(ctx, h, payedOrder.Id, statuses)
 	}()
+	log.Println("bye")
 }
 
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
