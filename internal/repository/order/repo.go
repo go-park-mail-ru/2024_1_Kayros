@@ -155,7 +155,6 @@ func (repo *RepoLayer) GetOrderById(ctx context.Context, orderId alias.OrderId) 
 		}
 		return nil, err
 	}
-	fmt.Println(order.UserId)
 	foodArray, err := repo.GetFood(ctx, orderId)
 	if err != nil {
 		return nil, err

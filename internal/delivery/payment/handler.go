@@ -36,13 +36,13 @@ func NewPaymentDelivery(loggerProps *zap.Logger, ucOrderProps order.Usecase, ucC
 	}
 }
 
-func (d *Payment) OrderPay(w http.ResponseWriter, r *http.Request) {
+func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email == "" {
 		d.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
