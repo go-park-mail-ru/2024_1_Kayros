@@ -235,6 +235,9 @@ func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId,
 	}
 	//получаем заказ по id
 	Order, err := uc.repoOrder.GetOrderById(ctx, orderId)
+	if err != nil {
+		return err
+	}
 	//fmt.Println(Order.Food[0].RestaurantId)
 	//если ресторан блюд в корзине не совпадает с рестораном откуда новое блюдо
 	//то чистим корзину

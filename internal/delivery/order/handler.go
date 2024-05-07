@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -210,52 +209,51 @@ func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 
 func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	go func() {
-		requestId := functions.GetCtxRequestId(r)
-		email := functions.GetCtxEmail(r)
-		unauthId := functions.GetCtxUnauthId(r)
-		if email == "" && unauthId == "" {
-			h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
+		return
+	}
+
+	var basket *entity.Order
+	var err error
+	if unauthId != "" {
+		basket, err = h.uc.GetBasketNoAuth(r.Context(), unauthId)
+	}
+	if email != "" && basket == nil {
+		basket, err = h.uc.GetBasket(r.Context(), email)
+	}
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
 			return
 		}
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
 
-		var basket *entity.Order
-		var err error
-		if unauthId != "" {
-			basket, err = h.uc.GetBasketNoAuth(r.Context(), unauthId)
-		}
-		if email != "" && basket == nil {
-			basket, err = h.uc.GetBasket(r.Context(), email)
-		}
-		if err != nil {
-			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
-				w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
-				return
-			}
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+	payedOrder, err := h.uc.Pay(r.Context(), alias.OrderId(basket.Id), basket.Status, email, alias.UserId(basket.UserId))
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.AlreadyPayed) {
+			w = functions.ErrorResponse(w, myerrors.AlreadyPayedRu, http.StatusBadRequest)
 			return
 		}
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
 
-		payedOrder, err := h.uc.Pay(r.Context(), alias.OrderId(basket.Id), basket.Status, email, alias.UserId(basket.UserId))
-		if err != nil {
-			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			if errors.Is(err, myerrors.AlreadyPayed) {
-				w = functions.ErrorResponse(w, myerrors.AlreadyPayedRu, http.StatusBadRequest)
-				return
-			}
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-			return
-		}
+	statuses := []string{cnst.Created, cnst.Cooking, cnst.OnTheWay, cnst.Delivered}
 
-		statuses := []string{cnst.Created, cnst.Cooking, cnst.OnTheWay, cnst.Delivered}
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, cnst.RequestId, requestId)
-		go ChangingStatus(ctx, h, payedOrder.Id, statuses)
-	}()
-	log.Println("bye")
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, cnst.RequestId, requestId)
+	go ChangingStatus(ctx, h, payedOrder.Id, statuses)
+	response := payedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
+	w = functions.JsonResponse(w, response)
 }
 
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {

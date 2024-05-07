@@ -100,7 +100,8 @@ CREATE TABLE IF NOT EXISTS "order"
     order_created_at TIMESTAMPTZ
         CONSTRAINT order_time_payed NULL,
     delivered_at     TIMESTAMPTZ
-        CONSTRAINT order_time_delivered NULL
+        CONSTRAINT order_time_delivered NULL,
+    commented BOOLEAN DEFAULT FALSE
 );
 
 -- БЖУ хранятся в МГ

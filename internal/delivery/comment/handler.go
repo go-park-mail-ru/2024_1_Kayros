@@ -37,8 +37,9 @@ type InputId struct {
 }
 
 type InputComment struct {
-	Text   string `json:"text"`
-	Rating uint32 `json:"rating"`
+	OrderId uint64 `json:"order_id"`
+	Text    string `json:"text"`
+	Rating  uint32 `json:"rating"`
 }
 
 func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +86,7 @@ func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 		Rating: inputComment.Rating,
 	}
 
-	res, err := h.uc.CreateComment(r.Context(), com, email)
+	res, err := h.uc.CreateComment(r.Context(), com, email, inputComment.OrderId)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsCommentRelation) {

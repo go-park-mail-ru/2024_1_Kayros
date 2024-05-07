@@ -27,6 +27,7 @@ type Order struct {
 	Sum            uint64
 	RestaurantId   uint64
 	RestaurantName string
+	Commented      bool
 	Food           []*FoodInOrder
 }
 
@@ -42,6 +43,7 @@ type OrderDB struct {
 	Address        sql.NullString
 	ExtraAddress   sql.NullString
 	Sum            sql.NullInt64
+	Commented      bool
 	Food           []*FoodInOrder
 }
 
@@ -59,6 +61,7 @@ func ToOrder(oDB *OrderDB) *Order {
 		ExtraAddress:   String(oDB.ExtraAddress),
 		Sum:            Int(oDB.Sum),
 		Food:           oDB.Food,
+		Commented:      oDB.Commented,
 	}
 }
 

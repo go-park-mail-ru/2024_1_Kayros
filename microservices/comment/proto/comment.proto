@@ -22,6 +22,7 @@ message Comment {
   uint64 rest_id = 5;
   string text = 6;
   uint32 rating = 7;
+  uint64 order_id = 8;
 }
 
 message CommentList {
