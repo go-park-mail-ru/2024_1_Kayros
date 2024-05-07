@@ -394,8 +394,7 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if unauthId != "" {
 		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
-	}
-	if email != "" && basketId == 0 {
+	} else if email != "" {
 		basketId, err = h.uc.GetBasketId(r.Context(), email)
 	}
 	if err != nil {
