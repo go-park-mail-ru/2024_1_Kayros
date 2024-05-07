@@ -161,7 +161,8 @@ func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if unauthId != "" {
 		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
-	} else if email != "" {
+	}
+	if email != "" && basketId == 0 {
 		basketId, err = h.uc.GetBasketId(r.Context(), email)
 	}
 	if err != nil {
@@ -358,7 +359,8 @@ func (h *OrderHandler) Clean(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if unauthId != "" {
 		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
-	} else if email != "" {
+	}
+	if email != "" && basketId == 0 {
 		basketId, err = h.uc.GetBasketId(r.Context(), email)
 	}
 	if err != nil {
@@ -394,7 +396,8 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if unauthId != "" {
 		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
-	} else if email != "" {
+	}
+	if email != "" && basketId == 0 {
 		basketId, err = h.uc.GetBasketId(r.Context(), email)
 	}
 	if err != nil {
@@ -460,7 +463,8 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 	var basketId alias.OrderId
 	if unauthId != "" {
 		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
-	} else if email != "" {
+	}
+	if email != "" && basketId == 0 {
 		basketId, err = h.uc.GetBasketId(r.Context(), email)
 	}
 	if err != nil {
