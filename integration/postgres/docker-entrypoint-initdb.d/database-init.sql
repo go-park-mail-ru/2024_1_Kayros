@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS restaurant
     rating            NUMERIC(2, 1)
         CONSTRAINT rest_rating CHECK (rating >= 0)                  DEFAULT 0                                    NOT NULL,
     comment_count     INTEGER
-        CONSTRAINT rest_comment_count CHECK (comment_count >= 0)    DEFAULT 0                                    NOT NULL,
+        CONSTRAINT rest_comment_count CHECK (comment_count >= 0)    DEFAULT 0,
     CONSTRAINT rest_unique UNIQUE (name, address)
 );
 
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS "order"
         CONSTRAINT order_time_payed NULL,
     delivered_at     TIMESTAMPTZ
         CONSTRAINT order_time_delivered NULL,
-    commented BOOLEAN DEFAULT FALSE
+    commented        BOOLEAN                    DEFAULT FALSE
 );
 
 -- БЖУ хранятся в МГ
