@@ -34,16 +34,12 @@ func Run(cfg *config.Project) {
 	minioDB := minio.Init(cfg, logger)
 	reg := prometheus.NewRegistry()
 	m := metrics.NewMetrics(reg)
-	//redisUnauthTokensDB := redis.Init(cfg, logger, cfg.Redis.DatabaseUnauthTokens)
 
-	//rest microservice
+	//restaurant microservice
 	restConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		errMsg := fmt.Sprintf("The restaurant service cannot be started.\n%v", err)
+		errMsg := fmt.Sprintf("The restaurant microservice is not available.\n%v", err)
 		logger.Error(errMsg)
-	} else {
-		errMsg := fmt.Sprintf("The restaurant service has started at the address %s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port)
-		logger.Info(errMsg)
 	}
 	defer func(restConn *grpc.ClientConn) {
 		err := restConn.Close()
@@ -55,9 +51,7 @@ func Run(cfg *config.Project) {
 	//comment microservice
 	commentConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.CommentGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Printf("The comment service cannot be started.\n%v", err)
-	} else {
-		log.Printf("The comment service has started at the address %s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port)
+		log.Printf("The comment microservice is not available.\n%v", err)
 	}
 	defer func(restConn *grpc.ClientConn) {
 		err := restConn.Close()
