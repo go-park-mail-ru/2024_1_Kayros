@@ -13,6 +13,19 @@ type User struct {
 	Password   string
 }
 
+func CopyUser(u *User) *User {
+	return &User{
+		Id:         u.Id,
+		Name:       u.Name,
+		Phone:      u.Phone,
+		Email:      u.Email,
+		Address:    u.Address,
+		ImgUrl:     u.ImgUrl,
+		CardNumber: u.CardNumber,
+		Password:   u.Password,
+	}
+}
+
 func Copy(u *userv1.User) *userv1.User {
 	return &userv1.User{
 		Id:         u.Id,

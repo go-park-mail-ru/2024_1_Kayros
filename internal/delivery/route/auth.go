@@ -11,22 +11,27 @@ import (
 	ucAuth "2024_1_kayros/internal/usecase/auth"
 	ucSession "2024_1_kayros/internal/usecase/session"
 	ucUser "2024_1_kayros/internal/usecase/user"
+	authv1 "2024_1_kayros/microservices/auth/proto"
+
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
-func AddAuthRouter(cfg *config.Project, db *sql.DB, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, clientMinio *minio.Client, mux *mux.Router, logger *zap.Logger) {
+func AddAuthRouter(cfg *config.Project, db *sql.DB, authConn *grpc.ClientConn, clientRedisSession *redis.Client, 
+	clientRedisCsrf *redis.Client, clientMinio *minio.Client, mux *mux.Router, logger *zap.Logger) {
 	repoUser := rUser.NewRepoLayer(db)
 	repoSession := rSession.NewRepoLayer(clientRedisSession)
 	repoCsrf := rSession.NewRepoLayer(clientRedisCsrf)
 	repoMinio := rMinio.NewRepoLayer(clientMinio)
 
+	grpcClient := authv1.NewAuthManagerClient(authConn)
+	usecaseAuth := ucAuth.NewUsecaseLayer(grpcClient)
 	usecaseUser := ucUser.NewUsecaseLayer(repoUser, repoMinio)
 	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
 	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrf, logger)
-	usecaseAuth := ucAuth.NewUsecaseLayer(repoUser)
 
 	deliveryAuth := dAuth.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, usecaseCsrf, usecaseAuth, logger)
 

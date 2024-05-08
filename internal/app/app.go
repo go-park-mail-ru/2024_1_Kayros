@@ -61,8 +61,34 @@ func Run(cfg *config.Project) {
 		}
 	}(commentConn)
 
+	//auth microservice
+	authConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.AuthGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		errMsg := fmt.Sprintf("The auth microservice is not available.\n%v", err)
+		logger.Error(errMsg)
+	}
+	defer func(authConn *grpc.ClientConn) {
+		err := authConn.Close()
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}(authConn)
+
+	//user microservice
+	// userConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// if err != nil {
+	// 	errMsg := fmt.Sprintf("The user microservice is not available.\n%v", err)
+	// 	logger.Error(errMsg)
+	// }
+	// defer func(userConn *grpc.ClientConn) {
+	// 	err := userConn.Close()
+	// 	if err != nil {
+	// 		logger.Error(err.Error())
+	// 	}
+	// }(userConn)
+
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, restConn, commentConn, m)
+	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, restConn, commentConn, authConn, m)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)

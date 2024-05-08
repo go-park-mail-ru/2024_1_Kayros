@@ -16,13 +16,14 @@ import (
 	"2024_1_kayros/config"
 )
 
-func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsrf *redis.Client, minio *minio.Client, mux *mux.Router, logger *zap.Logger, restConn, commentConn *grpc.ClientConn, m *metrics.Metrics) http.Handler {
+func Setup(cfg *config.Project, db *sql.DB, redisSession *redis.Client, redisCsrf *redis.Client, minio *minio.Client, 
+	mux *mux.Router, logger *zap.Logger, restConn, commentConn, authConn *grpc.ClientConn, m *metrics.Metrics) http.Handler {
 	logger.Info("The begin of handlers definition")
 	mux = mux.PathPrefix("/api/v1").Subrouter()
 	mux.StrictSlash(true)
 	mux.PathPrefix("/metrics").Handler(promhttp.Handler())
 
-	AddAuthRouter(cfg, db, redisSession, redisCsrf, minio, mux, logger)
+	AddAuthRouter(cfg, db, authConn, redisSession, redisCsrf, minio, mux, logger)
 	AddUserRouter(db, cfg, minio, redisSession, redisCsrf, mux, logger)
 	AddRestRouter(db, mux, logger, restConn, commentConn)
 	AddOrderRouter(db, mux, logger)

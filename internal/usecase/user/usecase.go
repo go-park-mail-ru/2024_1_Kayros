@@ -164,7 +164,7 @@ func (uc *UsecaseLayer) Create(ctx context.Context, uProps *entity.User) (*entit
 	}
 	hashPassword := functions.HashData(salt, uProps.Password)
 
-	uCopy := entity.Copy(uProps)
+	uCopy := entity.CopyUser(uProps)
 	uCopy.Password = string(hashPassword)
 
 	err = uc.repoUser.Create(ctx, uCopy)
