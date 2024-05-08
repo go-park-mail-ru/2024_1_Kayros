@@ -5,7 +5,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-// Позже, если будет делать ACL, скорей всего, добавим сюда и другие функцию, но пока что только о пользователе меняются данные
+// Позже, если будем делать ACL, скорей всего, добавим сюда и другие функции, но пока что только о пользователе меняются данные
 
 func User(u *entity.User) *entity.User {
 	sanitizer := bluemonday.UGCPolicy()
@@ -15,4 +15,9 @@ func User(u *entity.User) *entity.User {
 	u.Address = sanitizer.Sanitize(u.Address)
 	u.ImgUrl = sanitizer.Sanitize(u.ImgUrl)
 	return u
+}
+
+func Address(address string) string {
+	sanitizer := bluemonday.UGCPolicy()
+	return sanitizer.Sanitize(address)
 }

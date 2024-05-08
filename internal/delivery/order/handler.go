@@ -1,21 +1,23 @@
 package delivery
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
+	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
-	repoErrors "2024_1_kayros/internal/repository/order"
 	ucOrder "2024_1_kayros/internal/usecase/order"
 	"2024_1_kayros/internal/utils/alias"
-	"2024_1_kayros/internal/utils/constants"
+	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
 )
@@ -33,381 +35,458 @@ func NewOrderHandler(u ucOrder.Usecase, loggerProps *zap.Logger) *OrderHandler {
 }
 
 type FoodCount struct {
-	FoodId int `json:"food_id"`
-	Count  int `json:"count"`
+	FoodId alias.FoodId `json:"food_id" valid:"positive"`
+	Count  uint32       `json:"count" valid:"positive"`
 }
 
-// GET - ok
+func ChangingStatus(ctx context.Context, h *OrderHandler, id uint64, arr []string) {
+	requestId := ctx.Value(cnst.RequestId)
+	for _, s := range arr {
+		time.Sleep(10 * time.Second)
+		_, err := h.uc.UpdateStatus(ctx, alias.OrderId(id), s)
+		if err != nil {
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId.(string)))
+			return
+		}
+	}
+}
+
+func (d *FoodCount) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
+}
+
+type payedOrderInfo struct {
+	Id     alias.OrderId `json:"id"`
+	Status string        `json:"status"`
+}
 
 func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	requestId := ""
-	ctxRequestId := r.Context().Value("request_id")
-	if ctxRequestId == nil {
-		err := errors.New("request_id передан не был")
-		functions.LogError(h.logger, requestId, constants.NameHandlerSignUp, err, constants.DeliveryLayer)
-	} else {
-		requestId = ctxRequestId.(string)
-	}
-
-	email := ""
-	ctxEmail := r.Context().Value("email")
-	if ctxEmail != nil {
-		email = ctxEmail.(string)
-	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
+		h.logger.Error(myerrors.NoBasket.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusOK)
 		return
 	}
-	order, err := h.uc.GetBasket(r.Context(), email)
+
+	var order *entity.Order
+	var err error
+	if unauthId != "" {
+		order, err = h.uc.GetBasketNoAuth(r.Context(), unauthId)
+	}
+	if email != "" && order == nil {
+		order, err = h.uc.GetBasket(r.Context(), email)
+	}
 	if err != nil {
-		if err.Error() == repoErrors.NoBasketError {
-			functions.LogInfo(h.logger, requestId, constants.NameMethodGetBasket, repoErrors.NoBasketError, constants.DeliveryLayer)
-			w = functions.ErrorResponse(w, repoErrors.NoBasketError, http.StatusNotFound)
-			return
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)
-	functions.LogOk(h.logger, requestId, constants.NameMethodGetBasket, constants.DeliveryLayer)
 }
 
-//PUT - ok
+func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusOK)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+
+	var order *entity.Order
+	order, err = h.uc.GetOrderById(r.Context(), alias.OrderId(id))
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	orderDTO := dto.NewOrder(order)
+	w = functions.JsonResponse(w, orderDTO)
+}
+
+func (h *OrderHandler) GetCurrentOrders(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	if email == "" {
+		h.logger.Error(myerrors.UnauthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		return
+	}
+
+	orders, err := h.uc.GetCurrentOrders(r.Context(), email)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusInternalServerError)
+		}
+		return
+	}
+	ordersDTO := dto.NewShortOrderArray(orders)
+	w = functions.JsonResponse(w, ordersDTO)
+}
 
 func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	requestId := ""
-	ctxRequestId := r.Context().Value("request_id")
-	if ctxRequestId == nil {
-		err := errors.New("request_id передан не был")
-		functions.LogError(h.logger, requestId, constants.NameHandlerSignUp, err, constants.DeliveryLayer)
-	} else {
-		requestId = ctxRequestId.(string)
-	}
-	email := ""
-	ctxEmail := r.Context().Value("email")
-	if ctxEmail != nil {
-		email = ctxEmail.(string)
-	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
+		h.logger.Error(myerrors.NoBasket.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusOK)
 		return
 	}
+
 	var fullAddress dto.FullAddress
-	basketId, err := h.uc.GetBasketId(r.Context(), email)
+	var basketId alias.OrderId
+	var err error
+	if unauthId != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
+	}
+	if email != "" && basketId == 0 {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+	}
 	if err != nil {
-		functions.LogWarn(h.logger, requestId, constants.NameMethodGetFoodById, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		}
 		return
 	}
-	if basketId == 0 {
-		w = functions.ErrorResponse(w, repoErrors.NoBasketError, http.StatusOK)
-		return
-	}
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 	if err = r.Body.Close(); err != nil {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	err = json.Unmarshal(body, &fullAddress)
 	if err != nil {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
-	if len(fullAddress.Address) < 15 || len(fullAddress.ExtraAddress) < 3 {
-		w = functions.ErrorResponse(w, "Некорректный адрес", http.StatusBadRequest)
+	isValid, err := fullAddress.Validate()
+	if err != nil || !isValid {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
-	basket, err := h.uc.UpdateAddress(r.Context(), fullAddress, basketId)
-	if err != nil {
-		if err.Error() == repoErrors.NotUpdateError {
-			functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, fmt.Errorf(repoErrors.NotUpdateError), http.StatusInternalServerError, constants.DeliveryLayer)
-			w = functions.ErrorResponse(w, repoErrors.NotUpdateError, http.StatusInternalServerError)
-			return
-		}
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	orderDTO := dto.NewOrder(basket)
-	jsonResponse, err := json.Marshal(orderDTO)
-	if err != nil {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(jsonResponse)
-	if err != nil {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateAddress, err, http.StatusInternalServerError, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	functions.LogOk(h.logger, requestId, constants.NameMethodUpdateAddress, constants.DeliveryLayer)
-}
 
-//PUT - ok
+	err = h.uc.UpdateAddress(r.Context(), fullAddress, basketId)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	w = functions.JsonResponse(w, map[string]string{"detail": "Адрес заказа был успешно обновлен"})
+}
 
 func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	requestId := ""
-	ctxRequestId := r.Context().Value("request_id")
-	if ctxRequestId == nil {
-		err := errors.New("request_id передан не был")
-		functions.LogError(h.logger, requestId, constants.NameHandlerSignUp, err, constants.DeliveryLayer)
-	} else {
-		requestId = ctxRequestId.(string)
-	}
-	email := ""
-	ctxEmail := r.Context().Value("email")
-	if ctxEmail != nil {
-		email = ctxEmail.(string)
-	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodPayOrder, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
 		return
 	}
-	basket, err := h.uc.GetBasket(r.Context(), email)
+
+	var basket *entity.Order
+	var err error
+	if unauthId != "" {
+		basket, err = h.uc.GetBasketNoAuth(r.Context(), unauthId)
+	}
+	if email != "" && basket == nil {
+		basket, err = h.uc.GetBasket(r.Context(), email)
+	}
 	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodGetBasket, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	if len(basket.Food) == 0 || basket.Id == 0 {
-		functions.LogWarn(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.EmptyError), constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, repoErrors.EmptyError, http.StatusOK)
-		return
-	}
-	payedOrder, err := h.uc.Pay(r.Context(), alias.OrderId(basket.Id), basket.Status)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodPayOrder, err, constants.DeliveryLayer)
-		if errors.Is(err, fmt.Errorf(repoErrors.NotUpdateStatusError)) {
-			w = functions.ErrorResponse(w, repoErrors.NotUpdateStatusError, http.StatusInternalServerError)
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusUnauthorized)
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	orderDTO := dto.NewOrder(payedOrder)
-	jsonResponse, err := json.Marshal(orderDTO)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodPayOrder, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(jsonResponse)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodPayOrder, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	functions.LogOk(h.logger, requestId, constants.NameMethodPayOrder, constants.DeliveryLayer)
-}
 
-// POST-ok
+	payedOrder, err := h.uc.Pay(r.Context(), alias.OrderId(basket.Id), basket.Status, email, alias.UserId(basket.UserId))
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.AlreadyPayed) {
+			w = functions.ErrorResponse(w, myerrors.AlreadyPayedRu, http.StatusBadRequest)
+			return
+		}
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+
+	statuses := []string{cnst.Created, cnst.Cooking, cnst.OnTheWay, cnst.Delivered}
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, cnst.RequestId, requestId)
+	go ChangingStatus(ctx, h, payedOrder.Id, statuses)
+	response := payedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
+	w = functions.JsonResponse(w, response)
+}
 
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	requestId := ""
-	ctxRequestId := r.Context().Value("request_id")
-	if ctxRequestId == nil {
-		err := errors.New("request_id передан не был")
-		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
-	} else {
-		requestId = ctxRequestId.(string)
-	}
-	vars := mux.Vars(r)
-	foodId, err := strconv.Atoi(vars["food_id"])
-	if foodId <= 0 {
-		functions.LogInfo(h.logger, requestId, constants.NameMethodAddFood, "BadCredentials: food_id <= 0", constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
-		return
-	}
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.NotFoundError, http.StatusNotFound)
-		return
-	}
-	email := ""
-	ctxEmail := r.Context().Value("email")
-	if ctxEmail != nil {
-		email = ctxEmail.(string)
-	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodAddFood, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
-	basketId, err := h.uc.GetBasketId(r.Context(), email)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	//если basketId-0, значит у пользователя нет корзины
-	if basketId == 0 {
-		//создаем заказ-корзину
-		basketId, err = h.uc.Create(r.Context(), email)
-		if err != nil {
-			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
-			if err.Error() == repoErrors.CreateError {
-				w = functions.ErrorResponse(w, repoErrors.CreateError, http.StatusInternalServerError)
-			} else {
-				w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-			}
-			return
-		}
-	}
-	//добавляем еду в заказ
-	err = h.uc.AddFoodToOrder(r.Context(), alias.FoodId(foodId), basketId)
-	if err != nil {
-		if err.Error() == repoErrors.NotAddFood {
-			functions.LogError(h.logger, requestId, constants.NameMethodAddFood, fmt.Errorf(repoErrors.NotAddFood), constants.DeliveryLayer)
-			w = functions.ErrorResponse(w, repoErrors.NotAddFood, http.StatusInternalServerError)
-			return
-		}
-		functions.LogError(h.logger, requestId, constants.NameMethodAddFood, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	order, err := h.uc.GetBasket(r.Context(), email)
-	if err != nil {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.NoBasketError), http.StatusNotFound, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	orderDTO := dto.NewOrder(order)
-	w = functions.JsonResponse(w, orderDTO)
-	functions.LogOk(h.logger, requestId, constants.NameMethodAddFood, constants.DeliveryLayer)
-}
-
-//PUT - ok
-
-func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	requestId := ""
-	ctxRequestId := r.Context().Value("request_id")
-	if ctxRequestId == nil {
-		err := errors.New("request_id передан не был")
-		functions.LogError(h.logger, requestId, constants.NameHandlerSignUp, err, constants.DeliveryLayer)
-	} else {
-		requestId = ctxRequestId.(string)
-	}
-	email := ""
-	ctxEmail := r.Context().Value("email")
-	if ctxEmail != nil {
-		email = ctxEmail.(string)
-	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodUpdateCountInOrder, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
-		return
-	}
-	basketId, err := h.uc.GetBasketId(r.Context(), email)
-	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
-		return
-	}
-	if basketId == 0 {
-		functions.LogWarn(h.logger, requestId, constants.NameMethodGetBasket, fmt.Errorf(repoErrors.EmptyError), constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, repoErrors.EmptyError, http.StatusOK)
-		return
-	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 	if err = r.Body.Close(); err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+
+	var item FoodCount
+	err = json.Unmarshal(body, &item)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+
+	isValid, err := item.Validate()
+	if err != nil || !isValid {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+
+	var basketId alias.OrderId
+	if unauthId != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
+	}
+	if email != "" && basketId == 0 {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+	}
+	if err != nil && !errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+
+	if basketId == 0 {
+		if email != "" {
+			basketId, err = h.uc.Create(r.Context(), email)
+		} else if unauthId != "" {
+			basketId, err = h.uc.CreateNoAuth(r.Context(), unauthId)
+		}
+		if err != nil {
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// add food in order
+	err = h.uc.AddFoodToOrder(r.Context(), item.FoodId, item.Count, basketId)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.OrderAddFood) {
+			w = functions.ErrorResponse(w, myerrors.NoAddFoodToOrderRu, http.StatusInternalServerError)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	order, err := h.uc.GetOrderById(r.Context(), basketId)
+	if err != nil {
+		h.logger.Error(myerrors.OrderAddFood.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+
+	orderDTO := dto.NewOrder(order)
+	w = functions.JsonResponse(w, orderDTO)
+}
+
+func (h *OrderHandler) Clean(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
+		h.logger.Error(myerrors.NoBasket.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusOK)
+		return
+	}
+
+	var basketId alias.OrderId
+	var err error
+	if unauthId != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
+	}
+	if email != "" && basketId == 0 {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+	}
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	err = h.uc.Clean(r.Context(), basketId)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.FailCleanBasket) {
+			w = functions.ErrorResponse(w, myerrors.FailCleanBasketRu, http.StatusInternalServerError)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		}
+		return
+	}
+	w = functions.JsonResponse(w, map[string]string{"detail": "Корзина очищена"})
+}
+
+func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+
+	var basketId alias.OrderId
+	var err error
+	if unauthId != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
+	}
+	if email != "" && basketId == 0 {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+	}
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+	if err = r.Body.Close(); err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	var item FoodCount
 	err = json.Unmarshal(body, &item)
 	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 	if item.FoodId <= 0 || item.Count <= 0 {
-		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, fmt.Errorf("id или кол-во ды отрицательное"), constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsError, http.StatusBadRequest)
+		h.logger.Error(myerrors.BadCredentialsEn.Error())
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
-	order, err := h.uc.UpdateCountInOrder(r.Context(), basketId, alias.FoodId(item.FoodId), uint32(item.Count))
+	order, err := h.uc.UpdateCountInOrder(r.Context(), basketId, item.FoodId, item.Count)
 	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.DeliveryLayer)
-		if errors.Is(err, fmt.Errorf(repoErrors.NotAddFood)) {
-			w = functions.ErrorResponse(w, repoErrors.NotAddFood, http.StatusInternalServerError)
+		h.logger.Error(myerrors.BadCredentialsEn.Error())
+		if errors.Is(err, myerrors.SqlNoRowsFoodOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoAddFoodToOrderRu, http.StatusInternalServerError)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)
-	functions.LogOk(h.logger, requestId, constants.NameMethodUpdateCountInOrder, constants.DeliveryLayer)
-	w.WriteHeader(http.StatusOK)
 }
-
-//DELETE - ok
 
 func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
 	vars := mux.Vars(r)
-	foodId, _ := strconv.Atoi(vars["food_id"])
-	requestId := ""
-	ctxRequestId := r.Context().Value("request_id")
-	if ctxRequestId == nil {
-		err := errors.New("request_id передан не был")
-		functions.LogError(h.logger, requestId, constants.NameHandlerSignUp, err, constants.DeliveryLayer)
-	} else {
-		requestId = ctxRequestId.(string)
-	}
-	email := ""
-	ctxEmail := r.Context().Value("email")
-	if ctxEmail != nil {
-		email = ctxEmail.(string)
-	}
-	if email == "" {
-		functions.LogErrorResponse(h.logger, requestId, constants.NameMethodDeleteFromOrder, errors.New(myerrors.UnauthorizedError), http.StatusUnauthorized, constants.DeliveryLayer)
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedError, http.StatusUnauthorized)
+	foodId, err := strconv.Atoi(vars["food_id"])
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
-	basketId, err := h.uc.GetBasketId(r.Context(), email)
+
+	var basketId alias.OrderId
+	if unauthId != "" {
+		basketId, err = h.uc.GetBasketIdNoAuth(r.Context(), unauthId)
+	}
+	if email != "" && basketId == 0 {
+		basketId, err = h.uc.GetBasketId(r.Context(), email)
+	}
 	if err != nil {
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		}
 		return
 	}
 	order, err := h.uc.DeleteFromOrder(r.Context(), basketId, alias.FoodId(foodId))
 	if err != nil {
-		functions.LogError(h.logger, requestId, constants.NameMethodDeleteFromOrder, err, constants.DeliveryLayer)
-		if err.Error() == repoErrors.NotDeleteFood {
-			w = functions.ErrorResponse(w, repoErrors.NotDeleteFood, http.StatusInternalServerError)
-			return
+		if errors.Is(err, myerrors.SuccessCleanRu) {
+			w = functions.JsonResponse(w, map[string]string{"detail": "Корзина очищена"})
+		} else if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			w = functions.ErrorResponse(w, myerrors.NoDeleteFoodRu, http.StatusInternalServerError)
+		} else {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)
-	w.WriteHeader(http.StatusOK)
-	functions.LogOk(h.logger, requestId, constants.NameMethodDeleteFromOrder, constants.DeliveryLayer)
 }

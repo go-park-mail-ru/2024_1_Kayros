@@ -5,15 +5,14 @@ import (
 
 	"2024_1_kayros/internal/repository/session"
 	"2024_1_kayros/internal/utils/alias"
-	cnst "2024_1_kayros/internal/utils/constants"
-	"2024_1_kayros/internal/utils/functions"
 	"go.uber.org/zap"
 )
 
+//go:generate mockgen -source=./usecase.go -destination=./usecase_mock.go -package=session
 type Usecase interface {
 	GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error)
 	SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error
-	DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error)
+	DeleteKey(ctx context.Context, key alias.SessionKey) error
 }
 
 type UsecaseLayer struct {
@@ -29,37 +28,13 @@ func NewUsecaseLayer(repoSessionProps session.Repo, loggerProps *zap.Logger) Use
 }
 
 func (uc *UsecaseLayer) GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error) {
-	methodName := cnst.NameMethodSetValue
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	value, err := uc.repoSession.GetValue(ctx, key, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return value, err
+	return uc.repoSession.GetValue(ctx, key)
 }
 
 func (uc *UsecaseLayer) SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error {
-	methodName := cnst.NameMethodSetValue
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	err := uc.repoSession.SetValue(ctx, key, value, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return err
+	return uc.repoSession.SetValue(ctx, key, value)
 }
 
-func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey) (bool, error) {
-	methodName := cnst.NameMethodSetValue
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	wasDeleted, err := uc.repoSession.DeleteKey(ctx, key, requestId)
-	if err == nil {
-		functions.LogOk(uc.logger, requestId, methodName, cnst.UsecaseLayer)
-	} else {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
-	}
-	return wasDeleted, err
+func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey) error {
+	return uc.repoSession.DeleteKey(ctx, key)
 }

@@ -5,39 +5,34 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
-	"2024_1_kayros/internal/utils/constants"
-	"2024_1_kayros/internal/utils/functions"
-)
-
-const (
-	CreateError          = "Не удалось создать заказ"
-	EmptyError           = "Добавьте что-нибудь в корзину"
-	NoBasketError        = "У Вас нет корзины"
-	NotUpdateError       = "Данные о заказе не были обновлены"
-	NotUpdateStatusError = "Заказ не оплачен"
-	NotAddFood           = "Блюдо не добавлено в заказ"
-	NotDeleteFood        = "Блюдо не удалено из заказа"
-	CleanError           = "Корзина не очищена"
+	cnst "2024_1_kayros/internal/utils/constants"
+	"2024_1_kayros/internal/utils/myerrors"
 )
 
 type Repo interface {
-	Create(ctx context.Context, requestId string, userId alias.UserId, dateOrder string) (alias.OrderId, error)
-	GetOrders(ctx context.Context, requestId string, userId alias.UserId, status string) ([]*entity.Order, error)
-	GetBasketId(ctx context.Context, requestId string, userId alias.UserId) (alias.OrderId, error)
-	GetOrderById(ctx context.Context, requestId string, orderId alias.OrderId) (*entity.Order, error)
-	GetFood(ctx context.Context, requestId string, orderId alias.OrderId) ([]*entity.FoodInOrder, error)
-	UpdateAddress(ctx context.Context, requestId string, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error)
-	UpdateStatus(ctx context.Context, requestId string, orderId alias.OrderId, status string) (alias.OrderId, error)
-	AddToOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
-	UpdateCountInOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
-	DeleteFromOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId) error
-	CleanBasket(ctx context.Context, requestId string, orderId alias.OrderId) error
+	Create(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
+	CreateNoAuth(ctx context.Context, unauthId string) (alias.OrderId, error)
+	GetOrders(ctx context.Context, userId alias.UserId, status ...string) ([]*entity.Order, error)
+	GetBasketNoAuth(ctx context.Context, unauthId string) (*entity.Order, error)
+	GetBasketId(ctx context.Context, userId alias.UserId) (alias.OrderId, error)
+	GetBasketIdNoAuth(ctx context.Context, unauthId string) (alias.OrderId, error)
+	GetOrderById(ctx context.Context, orderId alias.OrderId) (*entity.Order, error)
+	GetFood(ctx context.Context, orderId alias.OrderId) ([]*entity.FoodInOrder, error)
+	UpdateAddress(ctx context.Context, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error)
+	UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) (alias.OrderId, error)
+	AddToOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
+	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error
+	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) error
+	CleanBasket(ctx context.Context, orderId alias.OrderId) error
+	DeleteBasket(ctx context.Context, orderId alias.OrderId) error
+	SetUser(ctx context.Context, orderId alias.OrderId, userId alias.UserId) error
 }
 
 type RepoLayer struct {
@@ -45,100 +40,162 @@ type RepoLayer struct {
 	logger *zap.Logger
 }
 
-func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
+func NewRepoLayer(dbProps *sql.DB) Repo {
 	return &RepoLayer{
-		db:     dbProps,
-		logger: loggerProps,
+		db: dbProps,
 	}
 }
 
-// ok
-func (repo *RepoLayer) Create(ctx context.Context, requestId string, userId alias.UserId, currentTime string) (alias.OrderId, error) {
+func (repo *RepoLayer) Create(ctx context.Context, userId alias.UserId) (alias.OrderId, error) {
+	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	row := repo.db.QueryRowContext(ctx,
-		`INSERT INTO "order" (user_id, created_at, updated_at, status) VALUES ($1, $2, $3, $4) RETURNING id`, uint64(userId), currentTime, currentTime, constants.Draft)
+		`INSERT INTO "order" (user_id, created_at, updated_at, status) VALUES ($1, $2, $3, $4) RETURNING id`, uint64(userId), timeNow, timeNow, cnst.Draft)
 	var id uint64
 	err := row.Scan(&id)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodCreateOrder, err, constants.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, myerrors.BasketCreate
+		}
 		return 0, err
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodCreateOrder, constants.RepoLayer)
-	return alias.OrderId(id), err
+	return alias.OrderId(id), nil
 }
 
-func (repo *RepoLayer) GetOrders(ctx context.Context, requestId string, userId alias.UserId, status string) ([]*entity.Order, error) {
-	rows, err := repo.db.QueryContext(ctx, `SELECT id, user_id, created_at, received_at, status, address, 
-       				extra_address, sum FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), status)
+func (repo *RepoLayer) CreateNoAuth(ctx context.Context, unauthId string) (alias.OrderId, error) {
+	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+	row := repo.db.QueryRowContext(ctx,
+		`INSERT INTO "order" (unauth_token, created_at, updated_at, status) VALUES ($1, $2, $3, $4) RETURNING id`, unauthId, timeNow, timeNow, cnst.Draft)
+	var id uint64
+	err := row.Scan(&id)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrders, err, constants.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, myerrors.BasketCreate
+		}
+		return 0, err
+	}
+	fmt.Println(id)
+	return alias.OrderId(id), nil
+}
+
+func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, status ...string) ([]*entity.Order, error) {
+	var rows *sql.Rows
+	var err error
+	if len(status) == 1 {
+		rows, err = repo.db.QueryContext(ctx, `SELECT id, user_id, created_at, status, address,
+      				extra_address, sum FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), status[0])
+	} else {
+		str := "$2"
+		for i := range len(status) - 1 {
+			str = str + ", $" + strconv.Itoa(i+3)
+		}
+		query := `SELECT id, user_id, created_at, status, address, 
+       			extra_address, sum FROM "order" WHERE user_id= $1 AND status IN (` + str + `)`
+		args := make([]interface{}, len(status)+1)
+		args[0] = uint64(userId)
+		for i, a := range status {
+			args[i+1] = a
+		}
+		rows, err = repo.db.QueryContext(ctx, query, args...)
+	}
+	if err != nil {
 		return nil, err
 	}
 	orders := []*entity.Order{}
 	for rows.Next() {
 		var order entity.OrderDB
-		err = rows.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.ReceivedAt, &order.Status, &order.Address,
+		err = rows.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.Status, &order.Address,
 			&order.ExtraAddress, &order.Sum)
 		if err != nil {
-			functions.LogError(repo.logger, requestId, constants.NameMethodGetOrders, err, constants.RepoLayer)
 			return nil, err
 		}
 		var foodArray []*entity.FoodInOrder
-		foodArray, err = repo.GetFood(ctx, requestId, alias.OrderId(order.Id))
+		foodArray, err = repo.GetFood(ctx, alias.OrderId(order.Id))
 		if err != nil {
-			functions.LogError(repo.logger, requestId, constants.NameMethodGetOrders, err, constants.RepoLayer)
 			return nil, err
 		}
 		order.Food = foodArray
 		orders = append(orders, entity.ToOrder(&order))
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodGetOrders, constants.RepoLayer)
+	if len(orders) == 0 {
+		return nil, myerrors.SqlNoRowsOrderRelation
+	}
 	return orders, nil
 }
 
-func (repo *RepoLayer) GetOrderById(ctx context.Context, requestId string, orderId alias.OrderId) (*entity.Order, error) {
-	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, created_at, updated_at, received_at, status, address, 
-       				extra_address, sum FROM "order" WHERE id= $1`, uint64(orderId))
+func (repo *RepoLayer) GetBasketNoAuth(ctx context.Context, unauthId string) (*entity.Order, error) {
+	row := repo.db.QueryRowContext(ctx, `SELECT id, created_at, updated_at, received_at, status, address, 
+       				extra_address, sum FROM "order" WHERE unauth_token= $1 AND status=$2`, unauthId, cnst.Draft)
 	var order entity.OrderDB
-	err := row.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
+	err := row.Scan(&order.Id, &order.CreatedAt, &order.UpdatedAt, &order.ReceivedAt, &order.Status, &order.Address,
 		&order.ExtraAddress, &order.Sum)
+
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.SqlNoRowsOrderRelation
+		}
 		return nil, err
 	}
-	foodArray, err := repo.GetFood(ctx, requestId, orderId)
+	foodArray, err := repo.GetFood(ctx, alias.OrderId(order.Id))
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderById, err, constants.RepoLayer)
 		return nil, err
 	}
 	order.Food = foodArray
-	functions.LogOk(repo.logger, requestId, constants.NameMethodGetOrderById, constants.RepoLayer)
 	return entity.ToOrder(&order), nil
 }
 
-func (repo *RepoLayer) GetBasketId(ctx context.Context, requestId string, userId alias.UserId) (alias.OrderId, error) {
-	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), constants.Draft)
+func (repo *RepoLayer) GetOrderById(ctx context.Context, orderId alias.OrderId) (*entity.Order, error) {
+	row := repo.db.QueryRowContext(ctx, `SELECT id, user_id, order_created_at, delivered_at, status, address,
+      				extra_address, sum, commented FROM "order" WHERE id= $1`, uint64(orderId))
+	var order entity.OrderDB
+	err := row.Scan(&order.Id, &order.UserId, &order.OrderCreatedAt, &order.DeliveredAt,
+		&order.Status, &order.Address, &order.ExtraAddress, &order.Sum, &order.Commented)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.SqlNoRowsOrderRelation
+		}
+		return nil, err
+	}
+	foodArray, err := repo.GetFood(ctx, orderId)
+	if err != nil {
+		return nil, err
+	}
+	order.Food = foodArray
+	return entity.ToOrder(&order), nil
+}
+
+func (repo *RepoLayer) GetBasketId(ctx context.Context, userId alias.UserId) (alias.OrderId, error) {
+	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), cnst.Draft)
 	var orderId uint64
 	err := row.Scan(&orderId)
-	if errors.Is(err, sql.ErrNoRows) {
-		functions.LogWarn(repo.logger, requestId, constants.NameMethodGetBasketId, err, constants.RepoLayer)
-		return 0, fmt.Errorf(NoBasketError)
-	}
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodGetBasketId, err, constants.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, myerrors.SqlNoRowsOrderRelation
+		}
 		return 0, err
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodGetBasketId, constants.RepoLayer)
 	return alias.OrderId(orderId), nil
 }
 
-func (repo *RepoLayer) GetFood(ctx context.Context, requestId string, orderId alias.OrderId) ([]*entity.FoodInOrder, error) {
+func (repo *RepoLayer) GetBasketIdNoAuth(ctx context.Context, unauthId string) (alias.OrderId, error) {
+	row := repo.db.QueryRowContext(ctx, `SELECT id FROM "order" WHERE unauth_token=$1 AND status=$2`, unauthId, cnst.Draft)
+	var orderId uint64
+	err := row.Scan(&orderId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, myerrors.SqlNoRowsOrderRelation
+		}
+		return 0, err
+	}
+	return alias.OrderId(orderId), nil
+}
+
+func (repo *RepoLayer) GetFood(ctx context.Context, orderId alias.OrderId) ([]*entity.FoodInOrder, error) {
 	rows, err := repo.db.QueryContext(ctx,
 		`SELECT f.id, f.name, f.weight, f.price, fo.count, f.img_url, f.restaurant_id
 				FROM food_order AS fo
 				JOIN food AS f ON fo.food_id = f.id
 				WHERE fo.order_id = $1`, uint64(orderId))
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodGetFood, err, constants.RepoLayer)
 		return nil, err
 	}
 
@@ -147,170 +204,167 @@ func (repo *RepoLayer) GetFood(ctx context.Context, requestId string, orderId al
 		var food entity.FoodInOrder
 		err = rows.Scan(&food.Id, &food.Name, &food.Weight, &food.Price, &food.Count, &food.ImgUrl, &food.RestaurantId)
 		if err != nil {
-			functions.LogError(repo.logger, requestId, constants.NameMethodGetFood, err, constants.RepoLayer)
 			return nil, err
 		}
 		foodArray = append(foodArray, &food)
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodGetFood, constants.RepoLayer)
 	return foodArray, nil
 }
 
-func (repo *RepoLayer) UpdateAddress(ctx context.Context, requestId string, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error) {
+func (repo *RepoLayer) UpdateAddress(ctx context.Context, address string, extraAddress string, orderId alias.OrderId) (alias.OrderId, error) {
 	row := repo.db.QueryRowContext(ctx,
 		`UPDATE "order" SET address=$1, extra_address=$2
-               WHERE id=$3 RETURNING id`, address, extraAddress, uint64(orderId))
+              WHERE id=$3 RETURNING id`, address, extraAddress, uint64(orderId))
 	var id uint64
 	err := row.Scan(&id)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodUpdateAddress, err, constants.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, myerrors.SqlNoRowsOrderRelation
+		}
 		return 0, err
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodUpdateAddress, constants.RepoLayer)
-	return alias.OrderId(id), err
+	return alias.OrderId(id), nil
 }
 
-func (repo *RepoLayer) UpdateStatus(ctx context.Context, requestId string, orderId alias.OrderId, status string) (alias.OrderId, error) {
-	row := repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1 WHERE id=$2 RETURNING id`, status, uint64(orderId))
+func (repo *RepoLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) (alias.OrderId, error) {
 	var id uint64
-	err := row.Scan(&id)
+	var err error
+	if status == cnst.Created {
+		timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+		err = repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1, order_created_at=$2 WHERE id=$3 RETURNING id`, status, timeNow, uint64(orderId)).Scan(&id)
+	} else if status == cnst.Delivered {
+		timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+		err = repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1, delivered_at=$2 WHERE id=$3 RETURNING id`, status, timeNow, uint64(orderId)).Scan(&id)
+	} else {
+		err = repo.db.QueryRowContext(ctx, `UPDATE "order" SET status=$1 WHERE id=$2 RETURNING id`, status, uint64(orderId)).Scan(&id)
+	}
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodUpdateStatus, err, constants.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, myerrors.SqlNoRowsOrderRelation
+		}
 		return 0, err
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodUpdateStatus, constants.RepoLayer)
-	return alias.OrderId(id), err
+	return alias.OrderId(id), nil
 }
 
-func (repo *RepoLayer) GetOrderSum(ctx context.Context, requestId string, orderId alias.OrderId) (uint32, error) {
+func (repo *RepoLayer) GetOrderSum(ctx context.Context, orderId alias.OrderId) (uint32, error) {
 	var sum sql.NullInt32
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT sum FROM "order" WHERE id=$1`, uint64(orderId))
 	err := row.Scan(&sum)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodGetOrderSum, err, constants.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, myerrors.SqlNoRowsOrderRelation
+		}
 		return 0, err
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodGetOrderSum, constants.RepoLayer)
-	if sum.Valid {
-		return uint32(sum.Int32), nil
+	if !sum.Valid {
+		return 0, myerrors.OrderSum
 	}
-	return 0, nil
+	return uint32(sum.Int32), nil
 }
 
-func (repo *RepoLayer) GetFoodPrice(ctx context.Context, requestId string, foodId alias.FoodId) (uint32, error) {
+func (repo *RepoLayer) GetFoodPrice(ctx context.Context, foodId alias.FoodId) (uint32, error) {
 	var price uint32
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT price FROM food WHERE id=$1`, uint64(foodId))
 	err := row.Scan(&price)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodGetFoodPrice, err, constants.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, myerrors.SqlNoRowsFoodRelation
+		}
 		return 0, err
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodGetFoodPrice, constants.RepoLayer)
 	return price, nil
 }
 
-func (repo *RepoLayer) GetFoodCount(ctx context.Context, requestId string, foodId alias.FoodId, orderId alias.OrderId) (uint32, error) {
+func (repo *RepoLayer) GetFoodCount(ctx context.Context, foodId alias.FoodId, orderId alias.OrderId) (uint32, error) {
 	var count uint32
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT count FROM food_order WHERE order_id=$1 AND food_id=$2`, uint64(orderId), uint64(foodId))
 	err := row.Scan(&count)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodGetFoodCount, err, constants.RepoLayer)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, myerrors.SqlNoRowsFoodOrderRelation
+		}
 		return 0, err
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodGetFoodCount, constants.RepoLayer)
 	return count, nil
 }
 
-func (repo *RepoLayer) UpdateSum(ctx context.Context, requestId string, sum uint32, orderId alias.OrderId) error {
+func (repo *RepoLayer) UpdateSum(ctx context.Context, sum uint32, orderId alias.OrderId) error {
 	res, err := repo.db.ExecContext(ctx,
 		`UPDATE "order" SET sum=$1 WHERE id=$2`, sum, uint64(orderId))
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodUpdateSum, err, constants.RepoLayer)
 		return err
 	}
 	countRows, err := res.RowsAffected()
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodUpdateSum, err, constants.RepoLayer)
 		return err
 	}
 	if countRows == 0 {
-		functions.LogWarn(repo.logger, requestId, constants.NameMethodUpdateSum, err, constants.RepoLayer)
-		return err
+		return myerrors.SqlNoRowsOrderRelation
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodUpdateSum, constants.RepoLayer)
 	return nil
 }
 
-func (repo *RepoLayer) AddToOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId, count uint32) error {
-	///////////////
+func (repo *RepoLayer) AddToOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error {
+	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	res, err := repo.db.ExecContext(ctx,
-		`INSERT INTO food_order (order_id, food_id, count,  created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`, uint64(orderId), uint64(foodId), count, time.Now(), time.Now())
+		`INSERT INTO food_order (order_id, food_id, count,  created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`, uint64(orderId), uint64(foodId), count, timeNow, timeNow)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodAddToOrder, err, constants.RepoLayer)
 		return err
 	}
 	countRows, err := res.RowsAffected()
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodAddToOrder, err, constants.RepoLayer)
 		return err
 	}
 	if countRows == 0 {
-		functions.LogWarn(repo.logger, requestId, constants.NameMethodAddToOrder, fmt.Errorf(NotAddFood), constants.RepoLayer)
-		return fmt.Errorf(NotAddFood)
+		return myerrors.OrderAddFood
 	}
-	sum, err := repo.GetOrderSum(ctx, requestId, orderId)
+	sum, err := repo.GetOrderSum(ctx, orderId)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodAddToOrder, err, constants.RepoLayer)
-		return err
+		if !errors.Is(err, myerrors.OrderSum) {
+			return err
+		}
+		sum = 0
 	}
 
-	price, err := repo.GetFoodPrice(ctx, requestId, foodId)
+	price, err := repo.GetFoodPrice(ctx, foodId)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodAddToOrder, err, constants.RepoLayer)
 		return err
 	}
 	sum = sum + count*price
-	err = repo.UpdateSum(ctx, requestId, sum, orderId)
+	err = repo.UpdateSum(ctx, sum, orderId)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodAddToOrder, err, constants.RepoLayer)
 		return err
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodAddToOrder, constants.RepoLayer)
 	return nil
 }
 
-func (repo *RepoLayer) UpdateCountInOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId, count uint32) error {
-	currentCount, err := repo.GetFoodCount(ctx, requestId, foodId, orderId)
+func (repo *RepoLayer) UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) error {
+	currentCount, err := repo.GetFoodCount(ctx, foodId, orderId)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.RepoLayer)
 		return err
 	}
 	res, err := repo.db.ExecContext(ctx,
 		`UPDATE food_order SET count=$1 WHERE order_id=$2 AND food_id=$3`, count, uint64(orderId), uint64(foodId))
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.RepoLayer)
 		return err
 	}
 	countRows, err := res.RowsAffected()
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.RepoLayer)
 		return err
 	}
 	if countRows == 0 {
-		functions.LogWarn(repo.logger, requestId, constants.NameMethodUpdateCountInOrder, fmt.Errorf(NotAddFood), constants.RepoLayer)
-		return fmt.Errorf(NotAddFood)
+		return myerrors.SqlNoRowsFoodOrderRelation
 	}
-	price, err := repo.GetFoodPrice(ctx, requestId, foodId)
+	price, err := repo.GetFoodPrice(ctx, foodId)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.RepoLayer)
 		return err
 	}
-	sum, err := repo.GetOrderSum(ctx, requestId, orderId)
+	sum, err := repo.GetOrderSum(ctx, orderId)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodUpdateCountInOrder, err, constants.RepoLayer)
 		return err
 	}
 	if num := int(count) - int(currentCount); num > 0 {
@@ -318,67 +372,113 @@ func (repo *RepoLayer) UpdateCountInOrder(ctx context.Context, requestId string,
 	} else {
 		sum = sum - (currentCount-count)*price
 	}
-	functions.LogOk(repo.logger, requestId, constants.NameMethodUpdateCountInOrder, constants.RepoLayer)
-	return repo.UpdateSum(ctx, requestId, sum, orderId)
+	return repo.UpdateSum(ctx, sum, orderId)
 }
 
-func (repo *RepoLayer) DeleteFromOrder(ctx context.Context, requestId string, orderId alias.OrderId, foodId alias.FoodId) error {
-	count, err := repo.GetFoodCount(ctx, requestId, foodId, orderId)
+func (repo *RepoLayer) DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) error {
+	count, err := repo.GetFoodCount(ctx, foodId, orderId)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodDeleteFromOrder, err, constants.RepoLayer)
 		return err
 	}
 	res, err := repo.db.ExecContext(ctx,
 		`DELETE FROM food_order WHERE order_id=$1 AND food_id=$2`, uint64(orderId), uint64(foodId))
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodDeleteFromOrder, err, constants.RepoLayer)
 		return err
 	}
 	countRows, err := res.RowsAffected()
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodDeleteFromOrder, err, constants.RepoLayer)
 		return err
 	}
 	if countRows == 0 {
-		functions.LogWarn(repo.logger, requestId, constants.NameMethodDeleteFromOrder, fmt.Errorf(NotDeleteFood), constants.RepoLayer)
-		return fmt.Errorf(NotDeleteFood)
+		return myerrors.SqlNoRowsFoodOrderRelation
 	}
-	price, err := repo.GetFoodPrice(ctx, requestId, foodId)
+	price, err := repo.GetFoodPrice(ctx, foodId)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodDeleteFromOrder, err, constants.RepoLayer)
 		return err
 	}
-	sum, err := repo.GetOrderSum(ctx, requestId, orderId)
+	sum, err := repo.GetOrderSum(ctx, orderId)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodDeleteFromOrder, err, constants.RepoLayer)
 		return err
 	}
 	sum = sum - count*price
-	functions.LogOk(repo.logger, requestId, constants.NameMethodDeleteFromOrder, constants.RepoLayer)
-	return repo.UpdateSum(ctx, requestId, sum, orderId)
+	if sum == 0 {
+		res, err = repo.db.ExecContext(ctx,
+			`DELETE FROM "order" WHERE id=$1`, uint64(orderId))
+		if err != nil {
+			return err
+		}
+		countRows, err = res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if countRows == 0 {
+			return myerrors.SqlNoRowsOrderRelation
+		}
+		return nil
+	}
+	return repo.UpdateSum(ctx, sum, orderId)
 }
 
-func (repo *RepoLayer) CleanBasket(ctx context.Context, requestId string, id alias.OrderId) error {
+func (repo *RepoLayer) CleanBasket(ctx context.Context, id alias.OrderId) error {
 	res, err := repo.db.ExecContext(ctx,
 		`DELETE FROM food_order WHERE order_id=$1`, uint64(id))
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
 		return err
 	}
 	countRows, err := res.RowsAffected()
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
 		return err
 	}
 	if countRows == 0 {
-		functions.LogWarn(repo.logger, requestId, constants.NameMethodCleanBasket, fmt.Errorf(CleanError), constants.RepoLayer)
-		return fmt.Errorf(CleanError)
+		return myerrors.FailCleanBasket
 	}
-	sum := uint32(0)
-	err = repo.UpdateSum(ctx, requestId, sum, id)
+	err = repo.UpdateSum(ctx, 0, id)
 	if err != nil {
-		functions.LogError(repo.logger, requestId, constants.NameMethodCleanBasket, err, constants.RepoLayer)
 		return err
+	}
+	return nil
+}
+
+func (repo *RepoLayer) DeleteBasket(ctx context.Context, id alias.OrderId) error {
+	res, err := repo.db.ExecContext(ctx,
+		`DELETE FROM food_order WHERE order_id=$1`, uint64(id))
+	if err != nil {
+		return err
+	}
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return myerrors.FailCleanBasket
+	}
+	res, err = repo.db.ExecContext(ctx,
+		`DELETE FROM "order" WHERE id=$1`, uint64(id))
+	if err != nil {
+		return err
+	}
+	countRows, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return myerrors.FailCleanBasket
+	}
+	return nil
+}
+
+func (repo *RepoLayer) SetUser(ctx context.Context, orderId alias.OrderId, userId alias.UserId) error {
+	res, err := repo.db.ExecContext(ctx,
+		`UPDATE "order" SET user_id=$1, unauth_token=NULL WHERE id=$2`, uint64(userId), uint64(orderId))
+	if err != nil {
+		return err
+	}
+	countRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if countRows == 0 {
+		return myerrors.SqlNoRowsOrderRelation
 	}
 	return nil
 }

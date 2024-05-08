@@ -1,6 +1,13 @@
 .idea/
 go.sum
 config/config.yaml
-integration
+integration/nginx/logs
+integration/dev-compose
+integration/prod-compose
+integration/postgres/data
+integration/postgres/Dockerfile
+integration/minio
+integration/minios3
 api.md
 bd.md
+.DS_Store

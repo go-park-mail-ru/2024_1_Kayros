@@ -9,15 +9,17 @@ import (
 type Category struct {
 	Id   uint64  `json:"id" valid:"-"`
 	Name string  `json:"name" valid:"-"`
-	Food []*Food `json:"food" valid:"-"`
+	Food []*Food `json:"food,omitempty" valid:"-"`
 }
 
 type RestaurantAndFood struct {
 	Id               uint64      `json:"id" valid:"-"`
 	Name             string      `json:"name" valid:"-"`
-	ShortDescription string      `json:"short_description" valid:"-"`
-	LongDescription  string      `json:"long_description" valid:"-"`
+	ShortDescription string      `json:"short_description,omitempty" valid:"-"`
+	LongDescription  string      `json:"long_description,omitempty" valid:"-"`
 	ImgUrl           string      `json:"img_url" valid:"url"`
+	Rating           float64     `json:"rating"`
+	CommentCount     uint32      `json:"comment_count"`
 	Categories       []*Category `json:"categories" valid:"-"`
 }
 
@@ -51,6 +53,8 @@ func NewRestaurantAndFood(r *entity.Restaurant, categories []*entity.Category) *
 		ShortDescription: r.ShortDescription,
 		LongDescription:  r.LongDescription,
 		ImgUrl:           r.ImgUrl,
+		Rating:           r.Rating,
+		CommentCount:     r.CommentCount,
 		Categories:       NewCategoryArray(categories),
 	}
 }

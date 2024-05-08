@@ -18,7 +18,7 @@ func Init(cfg *config.Project, logger *zap.Logger) *minio.Client {
 		Secure: cfg.Minio.SslMode,
 	})
 	if err != nil {
-		logger.Fatal("Не удалось подключиться к Minio", zap.Error(err))
+		logger.Fatal("Failed to connect to Minio", zap.Error(err))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -28,7 +28,7 @@ func Init(cfg *config.Project, logger *zap.Logger) *minio.Client {
 		makeBucket(client, bucket, ctx, logger)
 	}
 
-	logger.Info("Minio успешно подключен")
+	logger.Info("Minio connected successfully")
 	return client
 }
 
@@ -37,14 +37,14 @@ func makeBucket(client *minio.Client, bucket string, ctx context.Context, logger
 	if err != nil {
 		isExist, err := client.BucketExists(ctx, bucket)
 		if err == nil && isExist {
-			msg := fmt.Sprintf("Бакет с именем %s уже существует", bucket)
+			msg := fmt.Sprintf("A bucket named %s already exists", bucket)
 			logger.Info(msg)
 			return
 		} else {
-			msg := fmt.Sprintf("Создание бакета с именем %s завершилось неудачей", bucket)
+			msg := fmt.Sprintf("Creating a bucket with a name %s failed", bucket)
 			logger.Fatal(msg, zap.Error(err))
 		}
 	}
-	msg := fmt.Sprintf("Бакет с именем %s успешно создан", bucket)
+	msg := fmt.Sprintf("A bucker named %s created successfully", bucket)
 	logger.Info(msg)
 }

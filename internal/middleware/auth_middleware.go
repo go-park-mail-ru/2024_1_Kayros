@@ -5,52 +5,51 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/satori/uuid"
 	"go.uber.org/zap"
 
+	"2024_1_kayros/internal/utils/myerrors"
+
+	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/usecase/session"
-	"2024_1_kayros/internal/usecase/user"
 	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 )
 
-// SessionAuthenticationMiddleware добавляет в контекст email пользователя, которого получилось аутентифицировать, а также request_id
-func SessionAuthenticationMiddleware(handler http.Handler, ucUser user.Usecase, ucSession session.Usecase, logger *zap.Logger) http.Handler {
+// SessionAuthentication needed for authentication (check session cookie and if it exists, return associated user email)
+func SessionAuthentication(handler http.Handler, ucUser user.Repo, ucSession session.Usecase, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestId := uuid.NewV4().String()
-		sessionCookie, err := r.Cookie("session_id")
-		sessionId := ""
-		if sessionCookie != nil {
-			sessionId = sessionCookie.Value
-		}
-
-		if errors.Is(err, http.ErrNoCookie) {
-			functions.LogInfo(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err.Error(), cnst.MiddlewareLayer)
-		} else if err != nil {
-			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
-			handler.ServeHTTP(w, r)
+		requestId := functions.GetCtxRequestId(r)
+		sessionId, err := functions.GetCookieSessionValue(r)
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "request_id", requestId)
-
-		email, err := ucSession.GetValue(ctx, alias.SessionKey(sessionId))
+		email, err := ucSession.GetValue(r.Context(), alias.SessionKey(sessionId))
 		if err != nil {
-			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
-			handler.ServeHTTP(w, r)
-			return
+			if !errors.Is(err, myerrors.RedisNoData) {
+				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				return
+			}
 		}
-		u, err := ucUser.GetByEmail(ctx, string(email))
+
+		u, err := ucUser.GetByEmail(r.Context(), string(email))
 		if err != nil {
-			functions.LogError(logger, requestId, cnst.NameSessionAuthenticationMiddleware, err, cnst.MiddlewareLayer)
-			handler.ServeHTTP(w, r)
-			return
+			if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				return
+			}
 		}
+
 		if u == nil {
 			email = ""
 		}
-		ctx = context.WithValue(ctx, "email", string(email))
+
+		ctx := context.WithValue(r.Context(), "email", string(email))
 		r = r.WithContext(ctx)
 		handler.ServeHTTP(w, r)
 	})

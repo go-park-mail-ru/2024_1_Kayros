@@ -3,51 +3,55 @@ package rest
 import (
 	"context"
 
-	"go.uber.org/zap"
-
 	"2024_1_kayros/internal/entity"
-	"2024_1_kayros/internal/repository/restaurants"
 	"2024_1_kayros/internal/utils/alias"
-	"2024_1_kayros/internal/utils/constants"
-	"2024_1_kayros/internal/utils/functions"
+	rest "2024_1_kayros/microservices/restaurants/proto"
 )
 
 type Usecase interface {
 	GetAll(ctx context.Context) ([]*entity.Restaurant, error)
 	GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error)
+	GetByFilter(ctx context.Context, id alias.CategoryId) ([]*entity.Restaurant, error)
+	GetCategoryList(ctx context.Context) ([]*entity.Category, error)
 }
 type UsecaseLayer struct {
-	repoRest restaurants.Repo
-	logger   *zap.Logger
+	grpcClient rest.RestWorkerClient
 }
 
-func NewUsecaseLayer(repoRestProps restaurants.Repo, loggerProps *zap.Logger) Usecase {
+func NewUsecaseLayer(restClient rest.RestWorkerClient) *UsecaseLayer {
 	return &UsecaseLayer{
-		repoRest: repoRestProps,
-		logger:   loggerProps,
+		grpcClient: restClient,
 	}
 }
 
 func (uc *UsecaseLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error) {
-	methodName := constants.NameMethodGetAllRests
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	rests, err := uc.repoRest.GetAll(ctx, requestId)
+	rests, err := uc.grpcClient.GetAll(ctx, nil)
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
-	return rests, nil
+	return FromGrpcStructToRestaurantArray(rests), nil
 }
 
 func (uc *UsecaseLayer) GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error) {
-	methodName := constants.NameMethodGetRestById
-	requestId := functions.GetRequestId(ctx, uc.logger, methodName)
-	rest, err := uc.repoRest.GetById(ctx, requestId, restId)
+	r, err := uc.grpcClient.GetById(ctx, &rest.RestId{Id: uint64(restId)})
 	if err != nil {
-		functions.LogUsecaseFail(uc.logger, requestId, methodName)
 		return nil, err
 	}
-	functions.LogOk(uc.logger, requestId, methodName, constants.UsecaseLayer)
-	return rest, nil
+	return FromGrpcStructToRestaurant(r), nil
+}
+
+func (uc *UsecaseLayer) GetByFilter(ctx context.Context, id alias.CategoryId) ([]*entity.Restaurant, error) {
+	rests, err := uc.grpcClient.GetByFilter(ctx, &rest.Id{Id: uint64(id)})
+	if err != nil {
+		return nil, err
+	}
+	return FromGrpcStructToRestaurantArray(rests), nil
+}
+
+func (uc *UsecaseLayer) GetCategoryList(ctx context.Context) ([]*entity.Category, error) {
+	cats, err := uc.grpcClient.GetCategoryList(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return FromGrpcStructToCategoryArray(cats), nil
 }
