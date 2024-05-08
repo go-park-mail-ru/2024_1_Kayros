@@ -12,6 +12,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -21,12 +22,13 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	UserManager_GetData_FullMethodName                 = "/user.UserManager/GetData"
-	UserManager_UpdateAddressByUnauthId_FullMethodName = "/user.UserManager/UpdateAddressByUnauthId"
-	UserManager_GetAddressByUnauthId_FullMethodName    = "/user.UserManager/GetAddressByUnauthId"
 	UserManager_UpdateData_FullMethodName              = "/user.UserManager/UpdateData"
 	UserManager_UpdateAddress_FullMethodName           = "/user.UserManager/UpdateAddress"
 	UserManager_SetNewPassword_FullMethodName          = "/user.UserManager/SetNewPassword"
 	UserManager_Create_FullMethodName                  = "/user.UserManager/Create"
+	UserManager_IsPassswordEquals_FullMethodName       = "/user.UserManager/IsPassswordEquals"
+	UserManager_UpdateAddressByUnauthId_FullMethodName = "/user.UserManager/UpdateAddressByUnauthId"
+	UserManager_GetAddressByUnauthId_FullMethodName    = "/user.UserManager/GetAddressByUnauthId"
 )
 
 // UserManagerClient is the client API for UserManager service.
@@ -34,12 +36,13 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserManagerClient interface {
 	GetData(ctx context.Context, in *Email, opts ...grpc.CallOption) (*User, error)
-	UpdateAddressByUnauthId(ctx context.Context, in *AddressDataUnauth, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	GetAddressByUnauthId(ctx context.Context, in *UnauthId, opts ...grpc.CallOption) (*Address, error)
 	UpdateData(ctx context.Context, in *UpdateUserData, opts ...grpc.CallOption) (*User, error)
 	UpdateAddress(ctx context.Context, in *AddressData, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	SetNewPassword(ctx context.Context, in *PasswordsChange, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Create(ctx context.Context, in *User, opts ...grpc.CallOption) (*User, error)
+	IsPassswordEquals(ctx context.Context, in *PasswordCheck, opts ...grpc.CallOption) (*wrapperspb.BoolValue, error)
+	UpdateAddressByUnauthId(ctx context.Context, in *AddressDataUnauth, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetAddressByUnauthId(ctx context.Context, in *UnauthId, opts ...grpc.CallOption) (*Address, error)
 }
 
 type userManagerClient struct {
@@ -53,24 +56,6 @@ func NewUserManagerClient(cc grpc.ClientConnInterface) UserManagerClient {
 func (c *userManagerClient) GetData(ctx context.Context, in *Email, opts ...grpc.CallOption) (*User, error) {
 	out := new(User)
 	err := c.cc.Invoke(ctx, UserManager_GetData_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userManagerClient) UpdateAddressByUnauthId(ctx context.Context, in *AddressDataUnauth, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserManager_UpdateAddressByUnauthId_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userManagerClient) GetAddressByUnauthId(ctx context.Context, in *UnauthId, opts ...grpc.CallOption) (*Address, error) {
-	out := new(Address)
-	err := c.cc.Invoke(ctx, UserManager_GetAddressByUnauthId_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -113,17 +98,45 @@ func (c *userManagerClient) Create(ctx context.Context, in *User, opts ...grpc.C
 	return out, nil
 }
 
+func (c *userManagerClient) IsPassswordEquals(ctx context.Context, in *PasswordCheck, opts ...grpc.CallOption) (*wrapperspb.BoolValue, error) {
+	out := new(wrapperspb.BoolValue)
+	err := c.cc.Invoke(ctx, UserManager_IsPassswordEquals_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagerClient) UpdateAddressByUnauthId(ctx context.Context, in *AddressDataUnauth, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, UserManager_UpdateAddressByUnauthId_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagerClient) GetAddressByUnauthId(ctx context.Context, in *UnauthId, opts ...grpc.CallOption) (*Address, error) {
+	out := new(Address)
+	err := c.cc.Invoke(ctx, UserManager_GetAddressByUnauthId_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserManagerServer is the server API for UserManager service.
 // All implementations must embed UnimplementedUserManagerServer
 // for forward compatibility
 type UserManagerServer interface {
 	GetData(context.Context, *Email) (*User, error)
-	UpdateAddressByUnauthId(context.Context, *AddressDataUnauth) (*emptypb.Empty, error)
-	GetAddressByUnauthId(context.Context, *UnauthId) (*Address, error)
 	UpdateData(context.Context, *UpdateUserData) (*User, error)
 	UpdateAddress(context.Context, *AddressData) (*emptypb.Empty, error)
 	SetNewPassword(context.Context, *PasswordsChange) (*emptypb.Empty, error)
 	Create(context.Context, *User) (*User, error)
+	IsPassswordEquals(context.Context, *PasswordCheck) (*wrapperspb.BoolValue, error)
+	UpdateAddressByUnauthId(context.Context, *AddressDataUnauth) (*emptypb.Empty, error)
+	GetAddressByUnauthId(context.Context, *UnauthId) (*Address, error)
 	mustEmbedUnimplementedUserManagerServer()
 }
 
@@ -133,12 +146,6 @@ type UnimplementedUserManagerServer struct {
 
 func (UnimplementedUserManagerServer) GetData(context.Context, *Email) (*User, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetData not implemented")
-}
-func (UnimplementedUserManagerServer) UpdateAddressByUnauthId(context.Context, *AddressDataUnauth) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateAddressByUnauthId not implemented")
-}
-func (UnimplementedUserManagerServer) GetAddressByUnauthId(context.Context, *UnauthId) (*Address, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAddressByUnauthId not implemented")
 }
 func (UnimplementedUserManagerServer) UpdateData(context.Context, *UpdateUserData) (*User, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateData not implemented")
@@ -151,6 +158,15 @@ func (UnimplementedUserManagerServer) SetNewPassword(context.Context, *Passwords
 }
 func (UnimplementedUserManagerServer) Create(context.Context, *User) (*User, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+}
+func (UnimplementedUserManagerServer) IsPassswordEquals(context.Context, *PasswordCheck) (*wrapperspb.BoolValue, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsPassswordEquals not implemented")
+}
+func (UnimplementedUserManagerServer) UpdateAddressByUnauthId(context.Context, *AddressDataUnauth) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateAddressByUnauthId not implemented")
+}
+func (UnimplementedUserManagerServer) GetAddressByUnauthId(context.Context, *UnauthId) (*Address, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAddressByUnauthId not implemented")
 }
 func (UnimplementedUserManagerServer) mustEmbedUnimplementedUserManagerServer() {}
 
@@ -179,42 +195,6 @@ func _UserManager_GetData_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserManagerServer).GetData(ctx, req.(*Email))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserManager_UpdateAddressByUnauthId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddressDataUnauth)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserManagerServer).UpdateAddressByUnauthId(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserManager_UpdateAddressByUnauthId_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserManagerServer).UpdateAddressByUnauthId(ctx, req.(*AddressDataUnauth))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserManager_GetAddressByUnauthId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UnauthId)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserManagerServer).GetAddressByUnauthId(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserManager_GetAddressByUnauthId_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserManagerServer).GetAddressByUnauthId(ctx, req.(*UnauthId))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -291,6 +271,60 @@ func _UserManager_Create_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserManager_IsPassswordEquals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PasswordCheck)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagerServer).IsPassswordEquals(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManager_IsPassswordEquals_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagerServer).IsPassswordEquals(ctx, req.(*PasswordCheck))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManager_UpdateAddressByUnauthId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddressDataUnauth)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagerServer).UpdateAddressByUnauthId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManager_UpdateAddressByUnauthId_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagerServer).UpdateAddressByUnauthId(ctx, req.(*AddressDataUnauth))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManager_GetAddressByUnauthId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnauthId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagerServer).GetAddressByUnauthId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManager_GetAddressByUnauthId_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagerServer).GetAddressByUnauthId(ctx, req.(*UnauthId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserManager_ServiceDesc is the grpc.ServiceDesc for UserManager service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -301,14 +335,6 @@ var UserManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetData",
 			Handler:    _UserManager_GetData_Handler,
-		},
-		{
-			MethodName: "UpdateAddressByUnauthId",
-			Handler:    _UserManager_UpdateAddressByUnauthId_Handler,
-		},
-		{
-			MethodName: "GetAddressByUnauthId",
-			Handler:    _UserManager_GetAddressByUnauthId_Handler,
 		},
 		{
 			MethodName: "UpdateData",
@@ -325,6 +351,18 @@ var UserManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Create",
 			Handler:    _UserManager_Create_Handler,
+		},
+		{
+			MethodName: "IsPassswordEquals",
+			Handler:    _UserManager_IsPassswordEquals_Handler,
+		},
+		{
+			MethodName: "UpdateAddressByUnauthId",
+			Handler:    _UserManager_UpdateAddressByUnauthId_Handler,
+		},
+		{
+			MethodName: "GetAddressByUnauthId",
+			Handler:    _UserManager_GetAddressByUnauthId_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

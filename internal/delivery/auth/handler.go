@@ -79,7 +79,8 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	signUpData := &authv1.SignUpCredentials {
 		Email: u.Email,
 		UnauthId: unauthId,
-		SignUpData: cnvUserIntoAuthUser(u),
+		Name: u.Name,
+		Password: u.Password,
 	}
 	uAuth, err := d.ucAuth.SignUp(r.Context(), signUpData)
 	if err != nil {

@@ -3,6 +3,7 @@ option go_package = "ivan.user.v1;userv1";
 
 package user;
 import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
 
 service UserManager {
   rpc GetData(Email) returns (User);
@@ -10,9 +11,16 @@ service UserManager {
   rpc UpdateAddress(AddressData) returns (google.protobuf.Empty);
   rpc SetNewPassword(PasswordsChange) returns (google.protobuf.Empty);
   rpc Create(User) returns (User);
+  rpc IsPassswordEquals(PasswordCheck) returns (google.protobuf.BoolValue);
   rpc UpdateAddressByUnauthId(AddressDataUnauth) returns (google.protobuf.Empty);
   rpc GetAddressByUnauthId(UnauthId) returns (Address);
 }
+
+message PasswordCheck {
+  Email email = 1;
+  Password pwd = 2;
+}
+
 
 message Email {
   string email = 1;

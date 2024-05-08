@@ -6,9 +6,9 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 	authv1 "2024_1_kayros/microservices/auth/proto"
 	userv1 "2024_1_kayros/microservices/user/proto"
-	"bytes"
 	"context"
 	"errors"
+	"fmt"
 )
 
 
@@ -45,15 +45,15 @@ func (uc *Layer) SignUp(ctx context.Context, data *authv1.SignUpCredentials) (*a
 	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
 		return nil, err
 	}
-	data.SignUpData.Address = address.GetAddress()
+	data.Address = address.GetAddress()
 
 	// we do copy for clean function
-	uCopy := entity.Copy(convAuthUserIntoUser(data.GetSignUpData()))
+	uCopy := entity.Copy(convAuthUserIntoUser(data))
 	salt, err := functions.GenerateNewSalt()
 	if err != nil {
 		return nil, err
 	}
-	hashPassword := functions.HashData(salt, data.GetSignUpData().GetPassword())
+	hashPassword := functions.HashData(salt, data.GetPassword())
 	uCopy.Password = &userv1.Password{Password: string(hashPassword)}
 
 	uCreated, err := uc.client.Create(ctx, uCopy)
@@ -93,27 +93,20 @@ func (uc *Layer) IsExistByEmail(ctx context.Context, email *userv1.Email) (bool,
 
 // checkPassword - method used to check password with password saved in database
 func (uc *Layer) checkPassword(ctx context.Context, email *userv1.Email, password *userv1.Password) (bool, error) {
-	u, err := uc.client.GetData(ctx, email)
-	if err != nil {
-		return false, err
+	passwordData := &userv1.PasswordCheck {
+		Email: email,
+		Pwd: password,
 	}
-	uPasswordBytes := []byte(u.GetPassword().GetPassword())
-
-	salt := make([]byte, 8)
-	copy(salt, uPasswordBytes[0:8])
-	hashPassword := functions.HashData(salt, password.GetPassword())
-	return bytes.Equal(uPasswordBytes, hashPassword), nil
+	isEqual, err := uc.client.IsPassswordEquals(ctx, passwordData)
+	return isEqual.Value, err
 }
 
-func convAuthUserIntoUser (u *authv1.User) *userv1.User {
+func convAuthUserIntoUser (u *authv1.SignUpCredentials) *userv1.User {
 	return &userv1.User {
-		Id: u.GetId(),
 		Name: u.GetName(),
-		Phone: u.GetPhone(),
 		Email: &userv1.Email{Email: u.GetEmail()},
 		Address: &userv1.Address{Address: u.GetAddress()},
-		ImgUrl: u.GetImgUrl(),
-		CardNumber: u.GetCardNumber(),
+		Password: &userv1.Password{Password: u.Password},
 	}
 }
 

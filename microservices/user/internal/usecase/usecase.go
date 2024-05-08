@@ -13,6 +13,7 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/microservices/user/internal/repo"
 	userv1 "2024_1_kayros/microservices/user/proto"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/satori/uuid"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -25,6 +26,7 @@ type Usecase interface {
 	Create(ctx context.Context, data *userv1.User) (*userv1.User, error)
 	UpdateAddress(ctx context.Context, data *userv1.AddressData) (*emptypb.Empty, error)
 	SetNewPassword(ctx context.Context, data *userv1.PasswordsChange) (*emptypb.Empty, error)
+	IsPassswordEquals(ctx context.Context, pwds *userv1.PasswordCheck) (*wrapperspb.BoolValue, error)
 	UpdateAddressByUnauthId(ctx context.Context, unauth *userv1.AddressDataUnauth) (*emptypb.Empty, error)
 	GetAddressByUnauthId(ctx context.Context, id *userv1.UnauthId) (*userv1.Address, error)
 }
@@ -42,22 +44,33 @@ func NewLayer(repoUserProps repo.Repo, repoMinio minios3.Repo) Usecase {
 	}
 }
 
+func formatUser (u *userv1.User) *userv1.User {
+	if u != nil {
+		u.Password = &userv1.Password{}
+		u.CardNumber = ""
+	}
+	return u
+} 
+
 // GetData - method calls repo method to receive user data.
 func (uc Layer) GetData(ctx context.Context, email *userv1.Email) (*userv1.User, error) {
-	fmt.Println("user.GetData")
-	return uc.repoUser.GetByEmail(ctx, email)
+	returnUser, err := uc.repoUser.GetByEmail(ctx, email)
+	fmt.Printf("%v", returnUser)
+	fmt.Printf("%v", err)
+	return formatUser(returnUser), err
 }
 
 // UpdateData - method used to update user info. it accepts non-password fields.
 // To update password use method SetNewUserPassword.
 func (uc Layer) UpdateData(ctx context.Context, data *userv1.UpdateUserData) (*userv1.User, error) {
-	fmt.Println("user.UpdateData")
 	u, err := uc.repoUser.GetByEmail(ctx, data.GetEmail())
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Printf("ДО:\n%v", u)
 	fillUserFields(u, data.GetUpdateInfo())
+	fmt.Printf("ОБНОВА:\n%v", data.GetUpdateInfo())
+	fmt.Printf("ПОСЛЕ:\n%v", u)
 	if data.GetFileData() != nil && data.GetFileSize() != 0 {
 		mimeType, err := functions.GetFileMimeType(data.GetFileData())
 		if err != nil {
@@ -76,7 +89,7 @@ func (uc Layer) UpdateData(ctx context.Context, data *userv1.UpdateUserData) (*u
 		u.ImgUrl = fmt.Sprintf("/minio-api/%s/%s", cnst.BucketUser, filename)
 	}
 
-	uDB, err := uc.repoUser.GetByEmail(ctx, data.GetEmail())
+	uDB, err := uc.repoUser.GetByEmail(ctx, data.GetUpdateInfo().GetEmail())
 	if err != nil {
 		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 			return nil, err
@@ -94,7 +107,7 @@ func (uc Layer) UpdateData(ctx context.Context, data *userv1.UpdateUserData) (*u
 	if err != nil {
 		return nil, err
 	}
-	return u, nil
+	return formatUser(u), nil
 }
 
 // UpdateAddress - method updates only address.
@@ -179,17 +192,21 @@ func (uc Layer) Create(ctx context.Context, data *userv1.User) (*userv1.User, er
 
 	uCopy := entity.Copy(data)
 	uCopy.Password = &userv1.Password{Password: string(hashPassword)}
+	fmt.Printf("%v", uCopy)
 
 	err = uc.repoUser.Create(ctx, uCopy)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("%v", err)
 
 	u, err := uc.repoUser.GetByEmail(ctx, uCopy.GetEmail())
+	fmt.Printf("%v", err)
+	fmt.Printf("%v", u)
 	if err != nil {
 		return nil, err
 	}
-	return u, nil
+	return formatUser(u), nil
 }
 
 // checkPassword - method used to check password with password saved in database
@@ -206,11 +223,27 @@ func (uc Layer) checkPassword(ctx context.Context, email *userv1.Email, password
 
 // fillUserFields - method used to get finished view of updated user data
 func fillUserFields(uDest *userv1.User, uSrc *userv1.User) {
-	if uSrc.Name != "" {
-		uDest.Name = uSrc.Name
+	if uSrc.GetName() != "" {
+		uDest.Name = uSrc.GetName() 
 	}
-	if uSrc.Email.GetEmail() != "" {
-		uDest.Email = uSrc.Email
+	if uSrc.GetEmail().GetEmail() != "" {
+		uDest.GetEmail().Email = uSrc.GetEmail().GetEmail()
 	}
-	uDest.Phone = uSrc.Phone
+	if uSrc.GetAddress().GetAddress() != "" {
+		uDest.GetAddress().Address = uSrc.GetAddress().GetAddress()
+	}
+	uDest.Phone = uSrc.GetPhone()
+}
+
+func (uc *Layer) IsPassswordEquals(ctx context.Context, data *userv1.PasswordCheck) (*wrapperspb.BoolValue, error) {
+	u, err := uc.repoUser.GetByEmail(ctx, data.GetEmail())
+	if err != nil {
+		return &wrapperspb.BoolValue{Value: false}, err
+	}
+	uPasswordBytes := []byte(u.GetPassword().GetPassword())
+
+	salt := make([]byte, 8)
+	copy(salt, uPasswordBytes[0:8])
+	hashPassword := functions.HashData(salt, data.GetPwd().GetPassword())
+	return &wrapperspb.BoolValue{Value: bytes.Equal(uPasswordBytes, hashPassword)}, nil
 }
