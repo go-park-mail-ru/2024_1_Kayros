@@ -1,18 +1,26 @@
-# service backend
-FROM golang:1.22 AS building
-RUN mkdir /app
-WORKDIR /app
+# Builder
+FROM golang:1.22-alpine AS builder
+RUN apk add --update make git curl
 
-COPY go.mod go.sum ./
-RUN go mod download && go mod verify
+ARG MODULE_NAME=backend
 
-COPY . .
-RUN go build -v -o /app/main cmd/main/main.go
-CMD ["/app/main"]
+COPY go.mod /home/${MODULE_NAME}/go.mod
+COPY go.sum /home/${MODULE_NAME}/go.sum
 
-#FROM alpine:3.13
-#WORKDIR /usr/bin
-#COPY --from=build /app/config/config.yaml /go/bin/config/coni
-#COPY --from=build /app/bin /go/bin
-#EXPOSE 8000
-#ENTRYPOINT /go/bin/main --port 8000
+WORKDIR /home/${MODULE_NAME}
+
+COPY . /home/${MODULE_NAME}
+
+RUN go build cmd/main/main.go
+
+# Service
+FROM alpine:latest as production
+ARG MODULE_NAME=backend
+WORKDIR /root/
+
+COPY --from=builder /home/${MODULE_NAME}/config/config.yaml config/config.yaml
+COPY --from=builder /home/${MODULE_NAME}/main .
+
+RUN chown root:root main
+
+CMD ["./main"]

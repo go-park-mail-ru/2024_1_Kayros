@@ -1,36 +1,35 @@
 syntax = "proto3";
+option go_package = "ivan.auth.v1;authv1";
 
-option go_package = "./;auth";
+package proto;
 
-package auth;
-
-message AuthData {
-  string username = 1;
-  string password = 2;
+service AuthManager {
+  rpc SignIn (SignInCredentials) returns (User);
+  rpc SignUp (SignUpCredentials) returns (User);
 }
 
-message Token {
-  string token = 1;
+message SignInCredentials {
+  string email = 1;
+  string unauth_id = 2;
+  string password = 3;
+}
+
+message SignUpCredentials {
+  string email = 1;
+  string unauth_id= 2;
+  User sign_up_data = 3;
 }
 
 message User {
-  uint64 ID = 1;
-  string username = 2;
+  uint64 id = 1;
+  string name = 2;
+  string phone = 3;
+  string email = 4;
+  string address = 5;
+  string img_url = 6;
+  string card_number = 7;
+  string password = 8;
 }
 
-message IsDeleted {
-  bool isDeleted = 1;
-}
-
-message Session {
-  string ID = 1;
-  User user = 2;
-}
-
-service AuthMaker {
-  rpc Login (AuthData) returns (User);
-  rpc Register (AuthData) returns (User);
-  rpc CreateSession (User) returns (Token);
-  rpc GetSession (Token) returns (Session);
-  rpc DeleteSession (Token) returns (IsDeleted);
-}
+// protoc -I microservices/auth/proto microservices/auth/proto/auth.proto --go_out=microservices/auth/proto/
+// --go_opt=paths=source_relative --go-grpc_out=microservices/auth/proto/ --go-grpc_opt=paths=source_relative

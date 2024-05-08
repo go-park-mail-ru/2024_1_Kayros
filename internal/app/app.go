@@ -51,7 +51,8 @@ func Run(cfg *config.Project) {
 	//comment microservice
 	commentConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.CommentGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Printf("The comment microservice is not available.\n%v", err)
+		errMsg := fmt.Sprintf("The comment microservice is not available.\n%v", err)
+		logger.Error(errMsg)
 	}
 	defer func(restConn *grpc.ClientConn) {
 		err := restConn.Close()

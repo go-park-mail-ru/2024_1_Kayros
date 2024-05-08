@@ -14,6 +14,9 @@ type (
 		RestGrpcServer    `yaml:"rest-grpc-server"`
 		AuthGrpcServer    `yaml:"auth-grpc-server"`
 		CommentGrpcServer `yaml:"comment-grpc-server"`
+		UserGrpcServer    `yaml:"user-grpc-server"`
+		OrderGrpcServer   `yaml:"order-grpc-server"`
+		SessionGrpcServer `yaml:"session-grpc-server"`
 		Payment           `yaml:"payment"`
 	}
 
@@ -30,6 +33,21 @@ type (
 	CommentGrpcServer struct {
 		Host string `yaml:"host" env:"CMNT_GRPC_HOST"`
 		Port uint16 `yaml:"port" env:"CMNT_GRPC_PORT"`
+	}
+
+	UserGrpcServer struct {
+		Host string `yaml:"host" env:"USER_GRPC_HOST"`
+		Port uint16 `yaml:"port" env:"USER_GRPC_PORT"`
+	}
+
+	OrderGrpcServer struct {
+		Host string `yaml:"host" env:"ORDER_GRPC_HOST"`
+		Port uint16 `yaml:"port" env:"ORDER_GRPC_PORT"`
+	}
+
+	SessionGrpcServer struct {
+		Host string `yaml:"host" env:"SESSION_GRPC_HOST"`
+		Port uint16 `yaml:"port" env:"SESSION_GRPC_PORT"`
 	}
 
 	Server struct {
@@ -69,7 +87,6 @@ type (
 		Port                 uint16 `yaml:"port" env:"R_PORT"`
 		DatabaseSession      int    `yaml:"database-session" env:"R_DB_SESSION"`
 		DatabaseCsrf         int    `yaml:"database-csrf" env:"R_DB_CSRF"`
-		DatabaseUnauthTokens int    `yaml:"database-unauth-tokens" env:"R_DB_UNAUTH_TOKENS"`
 		User                 string `yaml:"user" env:"R_USER"`
 		Password             string `yaml:"password" env:"R_PASSWORD"`
 	}

@@ -1,0 +1,44 @@
+syntax = "proto3";
+option go_package = "ivan.session.v1;sessionv1";
+
+package session;
+import "google/protobuf/empty.proto";
+
+service SessionManager {
+  rpc SetSession (SetSessionData) returns (google.protobuf.Empty);
+  rpc GetSession (GetSessionData) returns (SessionValue);
+  rpc DeleteSession (DeleteSessionData) returns (google.protobuf.Empty);
+}
+
+message SetSessionData {
+  string key = 1;
+  string value = 2;
+  int32 database = 3;
+}
+
+message SetSessionPair {
+  string key = 1;
+  string value = 2;
+  int32 database = 3;
+}
+
+message GetSessionData {
+  SessionKey key = 1;
+  int32 database = 2;
+}
+
+message DeleteSessionData {
+  SessionKey key = 1;
+  int32 database = 2;
+}
+
+message SessionKey {
+  string data = 1;
+}
+
+message SessionValue {
+  string data = 1;
+}
+
+// protoc -I microservices/session/proto microservices/session/proto/session.proto --go_out=microservices/session/proto/
+// --go_opt=paths=source_relative --go-grpc_out=microservices/session/proto/ --go-grpc_opt=paths=source_relative

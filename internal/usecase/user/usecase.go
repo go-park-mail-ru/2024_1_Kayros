@@ -19,11 +19,12 @@ import (
 
 type Usecase interface {
 	GetData(ctx context.Context, email string) (*entity.User, error)
-	UpdateAddressByUnauthId(ctx context.Context, unauthId string, address string) error
-	GetAddressByUnauthId(ctx context.Context, unauthId string) (string, error)
+	Create(ctx context.Context, uProps *entity.User) (*entity.User, error)
 	UpdateData(ctx context.Context, data *props.UpdateUserDataProps) (*entity.User, error)
 	UpdateAddress(ctx context.Context, email string, address string) error
 	SetNewPassword(ctx context.Context, email string, pwds *props.SetNewUserPasswordProps) error
+	UpdateAddressByUnauthId(ctx context.Context, unauthId string, address string) error
+	GetAddressByUnauthId(ctx context.Context, unauthId string) (string, error)
 }
 
 type UsecaseLayer struct {
