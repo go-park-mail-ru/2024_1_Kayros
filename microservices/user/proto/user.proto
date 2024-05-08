@@ -10,7 +10,6 @@ service UserManager {
   rpc UpdateAddress(AddressData) returns (google.protobuf.Empty);
   rpc SetNewPassword(PasswordsChange) returns (google.protobuf.Empty);
   rpc Create(User) returns (User);
-  rpc 
   rpc UpdateAddressByUnauthId(AddressDataUnauth) returns (google.protobuf.Empty);
   rpc GetAddressByUnauthId(UnauthId) returns (Address);
 }

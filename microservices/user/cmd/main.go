@@ -7,7 +7,7 @@ import (
 
 	"2024_1_kayros/microservices/user/internal/repo"
 	"2024_1_kayros/microservices/user/internal/usecase"
-	"2024_1_kayros/microservices/user/proto"
+	userv1 "2024_1_kayros/microservices/user/proto"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

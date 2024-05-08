@@ -44,12 +44,14 @@ func NewLayer(repoUserProps repo.Repo, repoMinio minios3.Repo) Usecase {
 
 // GetData - method calls repo method to receive user data.
 func (uc Layer) GetData(ctx context.Context, email *userv1.Email) (*userv1.User, error) {
+	fmt.Println("user.GetData")
 	return uc.repoUser.GetByEmail(ctx, email)
 }
 
 // UpdateData - method used to update user info. it accepts non-password fields.
 // To update password use method SetNewUserPassword.
 func (uc Layer) UpdateData(ctx context.Context, data *userv1.UpdateUserData) (*userv1.User, error) {
+	fmt.Println("user.UpdateData")
 	u, err := uc.repoUser.GetByEmail(ctx, data.GetEmail())
 	if err != nil {
 		return nil, err

@@ -24,7 +24,7 @@ func main() {
 	port := fmt.Sprintf(":%d", cfg.CommentGrpcServer.Port)
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Println("The server cannot be started.\n%v", err)
+		log.Printf("The server cannot be started.\n%v", err)
 	} else {
 		log.Printf("The server listen port %d", cfg.CommentGrpcServer.Port)
 	}

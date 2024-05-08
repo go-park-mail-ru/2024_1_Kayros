@@ -41,6 +41,24 @@ services:
       - redis
       - postgres
       - minio
+  # rest-grpc:
+  #   restart: always
+  #   build: ../../
+  #   container_name: rest-grpc
+  #   ports:
+  #     - "8001:8001"
+  # auth-grpc:
+  #   restart: always
+  #   build: ../../
+  #   container_name: auth-grpc
+  #   ports:
+  #     - "8002:8002"
+  # comment-grpc:
+  #   restart: always
+  #   build: ../../
+  #   container_name: comment-grpc
+  #   ports:
+  #     - "8003:8003"
   nginx:
     image: nginx:latest
     container_name: nginx
