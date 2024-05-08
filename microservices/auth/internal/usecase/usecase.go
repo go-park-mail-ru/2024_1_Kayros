@@ -1,23 +1,36 @@
 package usecase
 
+import (
+	"2024_1_kayros/internal/entity"
+	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/internal/utils/myerrors"
+	authv1 "2024_1_kayros/microservices/auth/proto"
+	userv1 "2024_1_kayros/microservices/user/proto"
+	"bytes"
+	"context"
+	"errors"
+)
+
 
 type Usecase interface {
-	SignUpUser(ctx context.Context, email string, unauthId string, signupData *entity.User) (*entity.User, error)
-	SignInUser(ctx context.Context, email string, unauthId string, password string) (*entity.User, error)
+	authv1.UnsafeAuthManagerServer
+	SignUp(ctx context.Context, data *authv1.SignUpCredentials) (*authv1.User, error)
+	SignIn(ctx context.Context, data *authv1.SignInCredentials) (*authv1.User, error)
 }
 
-type UsecaseLayer struct {
-	repoUser user.Repo
+type Layer struct {
+	authv1.UnsafeAuthManagerServer
+	client userv1.UserManagerClient
 }
 
-func NewUsecaseLayer(repoUserProps user.Repo) Usecase {
-	return &UsecaseLayer{
-		repoUser: repoUserProps,
+func NewLayer(clientProps userv1.UserManagerClient) Usecase {
+	return &Layer{
+		client: clientProps,
 	}
 }
 
-func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, unauthId string, signupData *entity.User) (*entity.User, error) {
-	isExist, err := uc.isExistByEmail(ctx, email)
+func (uc *Layer) SignUp(ctx context.Context, data *authv1.SignUpCredentials) (*authv1.User, error) {
+	isExist, err := uc.IsExistByEmail(ctx, &userv1.Email{Email: data.GetEmail()})
 	if err != nil {
 		// we can skip error `myerrors.SqlNoRowsUserRelation`, because user must not to be
 		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
@@ -28,41 +41,35 @@ func (uc *UsecaseLayer) SignUpUser(ctx context.Context, email string, unauthId s
 		return nil, myerrors.UserAlreadyExist
 	}
 
-	address, err := uc.repoUser.GetAddressByUnauthId(ctx, unauthId)
+	address, err := uc.client.GetAddressByUnauthId(ctx, &userv1.UnauthId{UnauthId: data.GetUnauthId()})
 	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
 		return nil, err
 	}
-	signupData.Address = address
+	data.SignUpData.Address = address.GetAddress()
 
 	// we do copy for clean function
-	uCopy := entity.Copy(signupData)
+	uCopy := entity.Copy(convAuthUserIntoUser(data.GetSignUpData()))
 	salt, err := functions.GenerateNewSalt()
 	if err != nil {
 		return nil, err
 	}
-	hashPassword := functions.HashData(salt, signupData.Password)
-	uCopy.Password = string(hashPassword)
+	hashPassword := functions.HashData(salt, data.GetSignUpData().GetPassword())
+	uCopy.Password = &userv1.Password{Password: string(hashPassword)}
 
-	err = uc.repoUser.Create(ctx, uCopy)
+	uCreated, err := uc.client.Create(ctx, uCopy)
 	if err != nil {
 		return nil, err
 	}
-
-	uDB, err := uc.repoUser.GetByEmail(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-
-	return uDB, nil
+	return convUserIntoAuthUser(uCreated), nil
 }
 
-func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, unauthId string, password string) (*entity.User, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
+func (uc *Layer) SignIn(ctx context.Context, data *authv1.SignInCredentials) (*authv1.User, error) {
+	u, err := uc.client.GetData(ctx, &userv1.Email{Email: data.GetEmail()})
 	if err != nil {
 		return nil, err
 	}
 
-	isEqual, err := uc.checkPassword(ctx, email, password)
+	isEqual, err := uc.checkPassword(ctx, &userv1.Email{Email: data.Email}, &userv1.Password{Password: data.Password})
 	if err != nil {
 		return nil, err
 	}
@@ -70,11 +77,11 @@ func (uc *UsecaseLayer) SignInUser(ctx context.Context, email string, unauthId s
 		return nil, myerrors.BadAuthPassword
 	}
 
-	return u, nil
+	return convUserIntoAuthUser(u), nil
 }
 
-func (uc *UsecaseLayer) isExistByEmail(ctx context.Context, email string) (bool, error) {
-	_, err := uc.repoUser.GetByEmail(ctx, email)
+func (uc *Layer) IsExistByEmail(ctx context.Context, email *userv1.Email) (bool, error) {
+	_, err := uc.client.GetData(ctx, email)
 	if err != nil {
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 			return false, nil
@@ -85,15 +92,39 @@ func (uc *UsecaseLayer) isExistByEmail(ctx context.Context, email string) (bool,
 }
 
 // checkPassword - method used to check password with password saved in database
-func (uc *UsecaseLayer) checkPassword(ctx context.Context, email string, password string) (bool, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
+func (uc *Layer) checkPassword(ctx context.Context, email *userv1.Email, password *userv1.Password) (bool, error) {
+	u, err := uc.client.GetData(ctx, email)
 	if err != nil {
 		return false, err
 	}
-	uPasswordBytes := []byte(u.Password)
+	uPasswordBytes := []byte(u.GetPassword().GetPassword())
 
 	salt := make([]byte, 8)
 	copy(salt, uPasswordBytes[0:8])
-	hashPassword := functions.HashData(salt, password)
+	hashPassword := functions.HashData(salt, password.GetPassword())
 	return bytes.Equal(uPasswordBytes, hashPassword), nil
+}
+
+func convAuthUserIntoUser (u *authv1.User) *userv1.User {
+	return &userv1.User {
+		Id: u.GetId(),
+		Name: u.GetName(),
+		Phone: u.GetPhone(),
+		Email: &userv1.Email{Email: u.GetEmail()},
+		Address: &userv1.Address{Address: u.GetAddress()},
+		ImgUrl: u.GetImgUrl(),
+		CardNumber: u.GetCardNumber(),
+	}
+}
+
+func convUserIntoAuthUser (u *userv1.User) *authv1.User {
+	return &authv1.User {
+		Id: u.GetId(),
+		Name: u.GetName(),
+		Phone: u.GetPhone(),
+		Email:  u.GetEmail().GetEmail(),
+		Address: u.GetAddress().GetAddress(),
+		ImgUrl: u.GetImgUrl(),
+		CardNumber: u.GetCardNumber(),
+	}
 }

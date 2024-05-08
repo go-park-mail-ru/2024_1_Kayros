@@ -5,13 +5,16 @@ import (
 	"log"
 	"net"
 
-	rest "2024_1_kayros/microservices/comment/proto"
+	"2024_1_kayros/microservices/auth/internal/usecase"
+	authv1 "2024_1_kayros/microservices/auth/proto"
+	userv1 "2024_1_kayros/microservices/user/proto"
+
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/utils/functions"
-	"2024_1_kayros/services/postgres"
 )
 
 func main() {
@@ -25,15 +28,31 @@ func main() {
 		errMsg := fmt.Sprintf("The server cannot be started.\n%v", err)
 		logger.Fatal(errMsg)
 	}
-	infoMsg := fmt.Sprintf("The authentication server listens port %d", cfg.CommentGrpcServer.Port)
+	infoMsg := fmt.Sprintf("The authentication server listens port %d", cfg.AuthGrpcServer.Port)
 	logger.Info(infoMsg)
 
+	// init grpc server
 	server := grpc.NewServer()
-	postgreDB := postgres.Init(cfg, logger)
-	repoComment := repo.NewCommentLayer(postgreDB)
-	rest.RegisterCommentWorkerServer(server, usecase.NewCommentLayer(repoComment))
+
+	// connect to user microservice
+	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		errMsg := fmt.Sprintf("The user microservice is not available.\n%v", err)
+		logger.Error(errMsg)
+	}
+	defer func(userConn *grpc.ClientConn) {
+		err := userConn.Close()
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}(userConn)
+	client := userv1.NewUserManagerClient(userConn)
+
+	authv1.RegisterAuthManagerServer(server, usecase.NewLayer(client))
 	err = server.Serve(conn)
 	if err != nil {
 		log.Fatalf("error in serving server on port %d -  %s", cfg.CommentGrpcServer.Port, err)
 	}
+	
+	
 }

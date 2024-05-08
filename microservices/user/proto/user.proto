@@ -6,12 +6,13 @@ import "google/protobuf/empty.proto";
 
 service UserManager {
   rpc GetData(Email) returns (User);
-  rpc UpdateAddressByUnauthId(AddressDataUnauth) returns (google.protobuf.Empty);
-  rpc GetAddressByUnauthId(UnauthId) returns (Address);
   rpc UpdateData(UpdateUserData) returns (User);
   rpc UpdateAddress(AddressData) returns (google.protobuf.Empty);
   rpc SetNewPassword(PasswordsChange) returns (google.protobuf.Empty);
   rpc Create(User) returns (User);
+  rpc 
+  rpc UpdateAddressByUnauthId(AddressDataUnauth) returns (google.protobuf.Empty);
+  rpc GetAddressByUnauthId(UnauthId) returns (Address);
 }
 
 message Email {
