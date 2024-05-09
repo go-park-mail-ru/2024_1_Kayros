@@ -1,7 +1,7 @@
 syntax = "proto3";
-option go_package = "ivan.auth.v1;authv1";
+option go_package = "./auth";
 
-package proto;
+package auth;
 
 service AuthManager {
   rpc SignIn (SignInCredentials) returns (User);
@@ -32,6 +32,3 @@ message User {
   string card_number = 7;
   string password = 8;
 }
-
-// protoc -I microservices/auth/proto microservices/auth/proto/auth.proto --go_out=microservices/auth/proto/
-// --go_opt=paths=source_relative --go-grpc_out=microservices/auth/proto/ --go-grpc_opt=paths=source_relative

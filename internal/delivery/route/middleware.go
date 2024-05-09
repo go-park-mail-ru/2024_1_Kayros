@@ -5,27 +5,28 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
 	metrics "2024_1_kayros"
 	"2024_1_kayros/config"
+	protouser "2024_1_kayros/gen/go/user"
+	protosession "2024_1_kayros/gen/go/session"
 	"2024_1_kayros/internal/middleware"
-	rSession "2024_1_kayros/internal/repository/session"
-	rUser "2024_1_kayros/internal/repository/user"
 	ucSession "2024_1_kayros/internal/usecase/session"
+	"2024_1_kayros/internal/usecase/user"
 )
 
-func AddMiddleware(cfg *config.Project, db *sql.DB, redisClientSession *redis.Client, redisClientCsrf *redis.Client, mux *mux.Router, logger *zap.Logger, m *metrics.Metrics) http.Handler {
-	repoUser := rUser.NewRepoLayer(db)
-	repoSession := rSession.NewRepoLayer(redisClientSession)
-	repoCsrfTokens := rSession.NewRepoLayer(redisClientCsrf)
+func AddMiddleware(cfg *config.Project, db *sql.DB, sessionConn, userConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, m *metrics.Metrics) http.Handler {
+	// init user microservice client
+	grpcUserClient := protouser.NewUserManagerClient(userConn)
+	usecaseUser := user.NewUsecaseLayer(grpcUserClient)
+	// init session microservice client
+	grpcSessionClient := protosession.NewSessionManagerClient(sessionConn)
+	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient)
 
-	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
-	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrfTokens, logger)
-
-	handler := middleware.SessionAuthentication(mux, repoUser, usecaseSession, logger)
-	handler = middleware.Csrf(handler, usecaseCsrf, usecaseSession, cfg, logger)
+	handler := middleware.SessionAuthentication(mux, usecaseUser, usecaseSession, logger, &cfg.Redis)
+	handler = middleware.Csrf(handler, usecaseSession, cfg, logger)
 	handler = middleware.Cors(handler, logger)
 	handler = middleware.Access(handler, logger)
 	handler = middleware.Metrics(handler, m)

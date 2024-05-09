@@ -4,30 +4,26 @@ import (
 	"database/sql"
 
 	"2024_1_kayros/config"
+	"2024_1_kayros/gen/go/user"
+	"2024_1_kayros/gen/go/session"
 	dUser "2024_1_kayros/internal/delivery/user"
-	rMinio "2024_1_kayros/internal/repository/minios3"
-	rSession "2024_1_kayros/internal/repository/session"
-	ucSession "2024_1_kayros/internal/usecase/session"
-	"github.com/minio/minio-go/v7"
-	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
-
-	rUser "2024_1_kayros/internal/repository/user"
-
 	ucUser "2024_1_kayros/internal/usecase/user"
+	ucSession "2024_1_kayros/internal/usecase/session"
+
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
-func AddUserRouter(db *sql.DB, cfg *config.Project, minio *minio.Client, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, mux *mux.Router, logger *zap.Logger) {
-	repoUser := rUser.NewRepoLayer(db)
-	repoSession := rSession.NewRepoLayer(clientRedisSession)
-	repoCsrf := rSession.NewRepoLayer(clientRedisCsrf)
-	repoMinio := rMinio.NewRepoLayer(minio)
-
-	usecaseUser := ucUser.NewUsecaseLayer(repoUser, repoMinio)
-	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
-	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrf, logger)
-	deliveryUser := dUser.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, usecaseCsrf, logger)
+func AddUserRouter(db *sql.DB, cfg *config.Project, userConn, sessionConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger) {
+	// init user grpc client
+	grpcUserClient := user.NewUserManagerClient(userConn)
+	usecaseUser := ucUser.NewUsecaseLayer(grpcUserClient)
+	// init session grpc client
+	grpcSessionClient := session.NewSessionManagerClient(sessionConn)
+	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient)
+	
+	deliveryUser := dUser.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, logger)
 
 	mux.HandleFunc("/user", deliveryUser.UserData).Methods("GET").Name("user_data")
 	mux.HandleFunc("/user", deliveryUser.UpdateInfo).Methods("PUT").Name("update_user")

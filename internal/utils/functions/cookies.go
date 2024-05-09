@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"2024_1_kayros/config"
 	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
@@ -11,12 +12,12 @@ import (
 )
 
 // DeleteCookiesFromDB - method deletes session_id and csrf_token from Redis dbs
-func DeleteCookiesFromDB(r *http.Request, ucCsrf session.Usecase, ucSession session.Usecase) error {
+func DeleteCookiesFromDB(r *http.Request, ucSession session.Usecase, cfg *config.Redis) error {
 	sessionCookie, err := r.Cookie(cnst.SessionCookieName)
 	if err != nil {
 		return err
 	}
-	err = ucSession.DeleteKey(r.Context(), alias.SessionKey(sessionCookie.Value))
+	err = ucSession.DeleteKey(r.Context(), alias.SessionKey(sessionCookie.Value), int32(cfg.DatabaseSession))
 	if err != nil {
 		return err
 	}
@@ -25,7 +26,7 @@ func DeleteCookiesFromDB(r *http.Request, ucCsrf session.Usecase, ucSession sess
 	if err != nil {
 		return err
 	}
-	err = ucCsrf.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value))
+	err = ucSession.DeleteKey(r.Context(), alias.SessionKey(csrfCookie.Value), int32(cfg.DatabaseCsrf))
 	if err != nil {
 		return err
 	}
@@ -55,8 +56,8 @@ func CookieExpired(w http.ResponseWriter, r *http.Request) (http.ResponseWriter,
 	return w, nil
 }
 
-func FlashCookie(r *http.Request, w http.ResponseWriter, ucCsrf session.Usecase, ucSession session.Usecase) (http.ResponseWriter, error) {
-	err := DeleteCookiesFromDB(r, ucCsrf, ucSession)
+func FlashCookie(r *http.Request, w http.ResponseWriter, ucSession session.Usecase, cfg *config.Redis) (http.ResponseWriter, error) {
+	err := DeleteCookiesFromDB(r, ucSession, cfg)
 	if err != nil {
 		if !(errors.Is(err, myerrors.RedisNoData) || errors.Is(err, http.ErrNoCookie)) {
 			return w, err

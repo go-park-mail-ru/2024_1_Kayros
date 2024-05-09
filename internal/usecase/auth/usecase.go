@@ -1,29 +1,56 @@
 package auth
 
 import (
+	"2024_1_kayros/gen/go/auth"
+	"2024_1_kayros/internal/entity"
 	"context"
-	authv1 "2024_1_kayros/microservices/auth/proto"
 )
 
 type Usecase interface {
-	SignUp(ctx context.Context, data *authv1.SignUpCredentials) (*authv1.User, error)
-	SignIn(ctx context.Context, data *authv1.SignInCredentials) (*authv1.User, error)
+	SignUp(ctx context.Context, u *entity.User, unauthId string) (*entity.User, error)
+	SignIn(ctx context.Context, email string, password string, unauthId string) (*entity.User, error)
 }
 
 type UsecaseLayer struct {
-	grpcClient authv1.AuthManagerClient
+	grpcClient auth.AuthManagerClient
 }
 
-func NewUsecaseLayer(restClientProps authv1.AuthManagerClient) Usecase {
+func NewUsecaseLayer(restClientProps auth.AuthManagerClient) Usecase {
 	return &UsecaseLayer{
 		grpcClient: restClientProps,
 	}
 }
 
-func (uc *UsecaseLayer) SignUp(ctx context.Context, data *authv1.SignUpCredentials) (*authv1.User, error) {
-	return uc.grpcClient.SignUp(ctx, data)
+func (uc *UsecaseLayer) SignUp(ctx context.Context, u *entity.User, unauthId string) (*entity.User, error) {
+	data := &auth.SignUpCredentials {
+		Email: u.Email,
+		UnauthId: unauthId,
+		Password: u.Password,
+		Name: u.Name,
+	}
+	uSignedUp, err := uc.grpcClient.SignUp(ctx, data)
+	return cnvAuthUserIntoEntityUser(uSignedUp), err
 }
 
-func (uc *UsecaseLayer) SignIn(ctx context.Context, data *authv1.SignInCredentials) (*authv1.User, error) {
-	return uc.grpcClient.SignIn(ctx, data)
+func cnvAuthUserIntoEntityUser (u *auth.User) *entity.User {
+	return &entity.User{
+		Id: u.GetId(),
+		Name: u.GetName(),
+		Phone: u.GetPhone(),
+		Email: u.GetEmail(),
+		Address: u.GetAddress(),
+		ImgUrl: u.GetImgUrl(),
+		CardNumber: u.GetCardNumber(),
+		Password: u.GetPassword(),
+	}
+}
+
+func (uc *UsecaseLayer) SignIn(ctx context.Context, email string, password string, unauthId string) (*entity.User, error) {
+	data := &auth.SignInCredentials{
+		Email: email,
+		Password: password,
+		UnauthId: unauthId,
+	}
+	u, err := uc.grpcClient.SignIn(ctx, data)
+	return cnvAuthUserIntoEntityUser(u), err
 }

@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"2024_1_kayros/internal/utils/myerrors"
-	rest "2024_1_kayros/microservices/restaurants/proto"
+	"2024_1_kayros/gen/go/rest"
 )
 
 type Rest interface {

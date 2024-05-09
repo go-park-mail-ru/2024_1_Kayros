@@ -1,7 +1,8 @@
 syntax = "proto3";
-option go_package = "ivan.user.v1;userv1";
 
+option go_package = "./user";
 package user;
+
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
@@ -17,28 +18,23 @@ service UserManager {
 }
 
 message PasswordCheck {
-  Email email = 1;
-  Password pwd = 2;
+  string email = 1;
+  string password = 2;
 }
-
 
 message Email {
   string email = 1;
-}
-
-message Password {
-  string password = 1;
 }
 
 message User {
   uint64 id = 1;
   string name = 2;
   string phone = 3;
-  Email email = 4;
-  Address address = 5;
+  string email = 4;
+  string address = 5;
   string img_url = 6;
   string card_number = 7;
-  Password password = 8;
+  string password = 8;
 }
 
 message UnauthId {
@@ -50,28 +46,25 @@ message Address {
 }
 
 message AddressDataUnauth {
-  UnauthId id = 1;
-  Address address = 2;
+  string unauth_id = 1;
+  string address = 2;
 }
 
 message AddressData {
-  Email email = 1;
-  Address address = 2;
+  string email = 1;
+  string address = 2;
 }
 
 message UpdateUserData {
   User update_info = 1;
-  Email email = 2;
+  string email = 2;
   bytes file_data = 3;
   string file_name = 4;
   int64 file_size = 5;
 }
 
 message PasswordsChange {
-  Password password = 1;
-  Password new_password = 2;
-  Email email = 3;
+  string password = 1;
+  string new_password = 2;
+  string email = 3;
 }
-
-// protoc -I microservices/user/proto microservices/user/proto/user.proto --go_out=microservices/user/proto/
-// --go_opt=paths=source_relative --go-grpc_out=microservices/user/proto/ --go-grpc_opt=paths=source_relative

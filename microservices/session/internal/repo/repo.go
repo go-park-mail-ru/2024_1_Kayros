@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"2024_1_kayros/internal/utils/myerrors"
-	sessionv1 "2024_1_kayros/microservices/session/proto"
+	"2024_1_kayros/gen/go/session"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type Repo interface {
-	GetValue(ctx context.Context, key *sessionv1.SessionKey) (*sessionv1.SessionValue, error)
-	SetValue(ctx context.Context, data *sessionv1.SetSessionPair) error
-	DeleteValue(ctx context.Context, key *sessionv1.SessionKey) error
+	GetValue(ctx context.Context, key string) (*session.SessionValue, error)
+	SetValue(ctx context.Context, key string, value string) error
+	DeleteValue(ctx context.Context, key string) error
 }
 
 type Layer struct {
@@ -27,19 +27,19 @@ func NewLayer(client *redis.Client) Repo {
 	}
 }
 
-func (repo *Layer) GetValue(ctx context.Context, key *sessionv1.SessionKey) (*sessionv1.SessionValue, error) {
-	value, err := repo.redis.Get(ctx, key.GetData()).Result()
+func (repo *Layer) GetValue(ctx context.Context, key string) (*session.SessionValue, error) {
+	value, err := repo.redis.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return &sessionv1.SessionValue{}, myerrors.RedisNoData
+			return &session.SessionValue{}, myerrors.RedisNoData
 		}
-		return &sessionv1.SessionValue{}, err
+		return &session.SessionValue{}, err
 	}
-	return &sessionv1.SessionValue{Data: value}, nil
+	return &session.SessionValue{Data: value}, nil
 }
 
-func (repo *Layer) SetValue(ctx context.Context, data *sessionv1.SetSessionPair) error {
-	err := repo.redis.Set(ctx, data.GetKey(), data.GetValue(), 14*24*time.Hour).Err()
+func (repo *Layer) SetValue(ctx context.Context, key string, value string) error {
+	err := repo.redis.Set(ctx, key, value, 14*24*time.Hour).Err()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return myerrors.RedisNoData
@@ -49,8 +49,8 @@ func (repo *Layer) SetValue(ctx context.Context, data *sessionv1.SetSessionPair)
 	return nil
 }
 
-func (repo *Layer) DeleteValue(ctx context.Context, key *sessionv1.SessionKey) error {
-	err := repo.redis.Del(ctx, key.GetData()).Err()
+func (repo *Layer) DeleteValue(ctx context.Context, key string) error {
+	err := repo.redis.Del(ctx, key).Err()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return myerrors.RedisNoData

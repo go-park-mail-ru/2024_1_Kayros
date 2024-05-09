@@ -18,8 +18,8 @@ import (
 	ucFood "2024_1_kayros/internal/usecase/food"
 	ucRest "2024_1_kayros/internal/usecase/restaurants"
 	ucSearch "2024_1_kayros/internal/usecase/search"
-	comment "2024_1_kayros/microservices/comment/proto"
-	rest "2024_1_kayros/microservices/restaurants/proto"
+	"2024_1_kayros/gen/go/comment"
+	"2024_1_kayros/gen/go/rest"
 )
 
 func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn *grpc.ClientConn, commentConn *grpc.ClientConn) {

@@ -8,7 +8,7 @@ import (
 
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
-	comment "2024_1_kayros/microservices/comment/proto"
+	"2024_1_kayros/gen/go/comment"
 )
 
 type Comment interface {

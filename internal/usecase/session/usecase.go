@@ -2,39 +2,51 @@ package session
 
 import (
 	"context"
-
-	"2024_1_kayros/internal/repository/session"
 	"2024_1_kayros/internal/utils/alias"
-	"go.uber.org/zap"
+	"2024_1_kayros/gen/go/session"
 )
 
 //go:generate mockgen -source=./usecase.go -destination=./usecase_mock.go -package=session
 type Usecase interface {
-	GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error)
-	SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error
-	DeleteKey(ctx context.Context, key alias.SessionKey) error
+	GetValue(ctx context.Context, key alias.SessionKey, databaseNum int32) (alias.SessionValue, error)
+	SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue, databaseNum int32) error
+	DeleteKey(ctx context.Context, key alias.SessionKey, databaseNum int32) error
 }
 
 type UsecaseLayer struct {
-	repoSession session.Repo
-	logger      *zap.Logger
+	client session.SessionManagerClient
 }
 
-func NewUsecaseLayer(repoSessionProps session.Repo, loggerProps *zap.Logger) Usecase {
+func NewUsecaseLayer(clientProps session.SessionManagerClient) Usecase {
 	return &UsecaseLayer{
-		repoSession: repoSessionProps,
-		logger:      loggerProps,
+		client: clientProps,
 	}
 }
 
-func (uc *UsecaseLayer) GetValue(ctx context.Context, key alias.SessionKey) (alias.SessionValue, error) {
-	return uc.repoSession.GetValue(ctx, key)
+func (uc *UsecaseLayer) GetValue(ctx context.Context, key alias.SessionKey, databaseNum int32) (alias.SessionValue, error) {
+	data := &session.GetSessionData {
+		Key:  string(key),
+		Database: databaseNum,
+	}
+	value, err := uc.client.GetSession(ctx, data)
+	return alias.SessionValue(value.GetData()), err 
 }
 
-func (uc *UsecaseLayer) SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue) error {
-	return uc.repoSession.SetValue(ctx, key, value)
+func (uc *UsecaseLayer) SetValue(ctx context.Context, key alias.SessionKey, value alias.SessionValue, databaseNum int32) error {
+	data := &session.SetSessionData{
+		Key: string(key),
+		Value: string(value),
+		Database: databaseNum,
+	}
+	_, err := uc.client.SetSession(ctx, data)
+	return err
 }
 
-func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey) error {
-	return uc.repoSession.DeleteKey(ctx, key)
+func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey, databaseNum int32) error {
+	data := &session.DeleteSessionData{
+		Key: string(key),
+		Database: databaseNum,
+	}
+	_, err := uc.client.DeleteSession(ctx, data)
+	return err
 }

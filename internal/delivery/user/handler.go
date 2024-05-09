@@ -21,17 +21,15 @@ import (
 
 type Delivery struct {
 	ucSession session.Usecase
-	ucCsrf    session.Usecase
 	ucUser    user.Usecase
 	cfg       *config.Project
 	logger    *zap.Logger
 }
 
-func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, ucCsrfProps session.Usecase, loggerProps *zap.Logger) *Delivery {
+func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, loggerProps *zap.Logger) *Delivery {
 	return &Delivery{
 		ucUser:    ucUserProps,
 		ucSession: ucSessionProps,
-		ucCsrf:    ucCsrfProps,
 		cfg:       cfgProps,
 		logger:    loggerProps,
 	}
@@ -42,25 +40,12 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
 
-	address := ""
-	u, err := d.ucUser.GetData(r.Context(), email)
-	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+	address, err := d.ucUser.UserAddress(r.Context(), email, unauthId)
+	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	unauthAddress, err := d.ucUser.GetAddressByUnauthId(r.Context(), unauthId)
-	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-		return
-	}
-	if unauthAddress != "" {
-		address = unauthAddress
-	} else if u != nil && u.Address != "" {
-		address = u.Address
-	}
-
 	address = sanitizer.Address(address)
 	w = functions.JsonResponse(w, map[string]string{"address": address})
 }
@@ -80,7 +65,7 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
-		w, err = functions.FlashCookie(r, w, d.ucCsrf, d.ucSession)
+		w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
 		if err != nil {
 			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -89,8 +74,7 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
-	uSanitizer := sanitizer.User(u)
-	uDTO := dto.NewUserData(uSanitizer)
+	uDTO := dto.NewUserData(sanitizer.User(u))
 	w = functions.JsonResponse(w, uDTO)
 }
 
@@ -120,12 +104,11 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}(file)
-	data := props.GetUpdateUserDataProps(email, file, handler, u)
-	uUpdated, err := d.ucUser.UpdateData(r.Context(), data)
+	uUpdated, err := d.ucUser.UpdateData(r.Context(), props.GetUpdateUserDataProps(email, file, handler, u))
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			w, err := functions.FlashCookie(r, w, d.ucCsrf, d.ucSession)
+			w, err := functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
 			if err != nil {
 				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -146,19 +129,17 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	uSanitizer := sanitizer.User(uUpdated)
-	userDTO := dto.NewUserData(uSanitizer)
+	userDTO := dto.NewUserData(sanitizer.User(uUpdated))
 
 	if email != userDTO.Email {
-		err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
+		err = functions.DeleteCookiesFromDB(r, d.ucSession, &d.cfg.Redis)
 		if err != nil {
 			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 
-		setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, uUpdated.Email, d.cfg.CsrfSecretKey)
-		w, err = functions.SetCookie(w, r, setCookieProps)
+		w, err = functions.SetCookie(w, r, d.ucSession, uUpdated.Email, d.cfg)
 		if err != nil {
 			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		}
@@ -193,31 +174,21 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if email != "" {
-		err = d.ucUser.UpdateAddress(r.Context(), email, address.Data)
-		if err != nil {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-				w, err = functions.FlashCookie(r, w, d.ucCsrf, d.ucSession)
-				if err != nil {
-					d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-					w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-					return
-				}
-				w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+	d.ucUser.UpdateAddress(r.Context(), email, unauthId)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
+			if err != nil {
+				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 				return
 			}
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 			return
 		}
-	}
-	if unauthId != "" {
-		err = d.ucUser.UpdateAddressByUnauthId(r.Context(), unauthId, address.Data)
-		if err != nil {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-			return
-		}
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
 	}
 	w = functions.JsonResponse(w, map[string]string{"detail": "Адрес успешно добавлен"})
 }
@@ -252,11 +223,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
-	data := &props.SetNewUserPasswordProps{
-		Password:    pwds.Password,
-		PasswordNew: pwds.PasswordNew,
-	}
-	err = d.ucUser.SetNewPassword(r.Context(), email, data)
+	err = d.ucUser.SetNewPassword(r.Context(), email, pwds.Password, pwds.PasswordNew)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.IncorrectCurrentPassword) {
@@ -268,7 +235,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			w, err = functions.FlashCookie(r, w, d.ucCsrf, d.ucSession)
+			w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
 			if err != nil {
 				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -281,15 +248,13 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = functions.DeleteCookiesFromDB(r, d.ucSession, d.ucCsrf)
+	err = functions.DeleteCookiesFromDB(r, d.ucSession, &d.cfg.Redis)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-
-	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, email, d.cfg.CsrfSecretKey)
-	w, err = functions.SetCookie(w, r, setCookieProps)
+	w, err = functions.SetCookie(w, r, d.ucSession, email, d.cfg)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}

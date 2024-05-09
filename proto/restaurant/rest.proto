@@ -1,7 +1,6 @@
 syntax = "proto3";
 
-option go_package = "./;rest";
-
+option go_package = "./rest";
 package rest;
 
 message RestId {

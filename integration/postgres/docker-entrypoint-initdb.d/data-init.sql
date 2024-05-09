@@ -82,7 +82,7 @@ INSERT INTO food (name, restaurant_id, category_id, weight, price, proteins, fat
 VALUES ('Салат с миксом листьев и ростками сои', 1, 3, 220, 450, NULL, NULL, NULL, '/minio-api/foods/1.jpg'),
        ('Салат с сыром Рокфор, грушей и грецкими орехами', 1, 3, 200, 500, NULL, NULL, NULL,
         '/minio-api/foods/2.jpg'),
-       ('Суп-пюре из тыквы', 1, 6, 300, 420, NULL, NULL, NULL, '/minio-api/foods/r3.jpg'),
+       ('Суп-пюре из тыквы', 1, 6, 300, 420, NULL, NULL, NULL, '/minio-api/foods/3.jpg'),
        ('Террин из кролика с домашним хлебом', 1, 2, 180, 480, NULL, NULL, NULL, '/minio-api/foods/4.jpg'),
        ('Пицца с тремя видами сыра', 1, 4, 350, 520, NULL, NULL, NULL, '/minio-api/foods/5.jpg'),
        ('Паста с соусом песто и кедровыми орехами', 1, 5, 300, 450, NULL, NULL, NULL, '/minio-api/foods/6.jpg'),

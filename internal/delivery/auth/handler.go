@@ -7,35 +7,26 @@ import (
 	"net/http"
 
 	"2024_1_kayros/config"
-	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/auth"
 	"2024_1_kayros/internal/usecase/session"
-	"2024_1_kayros/internal/usecase/user"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
-	"2024_1_kayros/internal/utils/props"
 	"2024_1_kayros/internal/utils/sanitizer"
-	authv1 "2024_1_kayros/microservices/auth/proto"
-
 	"go.uber.org/zap"
 )
 
 type Delivery struct {
-	ucSession session.Usecase
-	ucUser    user.Usecase
-	ucCsrf    session.Usecase
+	ucSession session.Usecase  // methods for communicating to microservice session
 	ucAuth    auth.Usecase
 	logger    *zap.Logger
 	cfg       *config.Project
 }
 
-func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, ucCsrfProps session.Usecase, ucAuthProps auth.Usecase, loggerProps *zap.Logger) *Delivery {
+func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucAuthProps auth.Usecase, loggerProps *zap.Logger) *Delivery {
 	return &Delivery{
 		ucSession: ucSessionProps,
-		ucUser:    ucUserProps,
-		ucCsrf:    ucCsrfProps,
 		ucAuth:    ucAuthProps,
 		logger:    loggerProps,
 		cfg:       cfgProps,
@@ -74,15 +65,9 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
-	u := dto.NewUserFromSignUpForm(&signupDTO)
 
-	signUpData := &authv1.SignUpCredentials {
-		Email: u.Email,
-		UnauthId: unauthId,
-		Name: u.Name,
-		Password: u.Password,
-	}
-	uAuth, err := d.ucAuth.SignUp(r.Context(), signUpData)
+	u := dto.NewUserFromSignUpForm(&signupDTO)
+	uSignedUp, err := d.ucAuth.SignUp(r.Context(), u, unauthId)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.UserAlreadyExist) {
@@ -93,42 +78,13 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	u = sanitizer.User(cnvAuthUserIntoEntityUser(uAuth))
-	uDTO := dto.NewUserData(u)
+	uDTO := dto.NewUserData(sanitizer.User(uSignedUp))
 
-	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, u.Email, d.cfg.CsrfSecretKey)
-	w, err = functions.SetCookie(w, r, setCookieProps)
+	w, err = functions.SetCookie(w, r, d.ucSession, u.Email, d.cfg)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
 	w = functions.JsonResponse(w, uDTO)
-}
-
-func cnvUserIntoAuthUser (u *entity.User) *authv1.User {
-	return &authv1.User{
-		Id: u.Id,
-		Name: u.Name,
-		Phone: u.Phone,
-		Email: u.Email,
-		Address: u.Address,
-		ImgUrl: u.ImgUrl,
-		CardNumber: u.CardNumber,
-		Password: u.Password,
-	}
-}
-
-
-func cnvAuthUserIntoEntityUser (u *authv1.User) *entity.User {
-	return &entity.User{
-		Id: u.GetId(),
-		Name: u.GetName(),
-		Phone: u.GetPhone(),
-		Email: u.GetEmail(),
-		Address: u.GetAddress(),
-		ImgUrl: u.GetImgUrl(),
-		CardNumber: u.GetCardNumber(),
-		Password: u.GetPassword(),
-	}
 }
 
 func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
@@ -164,13 +120,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
-	signInData := &authv1.SignInCredentials {
-		Email: bodyDTO.Email,
-		UnauthId: unauthId,
-		Password: bodyDTO.Password,
-	}
-	u, err := d.ucAuth.SignIn(r.Context(),signInData)
+	u, err := d.ucAuth.SignIn(r.Context(), bodyDTO.Email, unauthId, bodyDTO.Password)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) || errors.Is(err, myerrors.BadAuthPassword) {
@@ -180,11 +130,9 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	uSanitizer := sanitizer.User(cnvAuthUserIntoEntityUser(u))
-	uDTO := dto.NewUserData(uSanitizer)
+	uDTO := dto.NewUserData(sanitizer.User(u))
 
-	setCookieProps := props.GetSetCookieProps(d.ucCsrf, d.ucSession, u.Email, d.cfg.CsrfSecretKey)
-	w, err = functions.SetCookie(w, r, setCookieProps)
+	w, err = functions.SetCookie(w, r, d.ucSession, u.Email, d.cfg)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
@@ -199,7 +147,7 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w, err := functions.FlashCookie(r, w, d.ucCsrf, d.ucSession)
+	w, err := functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)

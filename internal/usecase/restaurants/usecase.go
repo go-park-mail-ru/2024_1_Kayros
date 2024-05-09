@@ -5,7 +5,7 @@ import (
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
-	rest "2024_1_kayros/microservices/restaurants/proto"
+	"2024_1_kayros/gen/go/rest"
 )
 
 type Usecase interface {

@@ -2,7 +2,7 @@ package comment
 
 import (
 	"2024_1_kayros/internal/entity"
-	comment "2024_1_kayros/microservices/comment/proto"
+	"2024_1_kayros/gen/go/comment"
 )
 
 func FromGrpcStructToComment(grpcCom *comment.Comment) *entity.Comment {

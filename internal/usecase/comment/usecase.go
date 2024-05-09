@@ -6,7 +6,7 @@ import (
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
-	comment "2024_1_kayros/microservices/comment/proto"
+	"2024_1_kayros/gen/go/comment"
 )
 
 type Usecase interface {

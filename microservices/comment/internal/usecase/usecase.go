@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"2024_1_kayros/microservices/comment/internal/repo"
-	"2024_1_kayros/microservices/comment/proto"
+	"2024_1_kayros/gen/go/comment"
 )
 
 type Comment interface {

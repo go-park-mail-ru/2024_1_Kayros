@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"2024_1_kayros/microservices/restaurants/internal/repo"
-	rest "2024_1_kayros/microservices/restaurants/proto"
+	"2024_1_kayros/gen/go/rest"
 )
 
 type Rest interface {

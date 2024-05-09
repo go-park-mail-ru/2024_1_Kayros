@@ -2,40 +2,47 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
+	"os"
+	"os/signal"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"2024_1_kayros/config"
-	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/gen/go/comment"
 	"2024_1_kayros/microservices/comment/internal/repo"
 	"2024_1_kayros/microservices/comment/internal/usecase"
-	rest "2024_1_kayros/microservices/comment/proto"
 	"2024_1_kayros/services/postgres"
 )
 
 func main() {
 	logger := zap.Must(zap.NewProduction())
-	functions.InitDtoValidator(logger)
 	cfg := config.NewConfig(logger)
 
 	port := fmt.Sprintf(":%d", cfg.CommentGrpcServer.Port)
-	lis, err := net.Listen("tcp", port)
+	conn, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Printf("The server cannot be started.\n%v", err)
-	} else {
-		log.Printf("The server listen port %d", cfg.CommentGrpcServer.Port)
+		logger.Fatal("The microservice comment doesn't respond", zap.String("error", err.Error()))
 	}
+	logger.Info(fmt.Sprintf("The microservice comment responds on port %d", cfg.CommentGrpcServer.Port))
 
+	//init grpc server
 	server := grpc.NewServer()
-
+	//init services for server work
 	postgreDB := postgres.Init(cfg, logger)
 	repoComment := repo.NewCommentLayer(postgreDB)
-	rest.RegisterCommentWorkerServer(server, usecase.NewCommentLayer(repoComment))
-	err = server.Serve(lis)
+	comment.RegisterCommentWorkerServer(server, usecase.NewCommentLayer(repoComment))
+	err = server.Serve(conn)
 	if err != nil {
-		log.Fatalf("error in serving server on port %d -  %s", cfg.CommentGrpcServer.Port, err)
+		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port), zap.String("error", err.Error()))
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+
+	server.GracefulStop()
+	logger.Info("The microservice comment has shut down")
+	os.Exit(0)
 }

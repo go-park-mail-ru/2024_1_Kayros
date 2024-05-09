@@ -102,12 +102,12 @@ func NewConfig(logger *zap.Logger) *Project {
 
 	err := cleanenv.ReadConfig("config/config.yaml", cfg)
 	if err != nil {
-		logger.Fatal("Error reading application configuration", zap.Error(err))
+		logger.Fatal("Error reading application configuration", zap.String("error", err.Error()))
 	}
 
 	err = cleanenv.ReadEnv(cfg)
 	if err != nil {
-		logger.Fatal("Error creating configuration object", zap.Error(err))
+		logger.Fatal("Error creating configuration object", zap.String("error", err.Error()))
 	}
 
 	logger.Info("Reading configuration successful")

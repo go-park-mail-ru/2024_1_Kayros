@@ -3,7 +3,7 @@ package rest
 import (
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
-	rest "2024_1_kayros/microservices/restaurants/proto"
+	"2024_1_kayros/gen/go/rest"
 )
 
 func FromGrpcStructToRestaurant(grpcRest *rest.Rest) *entity.Restaurant {

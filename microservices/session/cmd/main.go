@@ -2,34 +2,31 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
+	"os"
+	"os/signal"
 
+	"2024_1_kayros/gen/go/session"
 	"2024_1_kayros/microservices/session/internal/repo"
 	"2024_1_kayros/microservices/session/internal/usecase"
-	sessionv1 "2024_1_kayros/microservices/session/proto"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"2024_1_kayros/config"
-	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/redis"
 )
 
 func main() {
 	logger := zap.Must(zap.NewProduction())
-	functions.InitDtoValidator(logger)
 	cfg := config.NewConfig(logger)
 
 	port := fmt.Sprintf(":%d", cfg.SessionGrpcServer.Port)
 	conn, err := net.Listen("tcp", port)
 	if err != nil {
-		errMsg := fmt.Sprintf("The server cannot be started.\n%v", err)
-		logger.Fatal(errMsg)
+		logger.Fatal("The microservice session doesn't respond", zap.String("error", err.Error()))
 	}
-	infoMsg := fmt.Sprintf("The session server listens port %d", cfg.SessionGrpcServer.Port)
-	logger.Info(infoMsg)
+	logger.Info(fmt.Sprintf("The microservice session responds on port %d", cfg.SessionGrpcServer.Port))
 
 	server := grpc.NewServer()
 	redisSession := redis.Init(cfg, logger, cfg.Redis.DatabaseSession)
@@ -38,9 +35,17 @@ func main() {
 	repoSession := repo.NewLayer(redisSession)
 	repoCsrf := repo.NewLayer(redisCsrf)
 	
-	sessionv1.RegisterSessionManagerServer(server, usecase.NewLayer(repoCsrf, repoSession, &cfg.Redis))
+	session.RegisterSessionManagerServer(server, usecase.NewLayer(repoCsrf, repoSession, &cfg.Redis))
 	err = server.Serve(conn)
 	if err != nil {
-		log.Fatalf("error in serving server on port %d -  %s", cfg.SessionGrpcServer.Port, err)
+		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.SessionGrpcServer.Host, cfg.SessionGrpcServer.Port), zap.String("error", err.Error()))
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+
+	server.GracefulStop()
+	logger.Info("The microservice session has shut down")
+	os.Exit(0)
 }

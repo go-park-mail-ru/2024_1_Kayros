@@ -18,7 +18,7 @@ func Init(cfg *config.Project, logger *zap.Logger) *minio.Client {
 		Secure: cfg.Minio.SslMode,
 	})
 	if err != nil {
-		logger.Fatal("Failed to connect to Minio", zap.Error(err))
+		logger.Fatal("Failed to connect to Minio", zap.String("error", err.Error()))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -27,7 +27,6 @@ func Init(cfg *config.Project, logger *zap.Logger) *minio.Client {
 	for _, bucket := range buckets {
 		makeBucket(client, bucket, ctx, logger)
 	}
-
 	logger.Info("Minio connected successfully")
 	return client
 }
@@ -37,14 +36,11 @@ func makeBucket(client *minio.Client, bucket string, ctx context.Context, logger
 	if err != nil {
 		isExist, err := client.BucketExists(ctx, bucket)
 		if err == nil && isExist {
-			msg := fmt.Sprintf("A bucket named %s already exists", bucket)
-			logger.Info(msg)
+			logger.Info(fmt.Sprintf("A bucket named %s already exists", bucket))
 			return
 		} else {
-			msg := fmt.Sprintf("Creating a bucket with a name %s failed", bucket)
-			logger.Fatal(msg, zap.Error(err))
+			logger.Fatal(fmt.Sprintf("Creating a bucket with a name %s failed", bucket), zap.String("error", err.Error()))
 		}
 	}
-	msg := fmt.Sprintf("A bucker named %s created successfully", bucket)
-	logger.Info(msg)
+	logger.Info(fmt.Sprintf("A bucker named %s created successfully", bucket))
 }

@@ -19,3 +19,9 @@ dep:
 clean:
 	go clean
 	rm ${BINARY_NAME}
+
+generate:
+	go generate 
+
+pb:
+	protoc -I proto proto/**/*.proto --go_out=gen/go --go-grpc_out=gen/go
