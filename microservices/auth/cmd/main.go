@@ -29,7 +29,7 @@ func main() {
 	logger.Info(fmt.Sprintf("The microservice authorization responds on port %d", cfg.AuthGrpcServer.Port))
 
 	// connecting to user microservice
-	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.AuthGrpcServer.Host, cfg.AuthGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error("The microservice authorization is not available", zap.String("error", err.Error()))
 	}
@@ -47,7 +47,7 @@ func main() {
 	auth.RegisterAuthManagerServer(server, usecase.NewLayer(client))
 	err = server.Serve(conn)
 	if err != nil {
-		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.AuthGrpcServer.Host, cfg.CommentGrpcServer.Port), zap.String("error", err.Error()))
+		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.AuthGrpcServer.Host, cfg.AuthGrpcServer.Port), zap.String("error", err.Error()))
 	}
 
 	// graceful shutdown
