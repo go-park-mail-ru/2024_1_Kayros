@@ -10,14 +10,13 @@ import (
 	rFood "2024_1_kayros/internal/repository/food"
 	rOrder "2024_1_kayros/internal/repository/order"
 	rRest "2024_1_kayros/internal/repository/restaurants"
-	rUser "2024_1_kayros/internal/repository/user"
 	ucOrder "2024_1_kayros/internal/usecase/order"
 )
 
 func AddOrderRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
 	repoOrder := rOrder.NewRepoLayer(db)
 	repoFood := rFood.NewRepoLayer(db)
-	repoUser := rUser.NewRepoLayer(db)
+	repoUser := rUser.NewRepoLayer(db) 
 	repoRest := rRest.NewRepoLayer(db)
 	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, repoUser, repoRest)
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)

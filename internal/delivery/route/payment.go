@@ -8,28 +8,26 @@ import (
 	rFood "2024_1_kayros/internal/repository/food"
 	rOrder "2024_1_kayros/internal/repository/order"
 	rRest "2024_1_kayros/internal/repository/restaurants"
-	rSession "2024_1_kayros/internal/repository/session"
-	rUser "2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/usecase/order"
 	ucSession "2024_1_kayros/internal/usecase/session"
+	sessionproto "2024_1_kayros/gen/go/session"
+
 	"github.com/gorilla/mux"
-	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
 
 	"go.uber.org/zap"
 )
 
-func AddPaymentRouter(db *sql.DB, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, mux *mux.Router, logger *zap.Logger, cfg *config.Payment) {
+func AddPaymentRouter(db *sql.DB, sessionConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, cfg *config.Project) {
 	repoFood := rFood.NewRepoLayer(db)
-	repoUser := rUser.NewRepoLayer(db)
-	repoSession := rSession.NewRepoLayer(clientRedisSession)
-	repoCsrf := rSession.NewRepoLayer(clientRedisCsrf)
 	repoOrder := rOrder.NewRepoLayer(db)
-	repoRest := rRest.NewRepoLayer(db)
 
-	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrf, logger)
-	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
+	// init session grpc client
+	grpcSessionClient := sessionproto.NewSessionManagerClient(sessionConn)
+	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient)
+
 	usecaseOrder := order.NewUsecaseLayer(repoOrder, repoFood, repoUser, repoRest)
-	deliveryPayment := payment.NewPaymentDelivery(logger, usecaseOrder, usecaseCsrf, usecaseSession, cfg)
+	deliveryPayment := payment.NewPaymentDelivery(logger, usecaseOrder, usecaseSession, cfg)
 
 	mux.HandleFunc("/order/pay/url", deliveryPayment.OrderGetPayUrl).Methods("GET").Name("get-pay-url")
 }

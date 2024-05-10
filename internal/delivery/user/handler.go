@@ -174,7 +174,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d.ucUser.UpdateAddress(r.Context(), email, unauthId)
+	err = d.ucUser.UpdateAddress(r.Context(), email, unauthId, address.Data)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {

@@ -8,7 +8,6 @@ import (
 
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/myerrors"
-	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
 )
@@ -23,13 +22,11 @@ type Repo interface {
 
 type RepoLayer struct {
 	db     *sql.DB
-	logger *zap.Logger
 }
 
-func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
+func NewRepoLayer(dbProps *sql.DB) Repo {
 	return &RepoLayer{
 		db:     dbProps,
-		logger: loggerProps,
 	}
 }
 

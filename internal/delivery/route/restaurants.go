@@ -13,7 +13,6 @@ import (
 	dSearch "2024_1_kayros/internal/delivery/search"
 	rFood "2024_1_kayros/internal/repository/food"
 	rSearch "2024_1_kayros/internal/repository/search"
-	rUser "2024_1_kayros/internal/repository/user"
 	ucComment "2024_1_kayros/internal/usecase/comment"
 	ucFood "2024_1_kayros/internal/usecase/food"
 	ucRest "2024_1_kayros/internal/usecase/restaurants"

@@ -21,16 +21,14 @@ import (
 type Payment struct {
 	logger    *zap.Logger
 	ucOrder   order.Usecase
-	ucCsrf    session.Usecase
 	ucSession session.Usecase
-	cfg       *config.Payment
+	cfg       *config.Project
 }
 
-func NewPaymentDelivery(loggerProps *zap.Logger, ucOrderProps order.Usecase, ucCsrfProps session.Usecase, ucSessionProps session.Usecase, cfgProps *config.Payment) *Payment {
+func NewPaymentDelivery(loggerProps *zap.Logger, ucOrderProps order.Usecase, ucSessionProps session.Usecase, cfgProps *config.Project) *Payment {
 	return &Payment{
 		logger:    loggerProps,
 		ucOrder:   ucOrderProps,
-		ucCsrf:    ucCsrfProps,
 		ucSession: ucSessionProps,
 		cfg:       cfgProps,
 	}
@@ -50,7 +48,7 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			w, err = functions.FlashCookie(r, w, d.ucCsrf, d.ucSession)
+			w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
 			if err != nil {
 				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -100,7 +98,7 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Idempotence-Key", uuid.NewV4().String())
-	req.SetBasicAuth(d.cfg.StoreId, d.cfg.SecretKey)
+	req.SetBasicAuth(d.cfg.StoreId, d.cfg.Payment.SecretKey)
 
 	resp, err := client.Do(req)
 	if err != nil {

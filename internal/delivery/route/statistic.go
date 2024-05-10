@@ -3,33 +3,33 @@ package route
 import (
 	"database/sql"
 
+	"2024_1_kayros/config"
+	sessionproto "2024_1_kayros/gen/go/session"
+	userproto "2024_1_kayros/gen/go/user"
 	dQuiz "2024_1_kayros/internal/delivery/statistic"
-	"2024_1_kayros/internal/repository/minios3"
-	rSession "2024_1_kayros/internal/repository/session"
 	rQuiz "2024_1_kayros/internal/repository/statistic"
-	rUser "2024_1_kayros/internal/repository/user"
 	ucSession "2024_1_kayros/internal/usecase/session"
 	uQuiz "2024_1_kayros/internal/usecase/statistic"
 	uUser "2024_1_kayros/internal/usecase/user"
+
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
-func AddQuizRouter(db *sql.DB, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, mc *minio.Client, mux *mux.Router, logger *zap.Logger) {
-	repoQuiz := rQuiz.NewRepoLayer(db, logger)
-	repoUser := rUser.NewRepoLayer(db)
-	repoMinio := minios3.NewRepoLayer(mc)
-	repoSession := rSession.NewRepoLayer(clientRedisSession)
-	repoCsrf := rSession.NewRepoLayer(clientRedisCsrf)
+func AddQuizRouter(db *sql.DB, sessionConn, userConn *grpc.ClientConn, mc *minio.Client, mux *mux.Router, logger *zap.Logger, cfg *config.Project) {
+	repoQuiz := rQuiz.NewRepoLayer(db)
+	// init grpc client interface 
+	grpcSessionClient := sessionproto.NewSessionManagerClient(sessionConn)
+	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient)
+	// init grpc user interface 
+	grpcUserClient := userproto.NewUserManagerClient(userConn)
+	usecaseUser := uUser.NewUsecaseLayer(grpcUserClient)
 
 	usecaseQuiz := uQuiz.NewUsecaseLayer(repoQuiz)
-	usecaseUser := uUser.NewUsecaseLayer(repoUser, repoMinio)
-	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
-	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrf, logger)
 
-	deliveryQuiz := dQuiz.NewDeliveryLayer(usecaseQuiz, usecaseUser, usecaseCsrf, usecaseSession, logger)
+	deliveryQuiz := dQuiz.NewDeliveryLayer(usecaseQuiz, usecaseUser, usecaseSession, logger, cfg)
 
 	mux.HandleFunc("/quiz/stats", deliveryQuiz.GetStatistic).Methods("GET").Name("quiz-stats")
 	mux.HandleFunc("/quiz/questions", deliveryQuiz.GetQuestions).Methods("GET").Name("get-questions")

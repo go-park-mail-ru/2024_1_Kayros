@@ -3,6 +3,7 @@ package food
 import (
 	"context"
 
+	"2024_1_kayros/internal/repository/food"
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
 )
@@ -23,6 +24,7 @@ func NewUsecaseLayer(repoFoodProps food.Repo) Usecase {
 }
 
 func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Category, error) {
+	
 	dishes, err := uc.repoFood.GetByRestId(ctx, restId)
 	if err != nil {
 		return nil, err
