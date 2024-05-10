@@ -2,10 +2,14 @@ package usecase
 
 import (
 	"2024_1_kayros/config"
-	"2024_1_kayros/microservices/session/internal/repo"
 	"2024_1_kayros/gen/go/session"
+	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/myerrors/grpcerr"
+	"2024_1_kayros/microservices/session/internal/repo"
 	"context"
+	"errors"
 
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -35,21 +39,49 @@ func NewLayer (redisCsrfProps repo.Repo, redisSessionProps repo.Repo, cfgProps *
 
 func (uc Layer) SetSession(ctx context.Context, data *session.SetSessionData) (*emptypb.Empty, error) {
 	if data.GetDatabase() == int32(uc.cfg.DatabaseCsrf) {
-		return nil, uc.repoCsrf.SetValue(ctx, data.GetKey(), data.GetValue())
+		err := uc.repoCsrf.SetValue(ctx, data.GetKey(), data.GetValue())
+		if err != nil {
+			return nil, grpcerr.NewError(codes.Internal, err.Error())
+		}
 	}
-	return nil, uc.repoSession.SetValue(ctx, data.GetKey(), data.GetValue())
+	err := uc.repoSession.SetValue(ctx, data.GetKey(), data.GetValue())
+	if err != nil {
+		return nil, grpcerr.NewError(codes.Internal, err.Error())
+	}
+	return nil, nil
 }
 
 func (uc Layer) GetSession(ctx context.Context, data *session.GetSessionData) (*session.SessionValue, error) {
 	if data.GetDatabase() == int32(uc.cfg.DatabaseCsrf) {
-		return uc.repoCsrf.GetValue(ctx, data.GetKey())
+		value, err := uc.repoCsrf.GetValue(ctx, data.GetKey())
+		if err != nil {
+			if errors.Is(err, myerrors.RedisNoData) {
+				return &session.SessionValue{}, grpcerr.NewError(codes.NotFound, err.Error())
+			}
+			return &session.SessionValue{}, grpcerr.NewError(codes.Internal, err.Error())
+		}
+		return value, nil
 	}
-	return uc.repoSession.GetValue(ctx, data.GetKey())
+	value, err :=  uc.repoCsrf.GetValue(ctx, data.GetKey())
+	if err != nil {
+		if errors.Is(err, myerrors.RedisNoData) {
+			return &session.SessionValue{}, grpcerr.NewError(codes.NotFound, err.Error())
+		}
+	 	return &session.SessionValue{}, grpcerr.NewError(codes.Internal, err.Error())
+	}
+	return value, nil
 }
 
 func (uc Layer) DeleteSession(ctx context.Context, data *session.DeleteSessionData) (*emptypb.Empty, error) {
 	if data.GetDatabase() == int32(uc.cfg.DatabaseCsrf) {
-		return nil, uc.repoCsrf.DeleteValue(ctx, data.GetKey())
+		err := uc.repoCsrf.DeleteValue(ctx, data.GetKey())
+		if err != nil {
+			return nil, grpcerr.NewError(codes.Internal, err.Error())
+		}
 	}
-	return nil, uc.repoSession.DeleteValue(ctx, data.GetKey())
+	err := uc.repoSession.DeleteValue(ctx, data.GetKey())
+	if err != nil {
+		return nil, grpcerr.NewError(codes.Internal, err.Error())
+	}
+	return nil, nil
 }

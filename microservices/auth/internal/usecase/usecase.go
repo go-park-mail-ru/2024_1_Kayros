@@ -1,13 +1,14 @@
 package usecase
 
 import (
-	"2024_1_kayros/internal/entity"
-	"2024_1_kayros/internal/utils/functions"
-	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/gen/go/auth"
 	"2024_1_kayros/gen/go/user"
+	"2024_1_kayros/internal/entity"
+	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/myerrors/grpcerr"
 	"context"
-	"errors"
+
+	"google.golang.org/grpc/codes"
 )
 
 
@@ -30,50 +31,41 @@ func NewLayer(clientProps user.UserManagerClient) Usecase {
 
 func (uc *Layer) SignUp(ctx context.Context, data *auth.SignUpCredentials) (*auth.User, error) {
 	isExist, err := uc.isExistByEmail(ctx, &user.Email{Email: data.GetEmail()})
-	if err != nil {
-		// we can skip error `myerrors.SqlNoRowsUserRelation`, because user must not to be
-		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			return nil, err
-		}
+	if err != nil && !grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+		return &auth.User{}, err
 	}
+	
 	if isExist {
-		return nil, myerrors.UserAlreadyExist
+		return &auth.User{}, grpcerr.NewError(codes.InvalidArgument, myerrors.UserAlreadyExist.Error())
 	}
 
 	address, err := uc.client.GetAddressByUnauthId(ctx, &user.UnauthId{UnauthId: data.GetUnauthId()})
-	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
-		return nil, err
+	if err != nil && !grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUnauthAddressRelation) {
+		return &auth.User{}, err
 	}
-	data.Address = address.GetAddress()
 
 	// we do copy for clean function
-	uCopy := entity.Copy(convAuthUserIntoUser(data))
-	salt, err := functions.GenerateNewSalt()
-	if err != nil {
-		return nil, err
-	}
-	hashPassword := functions.HashData(salt, data.GetPassword())
-	uCopy.Password = string(hashPassword)
-
+	uCopy := entity.Copy(convAuthUserIntoUser(data, address.GetAddress()))
 	uCreated, err := uc.client.Create(ctx, uCopy)
 	if err != nil {
-		return nil, err
+		return &auth.User{}, err
 	}
+	
 	return convUserIntoAuthUser(uCreated), nil
 }
 
 func (uc *Layer) SignIn(ctx context.Context, data *auth.SignInCredentials) (*auth.User, error) {
 	u, err := uc.client.GetData(ctx, &user.Email{Email: data.GetEmail()})
 	if err != nil {
-		return nil, err
+		return &auth.User{}, err
 	}
 
 	isEqual, err := uc.checkPassword(ctx, data.GetEmail(), data.GetPassword())
 	if err != nil {
-		return nil, err
+		return &auth.User{}, err
 	}
 	if !isEqual {
-		return nil, myerrors.BadAuthPassword
+		return &auth.User{}, myerrors.BadAuthPassword
 	}
 
 	return convUserIntoAuthUser(u), nil
@@ -82,7 +74,7 @@ func (uc *Layer) SignIn(ctx context.Context, data *auth.SignInCredentials) (*aut
 func (uc *Layer) isExistByEmail(ctx context.Context, email *user.Email) (bool, error) {
 	_, err := uc.client.GetData(ctx, email)
 	if err != nil {
-		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return false, nil
 		}
 		return false, err
@@ -100,11 +92,11 @@ func (uc *Layer) checkPassword(ctx context.Context, email string, password strin
 	return isEqual.Value, err
 }
 
-func convAuthUserIntoUser (u *auth.SignUpCredentials) *user.User {
+func convAuthUserIntoUser (u *auth.SignUpCredentials, address string) *user.User {
 	return &user.User {
 		Name: u.GetName(),
 		Email: u.GetEmail(),
-		Address: u.GetAddress(),
+		Address: address,
 		Password:  u.Password,
 	}
 }

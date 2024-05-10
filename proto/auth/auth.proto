@@ -19,7 +19,6 @@ message SignUpCredentials {
   string unauth_id= 2;
   string name = 3;
   string password =4;
-  string address = 5;
 }
 
 message User {

@@ -65,6 +65,7 @@ func ConvertProtoUserIntoEntityUser (u *protouser.User) *User {
 	}
 }
 
+
 func ProtoUserIsNIL (u *protouser.User) bool {
 	return u.GetId() == 0
 }
