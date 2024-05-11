@@ -67,7 +67,7 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 	// we need to retrieve basket sum
 	bodyRequestYooMoney := fmt.Sprintf(`{
 		"amount": {
-		"value": %d,
+			"value": %d,
 			"currency": "RUB"
 		},
 		"payment_method_data": {
