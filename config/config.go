@@ -83,12 +83,12 @@ type (
 	}
 
 	Redis struct {
-		Host                 string `yaml:"host"    env:"R_HOST"`
-		Port                 uint16 `yaml:"port" env:"R_PORT"`
-		DatabaseSession      int    `yaml:"database-session" env:"R_DB_SESSION"`
-		DatabaseCsrf         int    `yaml:"database-csrf" env:"R_DB_CSRF"`
-		User                 string `yaml:"user" env:"R_USER"`
-		Password             string `yaml:"password" env:"R_PASSWORD"`
+		Host            string `yaml:"host"    env:"R_HOST"`
+		Port            uint16 `yaml:"port" env:"R_PORT"`
+		DatabaseSession int    `yaml:"database-session" env:"R_DB_SESSION"`
+		DatabaseCsrf    int    `yaml:"database-csrf" env:"R_DB_CSRF"`
+		User            string `yaml:"user" env:"R_USER"`
+		Password        string `yaml:"password" env:"R_PASSWORD"`
 	}
 
 	Payment struct {

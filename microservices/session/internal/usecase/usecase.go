@@ -9,10 +9,10 @@ import (
 	"context"
 	"errors"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
-
 
 type Usecase interface {
 	session.UnsafeSessionManagerServer
@@ -21,40 +21,55 @@ type Usecase interface {
 	DeleteSession(ctx context.Context, data *session.DeleteSessionData) (*emptypb.Empty, error)
 }
 
-
-type Layer struct{
+type Layer struct {
 	session.UnsafeSessionManagerServer
-	repoCsrf repo.Repo
+	repoCsrf    repo.Repo
 	repoSession repo.Repo
-	cfg *config.Redis
+	cfg         *config.Redis
+	logger      *zap.Logger
 }
 
-func NewLayer (redisCsrfProps repo.Repo, redisSessionProps repo.Repo, cfgProps *config.Redis) Usecase {
-	return Layer {
-		repoCsrf: redisCsrfProps,
+func NewLayer(redisCsrfProps repo.Repo, redisSessionProps repo.Repo, loggerProps *zap.Logger, cfgProps *config.Redis) Usecase {
+	return &Layer{
+		repoCsrf:    redisCsrfProps,
 		repoSession: redisSessionProps,
-		cfg: cfgProps,
+		cfg:         cfgProps,
+		logger:      loggerProps,
 	}
 }
 
-func (uc Layer) SetSession(ctx context.Context, data *session.SetSessionData) (*emptypb.Empty, error) {
+func (uc *Layer) SetSession(ctx context.Context, data *session.SetSessionData) (*emptypb.Empty, error) {
 	if data.GetDatabase() == int32(uc.cfg.DatabaseCsrf) {
 		err := uc.repoCsrf.SetValue(ctx, data.GetKey(), data.GetValue())
 		if err != nil {
+			uc.logger.Error(err.Error())
 			return nil, grpcerr.NewError(codes.Internal, err.Error())
 		}
-	}
-	err := uc.repoSession.SetValue(ctx, data.GetKey(), data.GetValue())
-	if err != nil {
-		return nil, grpcerr.NewError(codes.Internal, err.Error())
+	} else {
+		err := uc.repoSession.SetValue(ctx, data.GetKey(), data.GetValue())
+		if err != nil {
+			uc.logger.Error(err.Error())
+			return nil, grpcerr.NewError(codes.Internal, err.Error())
+		}
 	}
 	return nil, nil
 }
 
-func (uc Layer) GetSession(ctx context.Context, data *session.GetSessionData) (*session.SessionValue, error) {
+func (uc *Layer) GetSession(ctx context.Context, data *session.GetSessionData) (*session.SessionValue, error) {
 	if data.GetDatabase() == int32(uc.cfg.DatabaseCsrf) {
 		value, err := uc.repoCsrf.GetValue(ctx, data.GetKey())
 		if err != nil {
+			uc.logger.Error(err.Error())
+			if errors.Is(err, myerrors.RedisNoData) {
+				return &session.SessionValue{}, grpcerr.NewError(codes.NotFound, err.Error())
+			}
+			return &session.SessionValue{}, grpcerr.NewError(codes.Internal, err.Error())
+		}
+		return value, nil
+	} else {
+		value, err := uc.repoSession.GetValue(ctx, data.GetKey())
+		if err != nil {
+			uc.logger.Error(err.Error())
 			if errors.Is(err, myerrors.RedisNoData) {
 				return &session.SessionValue{}, grpcerr.NewError(codes.NotFound, err.Error())
 			}
@@ -62,26 +77,21 @@ func (uc Layer) GetSession(ctx context.Context, data *session.GetSessionData) (*
 		}
 		return value, nil
 	}
-	value, err :=  uc.repoCsrf.GetValue(ctx, data.GetKey())
-	if err != nil {
-		if errors.Is(err, myerrors.RedisNoData) {
-			return &session.SessionValue{}, grpcerr.NewError(codes.NotFound, err.Error())
-		}
-	 	return &session.SessionValue{}, grpcerr.NewError(codes.Internal, err.Error())
-	}
-	return value, nil
 }
 
-func (uc Layer) DeleteSession(ctx context.Context, data *session.DeleteSessionData) (*emptypb.Empty, error) {
+func (uc *Layer) DeleteSession(ctx context.Context, data *session.DeleteSessionData) (*emptypb.Empty, error) {
 	if data.GetDatabase() == int32(uc.cfg.DatabaseCsrf) {
 		err := uc.repoCsrf.DeleteValue(ctx, data.GetKey())
 		if err != nil {
+			uc.logger.Error(err.Error())
 			return nil, grpcerr.NewError(codes.Internal, err.Error())
 		}
-	}
-	err := uc.repoSession.DeleteValue(ctx, data.GetKey())
-	if err != nil {
-		return nil, grpcerr.NewError(codes.Internal, err.Error())
+	} else {
+		err := uc.repoSession.DeleteValue(ctx, data.GetKey())
+		if err != nil {
+			uc.logger.Error(err.Error())
+			return nil, grpcerr.NewError(codes.Internal, err.Error())
+		}
 	}
 	return nil, nil
 }

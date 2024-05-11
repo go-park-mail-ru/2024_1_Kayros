@@ -4,11 +4,11 @@ import (
 	"database/sql"
 
 	"2024_1_kayros/config"
-	"2024_1_kayros/gen/go/user"
 	"2024_1_kayros/gen/go/session"
+	"2024_1_kayros/gen/go/user"
 	dUser "2024_1_kayros/internal/delivery/user"
-	ucUser "2024_1_kayros/internal/usecase/user"
 	ucSession "2024_1_kayros/internal/usecase/session"
+	ucUser "2024_1_kayros/internal/usecase/user"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -22,7 +22,7 @@ func AddUserRouter(db *sql.DB, cfg *config.Project, userConn, sessionConn *grpc.
 	// init session grpc client
 	grpcSessionClient := session.NewSessionManagerClient(sessionConn)
 	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient)
-	
+
 	deliveryUser := dUser.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, logger)
 
 	mux.HandleFunc("/user", deliveryUser.UserData).Methods("GET").Name("user_data")

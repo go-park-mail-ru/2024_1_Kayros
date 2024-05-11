@@ -26,7 +26,7 @@ type Delivery struct {
 	ucUser    user.Usecase
 	ucSession session.Usecase
 	logger    *zap.Logger
-	cfg 	  *config.Project
+	cfg       *config.Project
 }
 
 func NewDeliveryLayer(ucQuizProps statistic.Usecase, ucUserProps user.Usecase, ucSessionProps session.Usecase, loggerProps *zap.Logger, cfgProps *config.Project) *Delivery {
@@ -35,7 +35,7 @@ func NewDeliveryLayer(ucQuizProps statistic.Usecase, ucUserProps user.Usecase, u
 		ucUser:    ucUserProps,
 		logger:    loggerProps,
 		ucSession: ucSessionProps,
-		cfg: cfgProps,
+		cfg:       cfgProps,
 	}
 }
 

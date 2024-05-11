@@ -8,6 +8,9 @@ import (
 
 	"go.uber.org/zap"
 
+	"2024_1_kayros/gen/go/comment"
+	"2024_1_kayros/gen/go/rest"
+	"2024_1_kayros/gen/go/user"
 	dComment "2024_1_kayros/internal/delivery/comment"
 	dRest "2024_1_kayros/internal/delivery/restaurants"
 	dSearch "2024_1_kayros/internal/delivery/search"
@@ -17,23 +20,23 @@ import (
 	ucFood "2024_1_kayros/internal/usecase/food"
 	ucRest "2024_1_kayros/internal/usecase/restaurants"
 	ucSearch "2024_1_kayros/internal/usecase/search"
-	"2024_1_kayros/gen/go/comment"
-	"2024_1_kayros/gen/go/rest"
 )
 
-func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn *grpc.ClientConn, commentConn *grpc.ClientConn) {
-	//repoRest := rRest.NewRepoLayer(db)
-	repoUser := rUser.NewRepoLayer(db)
+func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn, userConn, commentConn *grpc.ClientConn) {
 	repoSearch := rSearch.NewRepoLayer(db)
 	repoFood := rFood.NewRepoLayer(db)
 	usecaseFood := ucFood.NewUsecaseLayer(repoFood)
 	usecaseSearch := ucSearch.NewUsecaseLayer(repoSearch)
+	// init user grpc client
+	grpcUser := user.NewUserManagerClient(userConn)
 
+	//init rest grpc client
 	grpcRest := rest.NewRestWorkerClient(restConn)
 	usecaseRest := ucRest.NewUsecaseLayer(grpcRest)
 
+	// init comment grpc client
 	grpcComment := comment.NewCommentWorkerClient(commentConn)
-	usecaseComment := ucComment.NewUseCaseLayer(grpcComment, repoUser)
+	usecaseComment := ucComment.NewUseCaseLayer(grpcComment, grpcUser)
 
 	deliveryRest := dRest.NewRestaurantHandler(usecaseRest, usecaseFood, logger)
 	deliveryComment := dComment.NewDelivery(usecaseComment, logger)

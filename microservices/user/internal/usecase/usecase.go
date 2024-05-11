@@ -15,6 +15,7 @@ import (
 	"2024_1_kayros/internal/utils/myerrors/grpcerr"
 	"2024_1_kayros/microservices/user/internal/repo"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -38,27 +39,30 @@ type Layer struct {
 	user.UnsafeUserManagerServer
 	repoUser repo.Repo
 	minio    minios3.Repo
+	logger   *zap.Logger
 }
 
-func NewLayer(repoUserProps repo.Repo, repoMinio minios3.Repo) Usecase {
+func NewLayer(repoUserProps repo.Repo, repoMinio minios3.Repo, loggerProps *zap.Logger) Usecase {
 	return &Layer{
 		repoUser: repoUserProps,
 		minio:    repoMinio,
+		logger:   loggerProps,
 	}
 }
 
-func deleteCredentials (u *user.User) *user.User {
+func deleteCredentials(u *user.User) *user.User {
 	if u != nil {
 		u.Password = ""
 		u.CardNumber = ""
 	}
 	return u
-} 
+}
 
 // GetData - method calls repo method to receive user data.
-func (uc Layer) GetData(ctx context.Context, email *user.Email) (*user.User, error) {
+func (uc *Layer) GetData(ctx context.Context, email *user.Email) (*user.User, error) {
 	returnUser, err := uc.repoUser.GetByEmail(ctx, email)
 	if err != nil {
+		uc.logger.Error(err.Error())
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 			return &user.User{}, grpcerr.NewError(codes.NotFound, err.Error())
 		}
@@ -69,18 +73,20 @@ func (uc Layer) GetData(ctx context.Context, email *user.Email) (*user.User, err
 
 // UpdateData - method used to update user info. it accepts non-password fields.
 // To update password use method SetNewUserPassword.
-func (uc Layer) UpdateData(ctx context.Context, data *user.UpdateUserData) (*user.User, error) {
+func (uc *Layer) UpdateData(ctx context.Context, data *user.UpdateUserData) (*user.User, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, &user.Email{Email: data.GetEmail()})
 	if err != nil {
+		uc.logger.Error(err.Error())
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 			return &user.User{}, grpcerr.NewError(codes.NotFound, err.Error())
 		}
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	fillUserFields(u, data.GetUpdateInfo())
-	if data.GetFileData() != nil && data.GetFileSize() != 0 {
+	if len(data.GetFileData()) != 0 && data.GetFileSize() != 0 {
 		mimeType := functions.GetFileMimeType(data.GetFileData())
 		if _, ok := cnst.ValidMimeTypes[mimeType]; !ok {
+			uc.logger.Error(myerrors.WrongFileExtension.Error())
 			return &user.User{}, grpcerr.NewError(codes.InvalidArgument, myerrors.WrongFileExtension.Error())
 		}
 
@@ -88,6 +94,7 @@ func (uc Layer) UpdateData(ctx context.Context, data *user.UpdateUserData) (*use
 		filename := fmt.Sprintf("%s.%s", uuid.NewV4().String(), fileExtension)
 		err = uc.minio.UploadImageByEmail(ctx, bytes.NewBuffer(data.GetFileData()), filename, data.GetFileSize(), mimeType)
 		if err != nil {
+			uc.logger.Error(err.Error())
 			return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 		}
 		u.ImgUrl = fmt.Sprintf("/minio-api/%s/%s", cnst.BucketUser, filename)
@@ -96,10 +103,12 @@ func (uc Layer) UpdateData(ctx context.Context, data *user.UpdateUserData) (*use
 	newEmail := &user.Email{Email: data.GetUpdateInfo().GetEmail()}
 	uDB, err := uc.repoUser.GetByEmail(ctx, newEmail)
 	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	if uDB != nil && data.GetEmail() != newEmail.GetEmail() {
-		return &user.User{}, grpcerr.NewError(codes.InvalidArgument, myerrors.UserAlreadyExist.Error())
+		uc.logger.Error(myerrors.UserAlreadyExist.Error())
+		return &user.User{}, grpcerr.NewError(codes.AlreadyExists, myerrors.UserAlreadyExist.Error())
 	}
 
 	updateDataProps := &user.UpdateUserData{
@@ -108,15 +117,17 @@ func (uc Layer) UpdateData(ctx context.Context, data *user.UpdateUserData) (*use
 	}
 	err = uc.repoUser.Update(ctx, updateDataProps)
 	if err != nil {
+		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	return deleteCredentials(u), nil
 }
 
 // UpdateAddress - method updates only address.
-func (uc Layer) UpdateAddress(ctx context.Context, data *user.AddressData) (*emptypb.Empty, error) {
+func (uc *Layer) UpdateAddress(ctx context.Context, data *user.AddressData) (*emptypb.Empty, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, &user.Email{Email: data.GetEmail()})
 	if err != nil {
+		uc.logger.Error(err.Error())
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 			return nil, grpcerr.NewError(codes.NotFound, err.Error())
 		}
@@ -130,14 +141,16 @@ func (uc Layer) UpdateAddress(ctx context.Context, data *user.AddressData) (*emp
 	}
 	err = uc.repoUser.Update(ctx, updateDataProps)
 	if err != nil {
+		uc.logger.Error(err.Error())
 		return nil, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	return nil, nil
 }
 
-func (uc Layer) GetAddressByUnauthId(ctx context.Context, id *user.UnauthId) (*user.Address, error) {
+func (uc *Layer) GetAddressByUnauthId(ctx context.Context, id *user.UnauthId) (*user.Address, error) {
 	address, err := uc.repoUser.GetAddressByUnauthId(ctx, id)
 	if err != nil {
+		uc.logger.Error(err.Error())
 		if errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
 			return &user.Address{}, grpcerr.NewError(codes.NotFound, err.Error())
 		}
@@ -147,10 +160,11 @@ func (uc Layer) GetAddressByUnauthId(ctx context.Context, id *user.UnauthId) (*u
 }
 
 // SetNewPassword - method used to set new password.
-func (uc Layer) SetNewPassword(ctx context.Context, data *user.PasswordsChange) (*emptypb.Empty, error) {
+func (uc *Layer) SetNewPassword(ctx context.Context, data *user.PasswordsChange) (*emptypb.Empty, error) {
 	// compare old password with database password
 	isEqual, err := uc.checkPassword(ctx, data.GetEmail(), data.GetPassword())
 	if err != nil {
+		uc.logger.Error(err.Error())
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 			return nil, grpcerr.NewError(codes.NotFound, err.Error())
 		}
@@ -158,18 +172,22 @@ func (uc Layer) SetNewPassword(ctx context.Context, data *user.PasswordsChange) 
 	}
 
 	if !isEqual {
+		uc.logger.Error(myerrors.IncorrectCurrentPassword.Error())
 		return nil, grpcerr.NewError(codes.InvalidArgument, myerrors.IncorrectCurrentPassword.Error())
 	}
 	if data.GetPassword() == data.GetNewPassword() {
+		uc.logger.Error(myerrors.NewPassword.Error())
 		return nil, grpcerr.NewError(codes.InvalidArgument, myerrors.NewPassword.Error())
 	}
 
 	u, err := uc.repoUser.GetByEmail(ctx, &user.Email{Email: data.GetEmail()})
 	if err != nil {
+		uc.logger.Error(err.Error())
 		return nil, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	salt, err := functions.GenerateNewSalt()
 	if err != nil {
+		uc.logger.Error(err.Error())
 		return nil, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	hashPassword := functions.HashData(salt, data.GetNewPassword())
@@ -181,17 +199,20 @@ func (uc Layer) SetNewPassword(ctx context.Context, data *user.PasswordsChange) 
 	}
 	err = uc.repoUser.Update(ctx, updateDataProps)
 	if err != nil {
+		uc.logger.Error(err.Error())
 		return nil, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	return nil, nil
 }
 
-func (uc Layer) UpdateAddressByUnauthId(ctx context.Context, unauth *user.AddressDataUnauth) (*emptypb.Empty, error) {
+func (uc *Layer) UpdateAddressByUnauthId(ctx context.Context, unauth *user.AddressDataUnauth) (*emptypb.Empty, error) {
 	_, err := uc.repoUser.GetAddressByUnauthId(ctx, &user.UnauthId{UnauthId: unauth.GetUnauthId()})
 	if err != nil {
+		uc.logger.Error(err.Error())
 		if errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
 			err = uc.repoUser.CreateAddressByUnauthId(ctx, unauth)
 			if err != nil {
+				uc.logger.Error(err.Error())
 				return nil, grpcerr.NewError(codes.Internal, err.Error())
 			}
 			return nil, nil
@@ -200,15 +221,17 @@ func (uc Layer) UpdateAddressByUnauthId(ctx context.Context, unauth *user.Addres
 	}
 	err = uc.repoUser.UpdateAddressByUnauthId(ctx, unauth)
 	if err != nil {
+		uc.logger.Error(err.Error())
 		return nil, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	return nil, nil
 }
 
 // Create - method used to create new user in database.
-func (uc Layer) Create(ctx context.Context, data *user.User) (*user.User, error) {
+func (uc *Layer) Create(ctx context.Context, data *user.User) (*user.User, error) {
 	salt, err := functions.GenerateNewSalt()
 	if err != nil {
+		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	hashPassword := functions.HashData(salt, data.GetPassword())
@@ -218,26 +241,30 @@ func (uc Layer) Create(ctx context.Context, data *user.User) (*user.User, error)
 
 	_, err = uc.repoUser.GetByEmail(ctx, &user.Email{Email: uCopy.GetEmail()})
 	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	if err == nil {
-		return &user.User{}, grpcerr.NewError(codes.InvalidArgument, myerrors.UserAlreadyExist.Error())
+		uc.logger.Error(myerrors.UserAlreadyExist.Error())
+		return &user.User{}, grpcerr.NewError(codes.AlreadyExists, myerrors.UserAlreadyExist.Error())
 	}
 
 	err = uc.repoUser.Create(ctx, uCopy)
 	if err != nil {
+		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
 
 	u, err := uc.repoUser.GetByEmail(ctx, &user.Email{Email: uCopy.GetEmail()})
 	if err != nil {
+		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	return deleteCredentials(u), nil
 }
 
 // checkPassword - method used to check password with password saved in database
-func (uc Layer) checkPassword(ctx context.Context, email string, password string) (bool, error) {
+func (uc *Layer) checkPassword(ctx context.Context, email string, password string) (bool, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, &user.Email{Email: email})
 	if err != nil {
 		return false, err
@@ -251,7 +278,7 @@ func (uc Layer) checkPassword(ctx context.Context, email string, password string
 // fillUserFields - method used to make finish view of updated user
 func fillUserFields(uDest *user.User, uSrc *user.User) {
 	if uSrc.GetName() != "" {
-		uDest.Name = uSrc.GetName() 
+		uDest.Name = uSrc.GetName()
 	}
 	if uSrc.GetEmail() != "" {
 		uDest.Email = uSrc.GetEmail()
@@ -262,6 +289,7 @@ func fillUserFields(uDest *user.User, uSrc *user.User) {
 func (uc *Layer) IsPassswordEquals(ctx context.Context, data *user.PasswordCheck) (*wrapperspb.BoolValue, error) {
 	u, err := uc.repoUser.GetByEmail(ctx, &user.Email{Email: data.GetEmail()})
 	if err != nil {
+		uc.logger.Error(err.Error())
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 			return &wrapperspb.BoolValue{Value: false}, grpcerr.NewError(codes.NotFound, err.Error())
 		}

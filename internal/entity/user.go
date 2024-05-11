@@ -39,33 +39,32 @@ func Copy(u *protouser.User) *protouser.User {
 	}
 }
 
-func ConvertEntityUserIntoProtoUser (u *User) *protouser.User {
+func ConvertEntityUserIntoProtoUser(u *User) *protouser.User {
 	return &protouser.User{
-		Id: u.Id,
-		Name: u.Name,
-		Phone: u.Phone,
-		Email: u.Email,
-		Address: u.Address,
-		ImgUrl: u.ImgUrl,
+		Id:         u.Id,
+		Name:       u.Name,
+		Phone:      u.Phone,
+		Email:      u.Email,
+		Address:    u.Address,
+		ImgUrl:     u.ImgUrl,
 		CardNumber: u.CardNumber,
-		Password: u.Password,
+		Password:   u.Password,
 	}
 }
 
-func ConvertProtoUserIntoEntityUser (u *protouser.User) *User {
+func ConvertProtoUserIntoEntityUser(u *protouser.User) *User {
 	return &User{
-		Id: u.GetId(),
-		Name: u.GetName(),
-		Phone: u.GetPhone(),
-		Email: u.GetEmail(),
-		Address: u.GetAddress(),
-		ImgUrl: u.GetImgUrl(),
+		Id:         u.GetId(),
+		Name:       u.GetName(),
+		Phone:      u.GetPhone(),
+		Email:      u.GetEmail(),
+		Address:    u.GetAddress(),
+		ImgUrl:     u.GetImgUrl(),
 		CardNumber: u.GetCardNumber(),
-		Password: u.GetPassword(),
+		Password:   u.GetPassword(),
 	}
 }
 
-
-func ProtoUserIsNIL (u *protouser.User) bool {
+func ProtoUserIsNIL(u *protouser.User) bool {
 	return u.GetId() == 0
 }

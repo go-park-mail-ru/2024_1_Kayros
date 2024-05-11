@@ -20,10 +20,10 @@ import (
 
 func AddQuizRouter(db *sql.DB, sessionConn, userConn *grpc.ClientConn, mc *minio.Client, mux *mux.Router, logger *zap.Logger, cfg *config.Project) {
 	repoQuiz := rQuiz.NewRepoLayer(db)
-	// init grpc client interface 
+	// init grpc client interface
 	grpcSessionClient := sessionproto.NewSessionManagerClient(sessionConn)
 	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient)
-	// init grpc user interface 
+	// init grpc user interface
 	grpcUserClient := userproto.NewUserManagerClient(userConn)
 	usecaseUser := uUser.NewUsecaseLayer(grpcUserClient)
 

@@ -3,9 +3,9 @@ package rest
 import (
 	"context"
 
+	"2024_1_kayros/gen/go/rest"
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
-	"2024_1_kayros/gen/go/rest"
 )
 
 type Usecase interface {

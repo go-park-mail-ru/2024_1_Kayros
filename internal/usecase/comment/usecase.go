@@ -3,10 +3,14 @@ package comment
 import (
 	"context"
 
-	"2024_1_kayros/internal/entity"
-	"2024_1_kayros/internal/repository/user"
-	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/gen/go/comment"
+	"2024_1_kayros/gen/go/user"
+	"2024_1_kayros/internal/entity"
+	"2024_1_kayros/internal/utils/alias"
+	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/myerrors/grpcerr"
+
+	"google.golang.org/grpc/codes"
 )
 
 type Usecase interface {
@@ -16,21 +20,24 @@ type Usecase interface {
 }
 
 type UsecaseLayer struct {
-	grpcClient comment.CommentWorkerClient
-	repoUser   user.Repo
+	grpcCommentClient comment.CommentWorkerClient
+	grpcUserClient    user.UserManagerClient
 }
 
-func NewUseCaseLayer(commentClient comment.CommentWorkerClient, repoUserProps user.Repo) Usecase {
+func NewUseCaseLayer(commentClient comment.CommentWorkerClient, userClient user.UserManagerClient) Usecase {
 	return &UsecaseLayer{
-		grpcClient: commentClient,
-		repoUser:   repoUserProps,
+		grpcCommentClient: commentClient,
+		grpcUserClient:    userClient,
 	}
 }
 
 func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, email string, orderId uint64) (*entity.Comment, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
+	u, err := uc.grpcUserClient.GetData(ctx, &user.Email{Email: email})
 	if err != nil {
-		return nil, err
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+			return &entity.Comment{}, myerrors.SqlNoRowsUserRelation
+		}
+		return &entity.Comment{}, err
 	}
 	c := comment.Comment{
 		UserId:  u.Id,
@@ -39,9 +46,15 @@ func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, e
 		Rating:  com.Rating,
 		OrderId: orderId,
 	}
-	res, err := uc.grpcClient.CreateComment(ctx, &c)
-	if err != nil {
-		return nil, err
+	res, err := uc.grpcCommentClient.CreateComment(ctx, &c)
+	if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsCommentRelation) {
+		return &entity.Comment{}, myerrors.SqlNoRowsCommentRelation
+	}
+	if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsRestaurantRelation) {
+		return &entity.Comment{}, myerrors.SqlNoRowsRestaurantRelation
+	}
+	if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsOrderRelation) {
+		return &entity.Comment{}, myerrors.SqlNoRowsOrderRelation
 	}
 	res.UserName = u.Name
 	res.Image = u.ImgUrl
@@ -49,7 +62,7 @@ func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, e
 }
 
 func (uc *UsecaseLayer) GetCommentsByRest(ctx context.Context, restId alias.RestId) ([]*entity.Comment, error) {
-	comments, err := uc.grpcClient.GetCommentsByRest(ctx, &comment.RestId{Id: uint64(restId)})
+	comments, err := uc.grpcCommentClient.GetCommentsByRest(ctx, &comment.RestId{Id: uint64(restId)})
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +73,6 @@ func (uc *UsecaseLayer) GetCommentsByRest(ctx context.Context, restId alias.Rest
 }
 
 func (uc *UsecaseLayer) DeleteComment(ctx context.Context, id uint64) error {
-	_, err := uc.grpcClient.DeleteComment(ctx, &comment.CommentId{Id: id})
+	_, err := uc.grpcCommentClient.DeleteComment(ctx, &comment.CommentId{Id: id})
 	return err
 }

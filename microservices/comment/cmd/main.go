@@ -32,7 +32,7 @@ func main() {
 	//init services for server work
 	postgreDB := postgres.Init(cfg, logger)
 	repoComment := repo.NewCommentLayer(postgreDB)
-	comment.RegisterCommentWorkerServer(server, usecase.NewCommentLayer(repoComment))
+	comment.RegisterCommentWorkerServer(server, usecase.NewCommentLayer(repoComment, logger))
 	err = server.Serve(conn)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port), zap.String("error", err.Error()))

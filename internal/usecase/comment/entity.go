@@ -1,8 +1,8 @@
 package comment
 
 import (
-	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/gen/go/comment"
+	"2024_1_kayros/internal/entity"
 )
 
 func FromGrpcStructToComment(grpcCom *comment.Comment) *entity.Comment {

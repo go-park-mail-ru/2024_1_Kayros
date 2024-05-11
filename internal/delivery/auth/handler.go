@@ -18,7 +18,7 @@ import (
 )
 
 type Delivery struct {
-	ucSession session.Usecase  // methods for communicating to microservice session
+	ucSession session.Usecase // methods for communicating to microservice session
 	ucAuth    auth.Usecase
 	logger    *zap.Logger
 	cfg       *config.Project
@@ -120,7 +120,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := d.ucAuth.SignIn(r.Context(), bodyDTO.Email, unauthId, bodyDTO.Password)
+	u, err := d.ucAuth.SignIn(r.Context(), bodyDTO.Email, bodyDTO.Password, unauthId)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) || errors.Is(err, myerrors.BadAuthPassword) {

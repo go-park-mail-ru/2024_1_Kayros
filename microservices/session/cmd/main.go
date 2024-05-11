@@ -34,8 +34,8 @@ func main() {
 
 	repoSession := repo.NewLayer(redisSession)
 	repoCsrf := repo.NewLayer(redisCsrf)
-	
-	session.RegisterSessionManagerServer(server, usecase.NewLayer(repoCsrf, repoSession, &cfg.Redis))
+
+	session.RegisterSessionManagerServer(server, usecase.NewLayer(repoCsrf, repoSession, logger, &cfg.Redis))
 	err = server.Serve(conn)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.SessionGrpcServer.Host, cfg.SessionGrpcServer.Port), zap.String("error", err.Error()))

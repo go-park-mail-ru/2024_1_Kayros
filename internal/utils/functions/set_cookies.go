@@ -31,12 +31,11 @@ func SetCookie(w http.ResponseWriter, r *http.Request, sessionClient session.Use
 	}
 	http.SetCookie(w, &cookie)
 
-
 	csrfToken, err := GenerateCsrfToken(cfg.Server.CsrfSecretKey, alias.SessionKey(sessionId))
 	if err != nil {
 		return w, err
 	}
-	err = sessionClient.SetValue(r.Context(), alias.SessionKey(sessionId), alias.SessionValue(email), int32(cfg.DatabaseSession))
+	err = sessionClient.SetValue(r.Context(), alias.SessionKey(csrfToken), alias.SessionValue(email), int32(cfg.Redis.DatabaseCsrf))
 	if err != nil {
 		return w, err
 	}

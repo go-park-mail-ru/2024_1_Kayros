@@ -2,10 +2,10 @@ package grpcerr
 
 import (
 	"fmt"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	
 )
 
 // Define a Error type with a message and a status code
@@ -38,10 +38,14 @@ func NewResponse(status codes.Code, msg string) error {
 	}
 }
 
+func removeErrorPrefix(grpcStatusMsg string) string {
+	return strings.Replace(grpcStatusMsg, "Error: ", "", 1)
+}
+
 func Is(responseErr error, statusCode codes.Code, errClient error) bool {
 	grpcErr, ok := status.FromError(responseErr)
 	if ok {
-	   return grpcErr.Code() == statusCode && grpcErr.Message() == errClient.Error()
+		return grpcErr.Code() == statusCode && removeErrorPrefix(grpcErr.Message()) == errClient.Error()
 	}
 	return false
-} 
+}

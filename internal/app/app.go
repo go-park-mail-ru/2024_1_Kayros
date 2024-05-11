@@ -33,7 +33,7 @@ func Run(cfg *config.Project) {
 	m := metrics.NewMetrics(reg)
 
 	//restaurant microservice
-	restConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	restConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		errMsg := fmt.Sprintf("The microservice restaurant is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -46,7 +46,7 @@ func Run(cfg *config.Project) {
 	}(restConn)
 
 	//comment microservice
-	commentConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.CommentGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	commentConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		errMsg := fmt.Sprintf("The microservice comment is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -59,7 +59,7 @@ func Run(cfg *config.Project) {
 	}(commentConn)
 
 	//auth microservice
-	authConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.AuthGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	authConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.AuthGrpcServer.Host, cfg.AuthGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		errMsg := fmt.Sprintf("The auth microservice is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -72,7 +72,7 @@ func Run(cfg *config.Project) {
 	}(authConn)
 
 	// user microservice
-	userConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		errMsg := fmt.Sprintf("The microservice user is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -85,7 +85,7 @@ func Run(cfg *config.Project) {
 	}(userConn)
 
 	// session microservice
-	sessionConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.SessionGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	sessionConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.SessionGrpcServer.Host, cfg.SessionGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		errMsg := fmt.Sprintf("The microservice session is not available.\n%v", err)
 		logger.Error(errMsg)

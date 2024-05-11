@@ -16,14 +16,14 @@ import (
 )
 
 func AddAuthRouter(cfg *config.Project, db *sql.DB, authConn *grpc.ClientConn, sessionConn *grpc.ClientConn,
-	 mux *mux.Router, logger *zap.Logger) {
+	mux *mux.Router, logger *zap.Logger) {
 	// microservice authorization
 	grpcClientAuth := auth.NewAuthManagerClient(authConn)
 	usecaseAuth := ucAuth.NewUsecaseLayer(grpcClientAuth)
 	// microservice session
 	grpcClientSession := session.NewSessionManagerClient(sessionConn)
 	usecaseSession := ucSession.NewUsecaseLayer(grpcClientSession)
-	
+
 	deliveryAuth := dAuth.NewDeliveryLayer(cfg, usecaseSession, usecaseAuth, logger)
 
 	mux.HandleFunc("/signin", deliveryAuth.SignIn).Methods("POST").Name("signin")

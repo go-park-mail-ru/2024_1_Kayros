@@ -33,28 +33,28 @@ type FoodInOrder struct {
 }
 
 func CnvProtoFoodIntoEntityFood(food *food.Food) *Food {
-	return &Food {
-		Id: food.GetId(),
-		Name: food.GetName(),
-		Description: food.GetDescription(),
+	return &Food{
+		Id:           food.GetId(),
+		Name:         food.GetName(),
+		Description:  food.GetDescription(),
 		RestaurantId: food.GetRestaurantId(),
-		Category: food.GetCategory(),
-		Weight: food.GetWeight(),
-		Price: food.GetPrice(),
-		ImgUrl: food.GetImgUrl(),
+		Category:     food.GetCategory(),
+		Weight:       food.GetWeight(),
+		Price:        food.GetPrice(),
+		ImgUrl:       food.GetImgUrl(),
 	}
 }
 
 func CnvEntityFoodIntoProtoFood(f *Food) *food.Food {
-	return &food.Food {
-		Id: f.Id,
-		Name: f.Name,
-		Description: f.Description,
+	return &food.Food{
+		Id:           f.Id,
+		Name:         f.Name,
+		Description:  f.Description,
 		RestaurantId: f.RestaurantId,
-		Category: f.Category,
-		Weight: f.Weight,
-		Price: f.Price,
-		ImgUrl: f.ImgUrl,
+		Category:     f.Category,
+		Weight:       f.Weight,
+		Price:        f.Price,
+		ImgUrl:       f.ImgUrl,
 	}
 }
 

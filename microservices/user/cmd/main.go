@@ -12,8 +12,8 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	"2024_1_kayros/gen/go/user"
 	"2024_1_kayros/config"
+	"2024_1_kayros/gen/go/user"
 	"2024_1_kayros/internal/repository/minios3"
 	"2024_1_kayros/services/minio"
 	"2024_1_kayros/services/postgres"
@@ -38,7 +38,7 @@ func main() {
 
 	repoUser := repo.NewLayer(postgreDB)
 	repoMinio := minios3.NewRepoLayer(minioClient)
-	user.RegisterUserManagerServer(server, usecase.NewLayer(repoUser, repoMinio))
+	user.RegisterUserManagerServer(server, usecase.NewLayer(repoUser, repoMinio, logger))
 	err = server.Serve(conn)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), zap.String("error", err.Error()))

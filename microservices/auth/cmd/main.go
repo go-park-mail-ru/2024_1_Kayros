@@ -6,9 +6,9 @@ import (
 	"os"
 	"os/signal"
 
-	"2024_1_kayros/microservices/auth/internal/usecase"
 	"2024_1_kayros/gen/go/auth"
 	"2024_1_kayros/gen/go/user"
+	"2024_1_kayros/microservices/auth/internal/usecase"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -40,11 +40,11 @@ func main() {
 		}
 	}(userConn)
 
-	// init grpc server 
+	// init grpc server
 	server := grpc.NewServer()
-	// register contract 
+	// register contract
 	client := user.NewUserManagerClient(userConn)
-	auth.RegisterAuthManagerServer(server, usecase.NewLayer(client))
+	auth.RegisterAuthManagerServer(server, usecase.NewLayer(client, logger))
 	err = server.Serve(conn)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.AuthGrpcServer.Host, cfg.AuthGrpcServer.Port), zap.String("error", err.Error()))

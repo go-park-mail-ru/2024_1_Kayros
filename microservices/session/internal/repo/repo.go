@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/gen/go/session"
+	"2024_1_kayros/internal/utils/myerrors"
 
 	"github.com/redis/go-redis/v9"
 )

@@ -6,11 +6,11 @@ import (
 	"errors"
 	"time"
 
+	"2024_1_kayros/gen/go/user"
 	"2024_1_kayros/internal/entity"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
-	"2024_1_kayros/gen/go/user"
 )
 
 type Repo interface {
@@ -46,7 +46,6 @@ func (repo *Layer) GetByEmail(ctx context.Context, email *user.Email) (*user.Use
 	}
 	return entity.ConvertEntityUserIntoProtoUser(&u), nil
 }
-
 
 func (repo *Layer) DeleteByEmail(ctx context.Context, email *user.Email) error {
 	row, err := repo.database.ExecContext(ctx, `DELETE FROM "user" WHERE email = $1`, email.GetEmail())

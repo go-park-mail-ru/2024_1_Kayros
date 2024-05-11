@@ -10,8 +10,8 @@ import (
 
 	metrics "2024_1_kayros"
 	"2024_1_kayros/config"
-	protouser "2024_1_kayros/gen/go/user"
 	protosession "2024_1_kayros/gen/go/session"
+	protouser "2024_1_kayros/gen/go/user"
 	"2024_1_kayros/internal/middleware"
 	ucSession "2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/usecase/user"

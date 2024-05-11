@@ -1,9 +1,9 @@
 package rest
 
 import (
+	"2024_1_kayros/gen/go/rest"
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
-	"2024_1_kayros/gen/go/rest"
 )
 
 func FromGrpcStructToRestaurant(grpcRest *rest.Rest) *entity.Restaurant {

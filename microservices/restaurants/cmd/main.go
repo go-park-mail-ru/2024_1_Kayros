@@ -25,19 +25,18 @@ func main() {
 	if err != nil {
 		logger.Fatal("The microservice restaurant doesn't respond", zap.String("error", err.Error()))
 	}
-	logger.Info(fmt.Sprintf("The microservice restaurant responds on port %d", cfg.RestGrpcServer.Port))	
-	
+	logger.Info(fmt.Sprintf("The microservice restaurant responds on port %d", cfg.RestGrpcServer.Port))
+
 	// init grpc server
 	server := grpc.NewServer()
 	// init services for server work
 	postgreDB := postgres.Init(cfg, logger)
 	repoRest := repo.NewRestLayer(postgreDB)
-	rest.RegisterRestWorkerServer(server, usecase.NewRestLayer(repoRest))
+	rest.RegisterRestWorkerServer(server, usecase.NewRestLayer(repoRest, logger))
 	err = server.Serve(conn)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port), zap.String("error", err.Error()))
 	}
-
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)

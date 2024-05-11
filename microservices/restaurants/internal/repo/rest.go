@@ -4,10 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
-	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/gen/go/rest"
+	"2024_1_kayros/internal/utils/myerrors"
 )
 
 type Rest interface {
@@ -51,7 +50,6 @@ func (repo *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest
 	r := rest.Rest{}
 	err := row.Scan(&r.Id, &r.Name, &r.LongDescription, &r.Address, &r.ImgUrl, &r.Rating, &r.CommentCount)
 	if err != nil {
-		fmt.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsRestaurantRelation
 		}

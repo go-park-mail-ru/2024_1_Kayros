@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
+	"2024_1_kayros/gen/go/comment"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
-	"2024_1_kayros/gen/go/comment"
 )
 
 type Comment interface {
@@ -38,13 +38,14 @@ func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*co
 		return nil, err
 	}
 	com.Id = id
+
 	rest := restCommentInfoDB{}
 	row := repo.db.QueryRowContext(ctx,
 		`SELECT rating, comment_count FROM restaurant WHERE id=$1`, com.RestId)
 	err = row.Scan(&rest.Rating, &rest.CommentCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, myerrors.SqlNoRowsCommentRelation
+			return nil, myerrors.SqlNoRowsRestaurantRelation
 		}
 		return nil, err
 	}
@@ -54,7 +55,7 @@ func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*co
 		`UPDATE restaurant SET rating=$1, comment_count=$2 WHERE id=$3`, newRating, r.CommentCount+1, com.RestId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, myerrors.SqlNoRowsCommentRelation
+			return nil, myerrors.SqlNoRowsRestaurantRelation
 		}
 		return nil, err
 	}
@@ -76,7 +77,7 @@ func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*co
 		`UPDATE "order" SET commented=true WHERE id=$1`, com.OrderId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, myerrors.SqlNoRowsCommentRelation
+			return nil, myerrors.SqlNoRowsOrderRelation
 		}
 		return nil, err
 	}

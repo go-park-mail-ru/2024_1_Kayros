@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -28,7 +29,12 @@ func SessionAuthentication(handler http.Handler, ucUser user.Usecase, ucSession 
 			return
 		}
 
+		fmt.Printf("SessionId: %s", sessionId)
+		fmt.Printf("cfg.DatabaseSession: %s", cfg.DatabaseSession)
+		fmt.Printf("cfg.DatabaseCsrf: %s", cfg.DatabaseCsrf)
 		email, err := ucSession.GetValue(r.Context(), alias.SessionKey(sessionId), int32(cfg.DatabaseSession))
+		fmt.Printf("Email: %s", email)
+		fmt.Printf("err: %s", err)
 		if err != nil {
 			if !errors.Is(err, myerrors.RedisNoData) {
 				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))

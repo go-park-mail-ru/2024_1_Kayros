@@ -10,15 +10,15 @@ test:
 	go test -v main.go
 
 run: build
-	${BINARY_NAME}
+	./${BINARY_NAME}
 
-dep:
+tidy:
 	go fmt ./...
 	go mod tidy -v
 
 clean:
 	go clean
-	rm ${BINARY_NAME}
+	rm ./${BINARY_NAME}
 
 generate:
 	go generate 

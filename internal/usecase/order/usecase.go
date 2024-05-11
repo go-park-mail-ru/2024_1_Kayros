@@ -9,11 +9,16 @@ import (
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/repository/food"
 	"2024_1_kayros/internal/repository/order"
-	"2024_1_kayros/internal/repository/restaurants"
-	"2024_1_kayros/internal/repository/user"
+
+	"2024_1_kayros/gen/go/rest"
+	"2024_1_kayros/gen/go/user"
+
 	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/myerrors/grpcerr"
+
+	"google.golang.org/grpc/codes"
 )
 
 type Usecase interface {
@@ -35,24 +40,27 @@ type Usecase interface {
 }
 
 type UsecaseLayer struct {
-	repoOrder order.Repo
-	repoUser  user.Repo
-	repoFood  food.Repo
-	repoRest  restaurants.Repo
+	repoOrder      order.Repo
+	userGrpcClient user.UserManagerClient
+	repoFood       food.Repo
+	restGrpcClient rest.RestWorkerClient
 }
 
-func NewUsecaseLayer(repoOrderProps order.Repo, repoFoodProps food.Repo, repoUserProps user.Repo, repoRestProps restaurants.Repo) Usecase {
+func NewUsecaseLayer(repoOrderProps order.Repo, repoFoodProps food.Repo, repoUserProps user.UserManagerClient, repoRestProps rest.RestWorkerClient) Usecase {
 	return &UsecaseLayer{
-		repoOrder: repoOrderProps,
-		repoUser:  repoUserProps,
-		repoFood:  repoFoodProps,
-		repoRest:  repoRestProps,
+		repoOrder:      repoOrderProps,
+		userGrpcClient: repoUserProps,
+		repoFood:       repoFoodProps,
+		restGrpcClient: repoRestProps,
 	}
 }
 
 func (uc *UsecaseLayer) GetBasketId(ctx context.Context, email string) (alias.OrderId, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
+	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
 	if err != nil {
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+			return 0, myerrors.SqlNoRowsUserRelation
+		}
 		return 0, err
 	}
 	id, err := uc.repoOrder.GetBasketId(ctx, alias.UserId(u.Id))
@@ -71,8 +79,11 @@ func (uc *UsecaseLayer) GetBasketIdNoAuth(ctx context.Context, token string) (al
 }
 
 func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Order, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
+	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
 	if err != nil {
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+			return nil, myerrors.SqlNoRowsUserRelation
+		}
 		return nil, err
 	}
 	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Draft)
@@ -104,8 +115,11 @@ func (uc *UsecaseLayer) GetOrderById(ctx context.Context, id alias.OrderId) (*en
 	}
 	if len(Order.Food) != 0 {
 		Order.RestaurantId = Order.Food[0].RestaurantId
-		r, err := uc.repoRest.GetById(ctx, alias.RestId(Order.RestaurantId))
+		r, err := uc.restGrpcClient.GetById(ctx, &rest.RestId{Id: Order.RestaurantId})
 		if err != nil {
+			if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsRestaurantRelation) {
+				return nil, myerrors.SqlNoRowsRestaurantRelation
+			}
 			return nil, err
 		}
 		Order.RestaurantName = r.Name
@@ -114,8 +128,11 @@ func (uc *UsecaseLayer) GetOrderById(ctx context.Context, id alias.OrderId) (*en
 }
 
 func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*entity.ShortOrder, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
+	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
 	if err != nil {
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+			return nil, myerrors.SqlNoRowsUserRelation
+		}
 		return nil, err
 	}
 	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Payed, constants.Created, constants.Cooking, constants.OnTheWay)
@@ -125,8 +142,11 @@ func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*
 	res := []*entity.ShortOrder{}
 	for _, o := range orders {
 		id := o.Food[0].RestaurantId
-		rest, err := uc.repoRest.GetById(ctx, alias.RestId(id))
+		rest, err := uc.restGrpcClient.GetById(ctx, &rest.RestId{Id: id})
 		if err != nil {
+			if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsRestaurantRelation) {
+				return nil, myerrors.SqlNoRowsRestaurantRelation
+			}
 			return nil, err
 		}
 		res = append(res, &entity.ShortOrder{
@@ -142,8 +162,11 @@ func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
+	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
 	if err != nil {
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+			return 0, myerrors.SqlNoRowsUserRelation
+		}
 		return 0, err
 	}
 	id, err := uc.repoOrder.Create(ctx, alias.UserId(u.Id))
@@ -174,8 +197,11 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 		return nil, myerrors.AlreadyPayed
 	}
 	if userId == 0 {
-		u, err := uc.repoUser.GetByEmail(ctx, email)
+		u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
 		if err != nil {
+			if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+				return nil, myerrors.SqlNoRowsUserRelation
+			}
 			return nil, err
 		}
 		err = uc.repoOrder.SetUser(ctx, orderId, alias.UserId(u.Id))
