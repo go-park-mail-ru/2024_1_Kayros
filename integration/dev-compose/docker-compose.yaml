@@ -42,6 +42,14 @@ services:
     restart: always
     image: prom/node-exporter:latest
     container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.ignored-mount-points
     ports:
       - "9100:9100"
     tty: true
@@ -52,7 +60,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../prometheus/data:/prometheus
     depends_on:
       - node-exporter
     tty: true

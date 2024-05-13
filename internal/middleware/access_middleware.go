@@ -4,11 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/recorder"
+
 	"github.com/satori/uuid"
 	"go.uber.org/zap"
 )
@@ -28,6 +32,7 @@ type AccessLogEnd struct {
 	LatencyMs    string
 	EndTime      string
 	RequestId    string
+	ResponseStatus  int
 }
 
 func Access(handler http.Handler, logger *zap.Logger) http.Handler {
@@ -44,9 +49,18 @@ func Access(handler http.Handler, logger *zap.Logger) http.Handler {
 		ctx := context.WithValue(r.Context(), cnst.UnauthIdCookieName, unauthId)
 		ctx = context.WithValue(ctx, cnst.RequestId, requestId)
 		r = r.WithContext(ctx)
+
+		rec, ok := w.(*recorder.ResponseWriter)
+		log.Printf("w: %v", w)
+		log.Printf("rec: %v", rec)
+		if !ok {
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+
 		handler.ServeHTTP(w, r)
 
-		LogEndRequest(logger, timeNow, requestId)
+		LogEndRequest(logger, timeNow, requestId, rec.StatusCode)
 	})
 }
 
@@ -72,17 +86,19 @@ func LogInitRequest(r *http.Request, logger *zap.Logger, timeNow time.Time, requ
 	)
 }
 
-func LogEndRequest(logger *zap.Logger, timeNow time.Time, requestId string) {
+func LogEndRequest(logger *zap.Logger, timeNow time.Time, requestId string, responseStatus int) {
 	msg := fmt.Sprintf("request done %s", requestId)
 	endLog := &AccessLogEnd{
 		EndTime:      timeNow.Format(cnst.Timestamptz),
 		LatencyHuman: time.Since(timeNow).String(),
 		LatencyMs:    time.Since(timeNow).String(),
+		ResponseStatus:   responseStatus,
 	}
 	logger.Info(msg,
 		zap.String("end_time", endLog.EndTime),
 		zap.String("latency_human", endLog.LatencyHuman),
 		zap.String("latency_human_ms", endLog.LatencyMs),
 		zap.String("request_id", requestId),
+		zap.Int("response_status", responseStatus),
 	)
 }

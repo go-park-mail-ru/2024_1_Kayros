@@ -42,11 +42,11 @@ func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn, us
 	deliveryComment := dComment.NewDelivery(usecaseComment, logger)
 	deliverySearch := dSearch.NewDelivery(usecaseSearch, logger)
 
-	mux.HandleFunc("/search", deliverySearch.Search).Methods("GET").Name("restaurants-list")
-	mux.HandleFunc("/restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants-list")
-	mux.HandleFunc("/restaurants/{id}", deliveryRest.RestaurantById).Methods("GET").Name("restaurants-detail")
-	mux.HandleFunc("/restaurants/{id}/comment", deliveryComment.CreateComment).Methods("POST").Name("create-comment")
-	mux.HandleFunc("/restaurants/{id}/comment/{com_id}", deliveryComment.DeleteComment).Methods("DELETE").Name("delete-comment")
-	mux.HandleFunc("/restaurants/{id}/comments", deliveryComment.GetComments).Methods("GET").Name("comments-list")
-	mux.HandleFunc("/category", deliveryRest.CategoryList).Methods("GET").Name("category-list")
+	mux.HandleFunc("/api/v1/search", deliverySearch.Search).Methods("GET").Name("restaurants-list")
+	mux.HandleFunc("/api/v1/restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants-list")
+	mux.HandleFunc("/api/v1/restaurants/{id}", deliveryRest.RestaurantById).Methods("GET").Name("restaurants-detail")
+	mux.HandleFunc("/api/v1/restaurants/{id}/comment", deliveryComment.CreateComment).Methods("POST").Name("create-comment")
+	mux.HandleFunc("/api/v1/restaurants/{id}/comment/{com_id}", deliveryComment.DeleteComment).Methods("DELETE").Name("delete-comment")
+	mux.HandleFunc("/api/v1/restaurants/{id}/comments", deliveryComment.GetComments).Methods("GET").Name("comments-list")
+	mux.HandleFunc("/api/v1/category", deliveryRest.CategoryList).Methods("GET").Name("category-list")
 }

@@ -31,7 +31,7 @@ func AddQuizRouter(db *sql.DB, sessionConn, userConn *grpc.ClientConn, mc *minio
 
 	deliveryQuiz := dQuiz.NewDeliveryLayer(usecaseQuiz, usecaseUser, usecaseSession, logger, cfg)
 
-	mux.HandleFunc("/quiz/stats", deliveryQuiz.GetStatistic).Methods("GET").Name("quiz-stats")
-	mux.HandleFunc("/quiz/questions", deliveryQuiz.GetQuestions).Methods("GET").Name("get-questions")
-	mux.HandleFunc("/quiz/question/rating", deliveryQuiz.AddAnswer).Methods("POST").Name("add-question-rating")
+	mux.HandleFunc("/api/v1/quiz/stats", deliveryQuiz.GetStatistic).Methods("GET").Name("quiz-stats")
+	mux.HandleFunc("/api/v1/quiz/questions", deliveryQuiz.GetQuestions).Methods("GET").Name("get-questions")
+	mux.HandleFunc("/api/v1/quiz/question/rating", deliveryQuiz.AddAnswer).Methods("POST").Name("add-question-rating")
 }

@@ -25,9 +25,9 @@ func AddUserRouter(db *sql.DB, cfg *config.Project, userConn, sessionConn *grpc.
 
 	deliveryUser := dUser.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, logger)
 
-	mux.HandleFunc("/user", deliveryUser.UserData).Methods("GET").Name("user_data")
-	mux.HandleFunc("/user", deliveryUser.UpdateInfo).Methods("PUT").Name("update_user")
-	mux.HandleFunc("/user/address", deliveryUser.UpdateAddress).Methods("PUT").Name("update_user_address")
-	mux.HandleFunc("/user/address", deliveryUser.UserAddress).Methods("GET").Name("user_address")
-	mux.HandleFunc("/user/new_password", deliveryUser.UpdatePassword).Methods("PUT").Name("update_user_password")
+	mux.HandleFunc("/api/v1/user", deliveryUser.UserData).Methods("GET").Name("user_data")
+	mux.HandleFunc("/api/v1/user", deliveryUser.UpdateInfo).Methods("PUT").Name("update_user")
+	mux.HandleFunc("/api/v1/user/address", deliveryUser.UpdateAddress).Methods("PUT").Name("update_user_address")
+	mux.HandleFunc("/api/v1/user/address", deliveryUser.UserAddress).Methods("GET").Name("user_address")
+	mux.HandleFunc("/api/v1/user/new_password", deliveryUser.UpdatePassword).Methods("PUT").Name("update_user_password")
 }

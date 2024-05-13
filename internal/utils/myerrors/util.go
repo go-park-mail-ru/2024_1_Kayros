@@ -56,6 +56,7 @@ var (
 	UserAlreadyExist = errors.New("user with this login already exists")
 	CtxRequestId     = errors.New("request_id was not passed in the context")
 	CtxEmail         = errors.New("email was not passed in the context")
+	
 
 	BigSizeFile        = errors.New("maximum file size exceeded")
 	WrongFileExtension = errors.New("invalid image format")

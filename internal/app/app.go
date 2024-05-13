@@ -9,12 +9,13 @@ import (
 	"os/signal"
 	"time"
 
-	metrics "2024_1_kayros"
 	"2024_1_kayros/config"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/delivery/route"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/minio"
 	"2024_1_kayros/services/postgres"
+
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
@@ -33,7 +34,7 @@ func Run(cfg *config.Project) {
 	m := metrics.NewMetrics(reg)
 
 	//restaurant microservice
-	restConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	restConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		errMsg := fmt.Sprintf("The microservice restaurant is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -98,7 +99,7 @@ func Run(cfg *config.Project) {
 	}(sessionConn)
 
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, minioDB, r, logger, restConn, commentConn, authConn, userConn, sessionConn, m)
+	handler := route.Setup(cfg, postgreDB, minioDB, r, logger, restConn, commentConn, authConn, userConn, sessionConn, m, reg)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)

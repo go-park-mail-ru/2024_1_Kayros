@@ -34,5 +34,5 @@ func AddPaymentRouter(db *sql.DB, sessionConn, userConn, restConn *grpc.ClientCo
 	usecaseOrder := order.NewUsecaseLayer(repoOrder, repoFood, grpcUserClient, grpcRestClient)
 	deliveryPayment := payment.NewPaymentDelivery(logger, usecaseOrder, usecaseSession, cfg)
 
-	mux.HandleFunc("/order/pay/url", deliveryPayment.OrderGetPayUrl).Methods("GET").Name("get-pay-url")
+	mux.HandleFunc("/api/v1/order/pay/url", deliveryPayment.OrderGetPayUrl).Methods("GET").Name("get-pay-url")
 }

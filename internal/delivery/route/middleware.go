@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	metrics "2024_1_kayros"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/config"
 	protosession "2024_1_kayros/gen/go/session"
 	protouser "2024_1_kayros/gen/go/user"

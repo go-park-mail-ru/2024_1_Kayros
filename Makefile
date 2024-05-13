@@ -9,16 +9,13 @@ build:
 test:
 	go test -v main.go
 
-run: build
-	./${BINARY_NAME}
-
 tidy:
 	go fmt ./...
 	go mod tidy -v
 
 clean:
-	go clean
-	rm ./${BINARY_NAME}
+	docker rm gateway
+	docker image rm dev-compose-gateway
 
 generate:
 	go generate 
