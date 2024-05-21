@@ -32,6 +32,7 @@ type Repo interface {
 	CleanBasket(ctx context.Context, orderId alias.OrderId) error
 	DeleteBasket(ctx context.Context, orderId alias.OrderId) error
 	SetUser(ctx context.Context, orderId alias.OrderId, userId alias.UserId) error
+	UpdateSum(ctx context.Context, sum uint32, orderId alias.OrderId) error
 
 	GetPromocode(ctx context.Context, code string) (*entity.Promocode, error)
 	WasPromocodeUsed(ctx context.Context, userId alias.UserId, codeId uint64) error

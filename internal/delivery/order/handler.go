@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -262,6 +263,31 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//надо чекнуть наличие промокода в заказе
+	promocode, err := h.uc.GetPromocodeByOrder(r.Context(), (*alias.OrderId)(&basket.Id))
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	}
+	//есть промокод
+	if promocode.Id != 0 {
+		//надо проверить актуальность промокода
+		_, err = h.uc.CheckPromocode(r.Context(), email, promocode.Code, alias.OrderId(basket.Id))
+		//если неактуален, то удалить
+		if errors.Is(err, myerrors.OverDatePromocode) || errors.Is(err, myerrors.OncePromocode) || errors.Is(err, myerrors.SumPromocode) {
+			err = h.uc.DeletePromocode(r.Context(), alias.OrderId(basket.Id))
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		} else if err != nil {
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		} else {
+			sum := basket.Sum * uint64(promocode.Sale) / 100
+			err = h.uc.UpdateSum(r.Context(), sum, alias.OrderId(basket.Id))
+			if err != nil {
+				fmt.Println(err)
+				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			}
+		}
+	}
+
 	payedOrder, err := h.uc.Pay(r.Context(), alias.OrderId(basket.Id), basket.Status, email, alias.UserId(basket.UserId))
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
@@ -282,7 +308,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	w = functions.JsonResponse(w, response)
 }
 
-// добавить проверку промокодов
+// добавить проверку промокодов - добавила
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
@@ -366,8 +392,6 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	promocode, err := h.uc.GetPromocodeByOrder(r.Context(), &basketId)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-		return
 	}
 	//есть промокод
 	if promocode.Id != 0 && email == "" {
@@ -393,8 +417,10 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order.Promocode = promocode.Code
-	order.NewSum = order.Sum * uint64(promocode.Sale) / 100
+	if promocode != nil {
+		order.Promocode = promocode.Code
+		order.NewSum = order.Sum * uint64(promocode.Sale) / 100
+	}
 
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)

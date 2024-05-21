@@ -39,6 +39,7 @@ type Usecase interface {
 	AddFoodToOrder(ctx context.Context, foodId alias.FoodId, count uint32, orderId alias.OrderId) error
 	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error)
 	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) (*entity.Order, error)
+	UpdateSum(ctx context.Context, sum uint64, orderId alias.OrderId) error
 
 	CheckPromocode(ctx context.Context, email string, codeName string, basketId alias.OrderId) (*entity.Promocode, error)
 	SetPromocode(ctx context.Context, orderId alias.OrderId, code *entity.Promocode) (uint64, error)
@@ -452,6 +453,14 @@ func (uc *UsecaseLayer) GetPromocodeByOrder(ctx context.Context, orderId *alias.
 
 func (uc *UsecaseLayer) DeletePromocode(ctx context.Context, orderId alias.OrderId) error {
 	err := uc.repoOrder.DeletePromocode(ctx, orderId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (uc *UsecaseLayer) UpdateSum(ctx context.Context, sum uint64, orderId alias.OrderId) error {
+	err := uc.repoOrder.UpdateSum(ctx, uint32(sum), orderId)
 	if err != nil {
 		return err
 	}
