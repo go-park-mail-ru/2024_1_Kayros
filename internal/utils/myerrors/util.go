@@ -31,6 +31,10 @@ var (
 	FailCleanBasketRu   = errors.New("Не удалось очистить корзину")
 	FailCreateCommentRu = errors.New("Не удалось добавить отзыв")
 	NoDeleteFoodRu      = errors.New("Не удалось убрать блюдо из заказа, попробуйте еще раз")
+	OverDatePromocodeRu = errors.New("Срок действия промокода истек")
+	OncePromocodeRu     = errors.New("Данный промокод нельзя использовать повторно")
+	SumPromocodeRu      = errors.New("Чтобы применить промокод, сумма должна быть")
+	NoSetPromocodeRu    = errors.New("Не удалось применить промокод")
 )
 
 // Response errors (external) ENGLISH
@@ -56,7 +60,6 @@ var (
 	UserAlreadyExist = errors.New("user with this login already exists")
 	CtxRequestId     = errors.New("request_id was not passed in the context")
 	CtxEmail         = errors.New("email was not passed in the context")
-	
 
 	BigSizeFile        = errors.New("maximum file size exceeded")
 	WrongFileExtension = errors.New("invalid image format")
@@ -71,10 +74,14 @@ var (
 	BasketCreate     = errors.New("can't create basket")
 	InvalidAddressEn = errors.New("invalid length of address")
 
-	NoComments   = errors.New("restaurant doesn't have comments")
-	QuizAdd      = errors.New("answer was not added to the quiz")
-	NoBasket     = errors.New("basket doesn't exist")
-	AlreadyPayed = errors.New("order has already been paid")
+	NoComments        = errors.New("restaurant doesn't have comments")
+	QuizAdd           = errors.New("answer was not added to the quiz")
+	NoBasket          = errors.New("basket doesn't exist")
+	AlreadyPayed      = errors.New("order has already been paid")
+	OverDatePromocode = errors.New("time of promocode end")
+	OncePromocode     = errors.New("this promocode cannot be reused")
+	SumPromocode      = errors.New("order sum less than promocode limit")
+	NoSetPromocode    = errors.New("promocode could not be applied")
 
 	// Database
 	SqlNoRowsUserRelation          = errors.New("no such record exists for \"user\"")
@@ -85,6 +92,7 @@ var (
 	SqlNoRowsCommentRelation       = errors.New("no such record exists for \"comment\"")
 	SqlNoRowsFoodOrderRelation     = errors.New("no such record exists for food_order")
 	SqlNoRowsQuizRelation          = errors.New("no such record exists for quiz")
+	SqlNoRowsPromocodeRelation     = errors.New("no such record exists for promocode")
 	RedisNoData                    = errors.New("no such record exists in Redis")
 	NullData                       = errors.New("selected null data from table")
 )

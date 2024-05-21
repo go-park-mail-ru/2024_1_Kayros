@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
@@ -29,6 +30,7 @@ type Usecase interface {
 	GetOrderById(ctx context.Context, id alias.OrderId) (*entity.Order, error)
 	Create(ctx context.Context, email string) (alias.OrderId, error)
 	GetCurrentOrders(ctx context.Context, email string) ([]*entity.ShortOrder, error)
+	GetArchiveOrders(ctx context.Context, email string) ([]*entity.ShortOrder, error)
 	CreateNoAuth(ctx context.Context, token string) (alias.OrderId, error)
 	UpdateAddress(ctx context.Context, FullAddress dto.FullAddress, orderId alias.OrderId) error
 	Pay(ctx context.Context, orderId alias.OrderId, currentStatus string, email string, userId alias.UserId) (*entity.Order, error)
@@ -37,6 +39,11 @@ type Usecase interface {
 	AddFoodToOrder(ctx context.Context, foodId alias.FoodId, count uint32, orderId alias.OrderId) error
 	UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error)
 	DeleteFromOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId) (*entity.Order, error)
+
+	CheckPromocode(ctx context.Context, email string, codeName string, basketId alias.OrderId) (*entity.Promocode, error)
+	SetPromocode(ctx context.Context, orderId alias.OrderId, code *entity.Promocode) (uint64, error)
+	GetPromocodeByOrder(ctx context.Context, orderId *alias.OrderId) (*entity.Promocode, error)
+	DeletePromocode(ctx context.Context, orderId alias.OrderId) error
 }
 
 type UsecaseLayer struct {
@@ -156,6 +163,41 @@ func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*
 			Time:           "",
 			RestaurantId:   o.RestaurantId,
 			RestaurantName: rest.Name,
+		})
+	}
+	return res, nil
+}
+
+func (uc *UsecaseLayer) GetArchiveOrders(ctx context.Context, email string) ([]*entity.ShortOrder, error) {
+	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
+	if err != nil {
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+			return nil, myerrors.SqlNoRowsUserRelation
+		}
+		return nil, err
+	}
+	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Delivered)
+	if err != nil {
+		return nil, err
+	}
+	res := []*entity.ShortOrder{}
+	for _, o := range orders {
+		id := o.Food[0].RestaurantId
+		rest, err := uc.restGrpcClient.GetById(ctx, &rest.RestId{Id: id})
+		if err != nil {
+			if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsRestaurantRelation) {
+				return nil, myerrors.SqlNoRowsRestaurantRelation
+			}
+			return nil, err
+		}
+		res = append(res, &entity.ShortOrder{
+			Id:             o.Id,
+			UserId:         o.UserId,
+			Status:         o.Status,
+			Time:           o.OrderCreatedAt,
+			RestaurantId:   o.RestaurantId,
+			RestaurantName: rest.Name,
+			Sum:            uint32(o.Sum),
 		})
 	}
 	return res, nil
@@ -311,4 +353,107 @@ func (uc *UsecaseLayer) DeleteFromOrder(ctx context.Context, orderId alias.Order
 		updatedOrder.RestaurantId = updatedOrder.Food[0].RestaurantId
 	}
 	return updatedOrder, nil
+}
+
+// проверяет 4 вида промокодов
+func (uc *UsecaseLayer) CheckPromocode(ctx context.Context, email string, codeName string, basketId alias.OrderId) (*entity.Promocode, error) {
+	code, err := uc.repoOrder.GetPromocode(ctx, codeName)
+	if err != nil {
+		return nil, err
+	}
+	if code == nil {
+		return nil, nil
+	}
+	date, err := time.Parse(constants.Timestamptz, code.Date)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	if date.Before(time.Now()) {
+		return nil, myerrors.OverDatePromocode
+	}
+	//берем юзера, так как дальше нужно проверять его заказы
+	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
+	if err != nil {
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+			return nil, myerrors.SqlNoRowsUserRelation
+		}
+		return nil, err
+	}
+
+	//промокод на первый заказ в сервисе
+	if code.Type == "first" {
+		orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Delivered)
+		//err :=
+		if err != nil && !errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			return nil, err
+		}
+		if orders != nil {
+			return nil, myerrors.OncePromocode
+		}
+	} else if code.Type == "rest" { //промокод от определенной суммы
+		//тут немного другую функцию вызывать
+		sum, err := uc.repoOrder.GetOrderSum(ctx, basketId)
+		if err != nil {
+			return nil, err
+		}
+		if uint64(sum) < code.Sum {
+			return nil, myerrors.SumPromocode
+		}
+	}
+	//промокод, который можно применить один раз
+	if code.Type == "once" {
+		//тут немного другую функцию вызывать
+		err := uc.repoOrder.WasPromocodeUsed(ctx, alias.UserId(u.Id), code.Id)
+		if err != nil {
+			return nil, err
+		}
+	} else if code.Type == "rest" { //промокод на первый заказ в рестике
+		//тут немного другую функцию вызывать
+		orders, err := uc.GetArchiveOrders(ctx, email)
+		if err != nil {
+			return nil, err
+		}
+		for _, o := range orders {
+			if o.RestaurantId == code.Rest {
+				//сюда попадут только те заказы, которые были сделаны в ресторане,
+				//который относится к введеному промокоду
+				err = uc.repoOrder.WasRestPromocodeUsed(ctx, alias.OrderId(o.Id), code.Id)
+				//если промокод был введен, то выкидываемся из функции
+				//err=nil, когда не нашлось записей, то есть промокод не был применен
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+	return code, nil
+}
+
+func (uc *UsecaseLayer) SetPromocode(ctx context.Context, orderId alias.OrderId, code *entity.Promocode) (uint64, error) {
+	sum, err := uc.repoOrder.SetPromocode(ctx, orderId, code.Id)
+	if err != nil {
+		return 0, err
+	}
+	sum = sum * uint64(code.Sale) / 100
+	return sum, nil
+}
+
+func (uc *UsecaseLayer) GetPromocodeByOrder(ctx context.Context, orderId *alias.OrderId) (*entity.Promocode, error) {
+	code, err := uc.repoOrder.GetPromocodeByOrder(ctx, orderId)
+	if err != nil {
+		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return code, nil
+}
+
+func (uc *UsecaseLayer) DeletePromocode(ctx context.Context, orderId alias.OrderId) error {
+	err := uc.repoOrder.DeletePromocode(ctx, orderId)
+	if err != nil {
+		return err
+	}
+	return nil
 }

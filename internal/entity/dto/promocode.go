@@ -8,7 +8,7 @@ type Promocode struct {
 	Id   uint64 `json:"id"`
 	Code string `json:"code"`
 	Date string `json:"date"`
-	Sale string `json:"sale"`
+	Sale uint8  `json:"sale"`
 }
 
 func NewPromocode(promo *entity.Promocode) *Promocode {

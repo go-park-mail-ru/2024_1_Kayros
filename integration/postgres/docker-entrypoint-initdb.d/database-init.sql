@@ -101,7 +101,9 @@ CREATE TABLE IF NOT EXISTS "order"
         CONSTRAINT order_time_payed NULL,
     delivered_at     TIMESTAMPTZ
         CONSTRAINT order_time_delivered NULL,
-    commented        BOOLEAN                    DEFAULT FALSE
+    commented        BOOLEAN                    DEFAULT FALSE,
+    promocode_id          INTEGER
+        CONSTRAINT foreign_key CHECK (promocode_id > 0) REFERENCES promocode (id) ON DELETE CASCADE  NULL,
 );
 
 -- БЖУ хранятся в МГ
@@ -181,4 +183,19 @@ CREATE TABLE IF NOT EXISTS "comment"
         CONSTRAINT comment_text_length CHECK (LENGTH(text) <= 250) NULL,
     rating        INTEGER
         CONSTRAINT non_negative_rating CHECK (rating >= 0)         NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS promocode(
+    id                INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code              TEXT
+        CONSTRAINT code_uinque                                    NOT NULL UNIQUE,
+    date TIMESTAMPTZ NOT NULL,
+    sale  INTEGER
+        CONSTRAINT sale_range CHECK (sale > 0 AND sale < 100)                  NOT   NULL,
+    type          TEXT
+        CONSTRAINT type_length CHECK (LENGTH(type) > 0 ) NOT NULL,
+    restaurant_id           INTEGER
+        CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0)      NULL REFERENCES restaurant (id) ON DELETE CASCADE,
+    sum            INTEGER
+        CONSTRAINT non_negatve_sum CHECK (sum > 0)  NULL
 );

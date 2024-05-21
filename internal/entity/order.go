@@ -11,6 +11,7 @@ type ShortOrder struct {
 	Time           string
 	RestaurantId   uint64
 	RestaurantName string
+	Sum            uint32
 }
 
 type Order struct {
@@ -25,6 +26,8 @@ type Order struct {
 	Address        string
 	ExtraAddress   string
 	Sum            uint64
+	NewSum         uint64
+	Promocode      string
 	RestaurantId   uint64
 	RestaurantName string
 	Commented      bool
