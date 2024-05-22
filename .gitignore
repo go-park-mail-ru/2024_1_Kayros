@@ -12,3 +12,4 @@ integration/minios3
 api.md
 bd.md
 .DS_Store
+.vscode/
