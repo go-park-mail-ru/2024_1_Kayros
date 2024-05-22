@@ -392,7 +392,7 @@ func (uc *UsecaseLayer) CheckPromocode(ctx context.Context, email string, codeNa
 		if orders != nil {
 			return nil, myerrors.OncePromocode
 		}
-	} else if code.Type == "rest" { //промокод от определенной суммы
+	} else if code.Type == "sum" { //промокод от определенной суммы
 		//тут немного другую функцию вызывать
 		sum, err := uc.repoOrder.GetOrderSum(ctx, basketId)
 		if err != nil {
