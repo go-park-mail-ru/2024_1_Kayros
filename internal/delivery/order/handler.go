@@ -269,17 +269,19 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
 	//есть промокод
-	if promocode.Id != 0 {
+	if promocode != nil && promocode.Id != 0 {
 		//надо проверить актуальность промокода
 		_, err = h.uc.CheckPromocode(r.Context(), email, promocode.Code, alias.OrderId(basket.Id))
 		//если неактуален, то удалить
 		if errors.Is(err, myerrors.OverDatePromocode) || errors.Is(err, myerrors.OncePromocode) || errors.Is(err, myerrors.SumPromocode) {
 			err = h.uc.DeletePromocode(r.Context(), alias.OrderId(basket.Id))
-			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			if err != nil {
+				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			}
 		} else if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		} else {
-			sum := basket.Sum * uint64(promocode.Sale) / 100
+			sum := basket.Sum * (100 - uint64(promocode.Sale)) / 100
 			err = h.uc.UpdateSum(r.Context(), sum, alias.OrderId(basket.Id))
 			if err != nil {
 				fmt.Println(err)
@@ -390,22 +392,28 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 	//есть basketId
 	//надо чекнуть наличие промокода в заказе
 	promocode, err := h.uc.GetPromocodeByOrder(r.Context(), &basketId)
+	fmt.Println(promocode, err)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
 	//есть промокод
-	if promocode.Id != 0 && email == "" {
+	if promocode != nil && promocode.Id != 0 && email == "" {
 		//но нет кук, надо удалить промик
 		if email == "" {
 			err = h.uc.DeletePromocode(r.Context(), basketId)
-			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			if err != nil {
+				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			}
 		} else {
 			//куки есть, надо проверить актуальность промокода
 			_, err = h.uc.CheckPromocode(r.Context(), email, promocode.Code, basketId)
 			//если неактуален, то удалить
 			if errors.Is(err, myerrors.OverDatePromocode) || errors.Is(err, myerrors.OncePromocode) || errors.Is(err, myerrors.SumPromocode) {
 				err = h.uc.DeletePromocode(r.Context(), basketId)
-				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				promocode = nil
+				if err != nil {
+					h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				}
 			}
 		}
 	}

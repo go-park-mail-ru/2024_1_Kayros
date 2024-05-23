@@ -15,7 +15,6 @@ func NewPromocode(promo *entity.Promocode) *Promocode {
 	return &Promocode{
 		Id:   promo.Id,
 		Code: promo.Code,
-		Date: promo.Date,
 		Sale: promo.Sale,
 	}
 }

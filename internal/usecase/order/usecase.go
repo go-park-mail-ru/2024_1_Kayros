@@ -359,18 +359,23 @@ func (uc *UsecaseLayer) DeleteFromOrder(ctx context.Context, orderId alias.Order
 // проверяет 4 вида промокодов
 func (uc *UsecaseLayer) CheckPromocode(ctx context.Context, email string, codeName string, basketId alias.OrderId) (*entity.Promocode, error) {
 	code, err := uc.repoOrder.GetPromocode(ctx, codeName)
+	fmt.Println(code, err)
 	if err != nil {
+		if errors.Is(err, myerrors.SqlNoRowsPromocodeRelation) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	if code == nil {
 		return nil, nil
 	}
-	layout := "2024-05-28 16:52:48+00:00"
-	date, err := time.Parse(layout, code.Date)
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
+	// layout := "2024-05-28 16:52:48+00:00"
+	// date, err := time.Parse(layout, code.Date)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return nil, err
+	// }
+	date := code.Date
 	if date.Before(time.Now()) {
 		return nil, myerrors.OverDatePromocode
 	}
@@ -407,6 +412,7 @@ func (uc *UsecaseLayer) CheckPromocode(ctx context.Context, email string, codeNa
 	if code.Type == "once" {
 		//тут немного другую функцию вызывать
 		err := uc.repoOrder.WasPromocodeUsed(ctx, alias.UserId(u.Id), code.Id)
+		fmt.Println("wasCodeUsed", err)
 		if err != nil {
 			return nil, err
 		}
@@ -437,14 +443,15 @@ func (uc *UsecaseLayer) SetPromocode(ctx context.Context, orderId alias.OrderId,
 	if err != nil {
 		return 0, err
 	}
-	sum = sum * uint64(code.Sale) / 100
+	sum = sum * (100 - uint64(code.Sale)) / 100
 	return sum, nil
 }
 
 func (uc *UsecaseLayer) GetPromocodeByOrder(ctx context.Context, orderId *alias.OrderId) (*entity.Promocode, error) {
 	code, err := uc.repoOrder.GetPromocodeByOrder(ctx, orderId)
+	fmt.Println(code, err)
 	if err != nil {
-		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+		if errors.Is(err, myerrors.SqlNoRowsPromocodeRelation) {
 			return nil, nil
 		}
 		return nil, err

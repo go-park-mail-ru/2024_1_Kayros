@@ -67,6 +67,8 @@ func NewOrder(order *entity.Order) *Order {
 		Address:        order.Address,
 		ExtraAddress:   order.ExtraAddress,
 		Sum:            order.Sum,
+		NewSum:         order.NewSum,
+		Promocode:      order.Promocode,
 		RestaurantId:   order.RestaurantId,
 		RestaurantName: order.RestaurantName,
 		Commented:      order.Commented,

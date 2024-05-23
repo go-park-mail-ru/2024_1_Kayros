@@ -1,11 +1,14 @@
 package entity
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 type Promocode struct {
 	Id   uint64
 	Code string
-	Date string
+	Date time.Time
 	Sale uint8
 	Type string
 	Rest uint64
@@ -21,7 +24,7 @@ type Promocode struct {
 type PromocodeDB struct {
 	Id   uint64
 	Code string
-	Date string
+	Date time.Time
 	Sale uint8
 	Type string
 	Rest sql.NullInt64
