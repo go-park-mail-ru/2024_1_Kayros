@@ -365,7 +365,8 @@ func (uc *UsecaseLayer) CheckPromocode(ctx context.Context, email string, codeNa
 	if code == nil {
 		return nil, nil
 	}
-	date, err := time.Parse(constants.Timestamptz, code.Date)
+	layout := "2024-05-28 16:52:48+00:00"
+	date, err := time.Parse(layout, code.Date)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err

@@ -604,13 +604,15 @@ func (h *OrderHandler) SetPromocode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var code string
-	err = json.Unmarshal(body, &code)
+	c := promo{}
+	err = json.Unmarshal(body, &c)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
+
+	code := c.Code
 
 	var basketId alias.OrderId
 	//берем корзину, к которой может быть применен

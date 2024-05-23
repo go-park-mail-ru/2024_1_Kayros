@@ -27,9 +27,10 @@ func AddOrderRouter(db *sql.DB, mux *mux.Router, userConn, restConn *grpc.Client
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)
 
 	mux.HandleFunc("/api/v1/order", handler.GetBasket).Methods("GET")
+	
 	mux.HandleFunc("/api/v1/order/{id}", handler.GetOrderById).Methods("GET")
 
-	mux.HandleFunc("/api/v1/order/promocode", handler.SetPromocode).Methods("POST")
+	mux.HandleFunc("/api/v1/promocode", handler.SetPromocode).Methods("POST")
 
 	mux.HandleFunc("/api/v1/orders/current", handler.GetCurrentOrders).Methods("GET")
 	mux.HandleFunc("/api/v1/orders/archive", handler.GetArchiveOrders).Methods("GET")

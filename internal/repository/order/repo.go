@@ -463,6 +463,7 @@ func (repo *RepoLayer) DeleteBasket(ctx context.Context, id alias.OrderId) error
 	if err != nil {
 		return err
 	}
+	
 	countRows, err = res.RowsAffected()
 	if err != nil {
 		return err
@@ -563,16 +564,22 @@ func (repo *RepoLayer) DeletePromocode(ctx context.Context, orderId alias.OrderI
 	return nil
 }
 
+
+
 func (repo *RepoLayer) GetPromocodeByOrder(ctx context.Context, orderId *alias.OrderId) (*entity.Promocode, error) {
-	var id uint64
+	var i sql.NullInt64
 	err := repo.db.QueryRowContext(ctx,
-		`SELECT promocode_id FROM "order" WHERE id=$1`, orderId).Scan(&id)
+		`SELECT promocode_id FROM "order" WHERE id=$1`, orderId).Scan(&i)
 	if err != nil {
 		fmt.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsPromocodeRelation
 		}
 		return nil, err
+	}
+	id := entity.Int(i)
+	if id == 0{
+		return nil, myerrors.SqlNoRowsPromocodeRelation
 	}
 	res := entity.PromocodeDB{}
 	err = repo.db.QueryRowContext(ctx,
