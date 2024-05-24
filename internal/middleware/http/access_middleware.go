@@ -1,10 +1,9 @@
-package middleware
+package http
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -51,8 +50,6 @@ func Access(handler http.Handler, logger *zap.Logger) http.Handler {
 		r = r.WithContext(ctx)
 
 		rec, ok := w.(*recorder.ResponseWriter)
-		log.Printf("w: %v", w)
-		log.Printf("rec: %v", rec)
 		if !ok {
 			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return

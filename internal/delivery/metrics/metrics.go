@@ -2,15 +2,17 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type Metrics struct {
 	TotalNumberOfRequests     prometheus.Counter
 	RequestTime 			  *prometheus.HistogramVec
 	NumberOfSpecificRequests  *prometheus.CounterVec
-}
+	MicroserviceTimeout		  *prometheus.HistogramVec
+	DatabaseDuration		  *prometheus.HistogramVec
+}	
 
 const namespace = "gateway"
 
@@ -39,10 +41,29 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 			prometheus.HistogramOpts{
 				Namespace: namespace,
 				Name:    "time_of_request",
-				Help:    "HTTP request  duration in seconds",
+				Help:    "HTTP request  duration in milliseconds",
 				Buckets: []float64{10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000},
 			},
 			[]string{"method", "path", "status"},
+		),
+		// request time can be filtered by request method, url path and response status
+		MicroserviceTimeout: promauto.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: namespace,
+				Name:    "time_of_request",
+				Help:    "gRPC request duration in milliseconds",
+				Buckets: []float64{10, 25, 50, 100, 250, 500, 1000},
+			},
+			[]string{"microservice"},
+		),
+		DatabaseDuration: promauto.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: namespace,
+				Name:    "database_duration_ms",
+				Help:    "Database request duration in milliseconds",
+				Buckets: []float64{10, 25, 50, 100, 250, 500, 1000},
+			},
+			[]string{"operation"},
 		),
 	}
 	reg.MustRegister(collectors.NewGoCollector())
@@ -62,10 +83,10 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 // - если дятнетесь - сисколлы (read write)
 // ! бизнесовые метрики
 // - хиты +
-// - хиты с разделением по кодам ответов + хендлерам + путям 
-// - тайминги ответов по хендерам +
+// - хиты с разделением по кодам ответов + хендлерам + путям +
+// - тайминги ответов по хендлерам +
 // - количество горутин + 
 // - размер хипа (heap, динамическая память) +  
 // - тайминги ответов внешних систем (микросервисы, базы и все такое) 
-// - кол-во ошибо внешних систем
+// - кол-во ошибок внешних систем
 // - разлиные бизнесовые операции (почти хиты, н оне по ручкам)

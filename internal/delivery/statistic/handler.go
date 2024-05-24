@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"2024_1_kayros/config"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/usecase/session"
 	cnst "2024_1_kayros/internal/utils/constants"
 
@@ -27,15 +28,17 @@ type Delivery struct {
 	ucSession session.Usecase
 	logger    *zap.Logger
 	cfg       *config.Project
+	metrics   *metrics.Metrics
 }
 
-func NewDeliveryLayer(ucQuizProps statistic.Usecase, ucUserProps user.Usecase, ucSessionProps session.Usecase, loggerProps *zap.Logger, cfgProps *config.Project) *Delivery {
+func NewDeliveryLayer(ucQuizProps statistic.Usecase, ucUserProps user.Usecase, ucSessionProps session.Usecase, loggerProps *zap.Logger, cfgProps *config.Project, metrics   *metrics.Metrics) *Delivery {
 	return &Delivery{
 		ucQuiz:    ucQuizProps,
 		ucUser:    ucUserProps,
 		logger:    loggerProps,
 		ucSession: ucSessionProps,
 		cfg:       cfgProps,
+		metrics: metrics,
 	}
 }
 
@@ -109,7 +112,7 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-				w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
+				w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis, d.metrics)
 				if err != nil {
 					d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 					w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)

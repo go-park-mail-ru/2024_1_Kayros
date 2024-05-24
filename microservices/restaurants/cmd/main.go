@@ -6,11 +6,14 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/gen/go/rest"
+	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
+	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/microservices/restaurants/internal/repo"
 	"2024_1_kayros/microservices/restaurants/internal/usecase"
 	"2024_1_kayros/services/postgres"
@@ -26,12 +29,15 @@ func main() {
 		logger.Fatal("The microservice restaurant doesn't respond", zap.String("error", err.Error()))
 	}
 	logger.Info(fmt.Sprintf("The microservice restaurant responds on port %d", cfg.RestGrpcServer.Port))
+	reg := prometheus.NewRegistry()
+	metrics := metrics.NewMetrics(reg, "rest")
+	middleware := grpcServerMiddleware.NewMiddlewareChain(logger, metrics)
 
 	// init grpc server
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
 	// init services for server work
 	postgreDB := postgres.Init(cfg, logger)
-	repoRest := repo.NewRestLayer(postgreDB)
+	repoRest := repo.NewRestLayer(postgreDB, metrics)
 	rest.RegisterRestWorkerServer(server, usecase.NewRestLayer(repoRest, logger))
 	err = server.Serve(conn)
 	if err != nil {

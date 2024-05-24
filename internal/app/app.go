@@ -12,6 +12,7 @@ import (
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/delivery/route"
+	grpcClientMiddleware "2024_1_kayros/internal/middleware/grpc/client"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/minio"
 	"2024_1_kayros/services/postgres"
@@ -33,8 +34,11 @@ func Run(cfg *config.Project) {
 	reg := prometheus.NewRegistry()
 	m := metrics.NewMetrics(reg)
 
+	middleware := grpcClientMiddleware.NewGrpcClientUnaryMiddlewares(m)
+
 	//restaurant microservice
-	restConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	restConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port),
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
 	if err != nil {
 		errMsg := fmt.Sprintf("The microservice restaurant is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -47,7 +51,8 @@ func Run(cfg *config.Project) {
 	}(restConn)
 
 	//comment microservice
-	commentConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	commentConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port), 
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
 	if err != nil {
 		errMsg := fmt.Sprintf("The microservice comment is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -60,7 +65,8 @@ func Run(cfg *config.Project) {
 	}(commentConn)
 
 	//auth microservice
-	authConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.AuthGrpcServer.Host, cfg.AuthGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	authConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.AuthGrpcServer.Host, cfg.AuthGrpcServer.Port), 
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
 	if err != nil {
 		errMsg := fmt.Sprintf("The auth microservice is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -73,7 +79,8 @@ func Run(cfg *config.Project) {
 	}(authConn)
 
 	// user microservice
-	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), 
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
 	if err != nil {
 		errMsg := fmt.Sprintf("The microservice user is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -86,7 +93,8 @@ func Run(cfg *config.Project) {
 	}(userConn)
 
 	// session microservice
-	sessionConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.SessionGrpcServer.Host, cfg.SessionGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	sessionConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.SessionGrpcServer.Host, cfg.SessionGrpcServer.Port), 
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
 	if err != nil {
 		errMsg := fmt.Sprintf("The microservice session is not available.\n%v", err)
 		logger.Error(errMsg)

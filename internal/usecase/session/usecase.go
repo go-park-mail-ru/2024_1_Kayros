@@ -2,11 +2,14 @@ package session
 
 import (
 	"2024_1_kayros/gen/go/session"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/utils/alias"
+	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/myerrors/grpcerr"
 	"context"
 	"fmt"
+	"time"
 
 	"google.golang.org/grpc/codes"
 )
@@ -20,11 +23,13 @@ type Usecase interface {
 
 type UsecaseLayer struct {
 	client session.SessionManagerClient
+	metrics *metrics.Metrics
 }
 
-func NewUsecaseLayer(clientProps session.SessionManagerClient) Usecase {
+func NewUsecaseLayer(clientProps session.SessionManagerClient, metrics *metrics.Metrics) Usecase {
 	return &UsecaseLayer{
 		client: clientProps,
+		metrics: metrics,
 	}
 }
 
@@ -33,7 +38,10 @@ func (uc *UsecaseLayer) GetValue(ctx context.Context, key alias.SessionKey, data
 		Key:      string(key),
 		Database: databaseNum,
 	}
+	timeNow := time.Now()
 	value, err := uc.client.GetSession(ctx, data)
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.SessionMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
 		fmt.Printf("%v", err)
 		if grpcerr.Is(err, codes.NotFound, myerrors.RedisNoData) {
@@ -50,7 +58,10 @@ func (uc *UsecaseLayer) SetValue(ctx context.Context, key alias.SessionKey, valu
 		Value:    string(value),
 		Database: databaseNum,
 	}
+	timeNow := time.Now()
 	_, err := uc.client.SetSession(ctx, data)
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.SessionMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
 		if grpcerr.Is(err, codes.Internal, myerrors.RedisNoData) {
 			return myerrors.RedisNoData
@@ -65,7 +76,10 @@ func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey, dat
 		Key:      string(key),
 		Database: databaseNum,
 	}
+	timeNow := time.Now()
 	_, err := uc.client.DeleteSession(ctx, data)
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.SessionMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
 		if grpcerr.Is(err, codes.Internal, myerrors.RedisNoData) {
 			return myerrors.RedisNoData

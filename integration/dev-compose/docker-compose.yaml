@@ -42,14 +42,14 @@ services:
     restart: always
     image: prom/node-exporter:latest
     container_name: node-exporter
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - --path.procfs=/host/proc
-      - --path.sysfs=/host/sys
-      - --collector.filesystem.ignored-mount-points
+    # volumes:
+    #   - /proc:/host/proc:ro
+    #   - /sys:/host/sys:ro
+    #   - /:/rootfs:ro
+    # command:
+    #   - --path.procfs=/host/proc
+    #   - --path.sysfs=/host/sys
+    #   - --collector.filesystem.ignored-mount-points
     ports:
       - "9100:9100"
     tty: true
@@ -73,71 +73,71 @@ services:
       - "3000:3000"
     tty: true
   # gateway and microservices
-  rest-grpc:
-    restart: always
-    build:
-      context: ../../
-      dockerfile: integration/microservices/rest/Dockerfile
-    container_name: rest-grpc
-    ports:
-      - "8001:8001"
-    tty: true
-  comment-grpc:
-    restart: always
-    build:
-      context: ../../
-      dockerfile: integration/microservices/comment/Dockerfile
-    container_name: comment-grpc
-    ports:
-      - "8003:8003"
-    tty: true
-  user-grpc:
-    restart: always
-    build:
-      context: ../../
-      dockerfile: integration/microservices/user/Dockerfile
-    container_name: user-grpc
-    ports:
-      - "8004:8004"
-    tty: true
-  session-grpc:
-    restart: always
-    build:
-      context: ../../
-      dockerfile: integration/microservices/session/Dockerfile
-    container_name: session-grpc
-    ports:
-      - "8005:8005"
-    tty: true
-  auth-grpc:
-    restart: always
-    build:
-      context: ../../
-      dockerfile: integration/microservices/auth/Dockerfile
-    container_name: auth-grpc
-    ports:
-      - "8002:8002"
-    tty: true
-    depends_on:
-      - user-grpc
-      - session-grpc
-  gateway:
-    restart: always
-    build: 
-      context: ../../
-      dockerfile: integration/microservices/gateway/Dockerfile
-    container_name: gateway
-    ports:
-      - "8000:8000"
-    depends_on:
-      - redis
-      - postgres
-      - minio
-      - rest-grpc
-      - user-grpc
-      - session-grpc
-      - auth-grpc
-    tty: true
+  # rest-grpc:
+  #   restart: always
+  #   build:
+  #     context: ../../
+  #     dockerfile: integration/microservices/rest/Dockerfile
+  #   container_name: rest-grpc
+  #   ports:
+  #     - "8001:8001"
+  #   tty: true
+  # comment-grpc:
+  #   restart: always
+  #   build:
+  #     context: ../../
+  #     dockerfile: integration/microservices/comment/Dockerfile
+  #   container_name: comment-grpc
+  #   ports:
+  #     - "8003:8003"
+  #   tty: true
+  # user-grpc:
+  #   restart: always
+  #   build:
+  #     context: ../../
+  #     dockerfile: integration/microservices/user/Dockerfile
+  #   container_name: user-grpc
+  #   ports:
+  #     - "8004:8004"
+  #   tty: true
+  # session-grpc:
+  #   restart: always
+  #   build:
+  #     context: ../../
+  #     dockerfile: integration/microservices/session/Dockerfile
+  #   container_name: session-grpc
+  #   ports:
+  #     - "8005:8005"
+  #   tty: true
+  # auth-grpc:
+  #   restart: always
+  #   build:
+  #     context: ../../
+  #     dockerfile: integration/microservices/auth/Dockerfile
+  #   container_name: auth-grpc
+  #   ports:
+  #     - "8002:8002"
+  #   tty: true
+  #   depends_on:
+  #     - user-grpc
+  #     - session-grpc
+  # gateway:
+  #   restart: always
+  #   build: 
+  #     context: ../../
+  #     dockerfile: integration/microservices/gateway/Dockerfile
+  #   container_name: gateway
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - redis
+  #     - postgres
+  #     - minio
+  #     - rest-grpc
+  #     - user-grpc
+  #     - session-grpc
+  #     - auth-grpc
+  #   tty: true
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -148,6 +148,6 @@ services:
       - /Users/ivanlobanov/Programming/2024_Kayros_Frontend/dist:/var/www/dist
     ports:
       - "80:80"
-    depends_on:
-      - gateway
+    # depends_on:
+    #   - gateway
     tty: true

@@ -1,10 +1,9 @@
 package statistic
 
 import (
-	"context"
-
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/repository/statistic"
+	"context"
 )
 
 type Usecase interface {

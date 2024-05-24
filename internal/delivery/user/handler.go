@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"2024_1_kayros/config"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/usecase/user"
@@ -16,6 +17,7 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/props"
 	"2024_1_kayros/internal/utils/sanitizer"
+
 	"go.uber.org/zap"
 )
 
@@ -24,14 +26,16 @@ type Delivery struct {
 	ucUser    user.Usecase
 	cfg       *config.Project
 	logger    *zap.Logger
+	metrics   *metrics.Metrics
 }
 
-func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, loggerProps *zap.Logger) *Delivery {
+func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, loggerProps *zap.Logger, metrics   *metrics.Metrics) *Delivery {
 	return &Delivery{
 		ucUser:    ucUserProps,
 		ucSession: ucSessionProps,
 		cfg:       cfgProps,
 		logger:    loggerProps,
+		metrics: metrics,
 	}
 }
 
@@ -65,7 +69,7 @@ func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
 			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
-		w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
+		w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis, d.metrics)
 		if err != nil {
 			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -108,7 +112,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			w, err := functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
+			w, err := functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis, d.metrics)
 			if err != nil {
 				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -132,7 +136,7 @@ func (d *Delivery) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	userDTO := dto.NewUserData(sanitizer.User(uUpdated))
 
 	if email != userDTO.Email {
-		err = functions.DeleteCookiesFromDB(r, d.ucSession, &d.cfg.Redis)
+		err = functions.DeleteCookiesFromDB(r, d.ucSession, &d.cfg.Redis, d.metrics)
 		if err != nil {
 			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -178,7 +182,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
+			w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis, d.metrics)
 			if err != nil {
 				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -235,7 +239,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
+			w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis, d.metrics)
 			if err != nil {
 				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -248,7 +252,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = functions.DeleteCookiesFromDB(r, d.ucSession, &d.cfg.Redis)
+	err = functions.DeleteCookiesFromDB(r, d.ucSession, &d.cfg.Redis, d.metrics)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)

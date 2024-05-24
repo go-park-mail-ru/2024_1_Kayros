@@ -8,8 +8,11 @@ import (
 
 	"2024_1_kayros/gen/go/auth"
 	"2024_1_kayros/gen/go/user"
+	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
 	"2024_1_kayros/microservices/auth/internal/usecase"
+	metrics "2024_1_kayros/microservices/metrics"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -27,6 +30,9 @@ func main() {
 		logger.Fatal("The microservice authorization doesn't respond", zap.String("error", err.Error()))
 	}
 	logger.Info(fmt.Sprintf("The microservice authorization responds on port %d", cfg.AuthGrpcServer.Port))
+	reg := prometheus.NewRegistry()
+	metrics := metrics.NewMetrics(reg, "auth")
+	middleware := grpcServerMiddleware.NewMiddlewareChain(logger, metrics)
 
 	// connecting to user microservice
 	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -41,7 +47,7 @@ func main() {
 	}(userConn)
 
 	// init grpc server
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
 	// register contract
 	client := user.NewUserManagerClient(userConn)
 	auth.RegisterAuthManagerServer(server, usecase.NewLayer(client, logger))

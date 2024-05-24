@@ -50,3 +50,19 @@ var ValidMimeTypes = map[string]bool{
 	"image/svg+xml": true,
 	"image/tiff":    true,
 }
+
+//microservices 
+const (
+	UserMicroservice = "user"
+	SessionMicroservice = "session"
+	AuthMicroservice = "auth"
+	RestMicroservice = "rest"
+	CommentMicroservice = "comment"
+)
+
+const (
+	SELECT = "SELECT"
+	UPDATE = "UPDATE"
+	DELETE = "DELETE"
+	INSERT = "INSERT"
+)

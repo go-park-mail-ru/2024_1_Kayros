@@ -24,12 +24,12 @@ func Setup(cfg *config.Project, db *sql.DB, minio *minio.Client, mux *mux.Router
 	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 	mux.Handle("/metrics", promHandler)
 	
-	AddAuthRouter(cfg, db, authConn, sessionConn, mux, logger)
-	AddUserRouter(db, cfg, userConn, sessionConn, mux, logger)
-	AddRestRouter(db, mux, logger, restConn, userConn, commentConn)
-	AddOrderRouter(db, mux, userConn, restConn, logger)
-	AddQuizRouter(db, sessionConn, userConn, minio, mux, logger, cfg)
-	AddPaymentRouter(db, sessionConn, userConn, restConn, mux, logger, cfg)
+	AddAuthRouter(cfg, db, authConn, sessionConn, mux, logger, m)
+	AddUserRouter(db, cfg, userConn, sessionConn, mux, logger, m)
+	AddRestRouter(db, mux, logger, restConn, userConn, commentConn, m)
+	AddOrderRouter(db, mux, userConn, restConn, logger, m)
+	AddQuizRouter(db, sessionConn, userConn, minio, mux, logger, cfg, m)
+	AddPaymentRouter(db, sessionConn, userConn, restConn, mux, logger, cfg, m)
 
 	handler := AddMiddleware(cfg, db, sessionConn, userConn, mux, logger, m)
 	logger.Info("The end of handlers definition")
