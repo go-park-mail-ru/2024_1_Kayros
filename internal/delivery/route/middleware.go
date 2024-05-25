@@ -12,7 +12,7 @@ import (
 	"2024_1_kayros/config"
 	protosession "2024_1_kayros/gen/go/session"
 	protouser "2024_1_kayros/gen/go/user"
-	"2024_1_kayros/internal/middleware"
+	http_middleware "2024_1_kayros/internal/middleware/http"
 	ucSession "2024_1_kayros/internal/usecase/session"
 	"2024_1_kayros/internal/usecase/user"
 )
@@ -20,16 +20,16 @@ import (
 func AddMiddleware(cfg *config.Project, db *sql.DB, sessionConn, userConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, m *metrics.Metrics) http.Handler {
 	// init user microservice client
 	grpcUserClient := protouser.NewUserManagerClient(userConn)
-	usecaseUser := user.NewUsecaseLayer(grpcUserClient)
+	usecaseUser := user.NewUsecaseLayer(grpcUserClient, m)
 	// init session microservice client
 	grpcSessionClient := protosession.NewSessionManagerClient(sessionConn)
-	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient)
+	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient, m)
 
-	handler := middleware.SessionAuthentication(mux, usecaseUser, usecaseSession, logger, &cfg.Redis)
-	handler = middleware.Csrf(handler, usecaseSession, cfg, logger)
-	handler = middleware.Cors(handler, logger)
-	handler = middleware.Access(handler, logger)
-	handler = middleware.Metrics(handler, m)
+	handler := http_middleware.SessionAuthentication(mux, usecaseUser, usecaseSession, logger, &cfg.Redis)
+	handler = http_middleware.Csrf(handler, usecaseSession, cfg, logger, m)
+	handler = http_middleware.Cors(handler, logger)
+	handler = http_middleware.Access(handler, logger)
+	handler = http_middleware.Metrics(handler, m)
 
 	return handler
 }

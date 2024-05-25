@@ -3,14 +3,19 @@ package main
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/gen/go/rest"
+	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
+	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/microservices/restaurants/internal/repo"
 	"2024_1_kayros/microservices/restaurants/internal/usecase"
 	"2024_1_kayros/services/postgres"
@@ -26,12 +31,25 @@ func main() {
 		logger.Fatal("The microservice restaurant doesn't respond", zap.String("error", err.Error()))
 	}
 	logger.Info(fmt.Sprintf("The microservice restaurant responds on port %d", cfg.RestGrpcServer.Port))
+	reg := prometheus.NewRegistry()
+	metrics := metrics.NewMetrics(reg, "restaurants")
+	middleware := grpcServerMiddleware.NewMiddlewareChain(logger, metrics)
+
+	// Start metrics server
+	go func() {
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		address := fmt.Sprintf("%s:%d", cfg.RestGrpcServerExporter.Host, cfg.RestGrpcServerExporter.Port)
+		logger.Info(fmt.Sprintf("Serving metrics responds on port %d", cfg.RestGrpcServerExporter.Port))
+		if err := http.ListenAndServe(address, nil); err != nil {
+			logger.Fatal("Error starting metrics server", zap.String("error", err.Error()))
+		}
+	}()
 
 	// init grpc server
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
 	// init services for server work
 	postgreDB := postgres.Init(cfg, logger)
-	repoRest := repo.NewRestLayer(postgreDB)
+	repoRest := repo.NewRestLayer(postgreDB, metrics)
 	rest.RegisterRestWorkerServer(server, usecase.NewRestLayer(repoRest, logger))
 	err = server.Serve(conn)
 	if err != nil {

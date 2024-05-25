@@ -42,14 +42,14 @@ services:
     restart: always
     image: prom/node-exporter:latest
     container_name: node-exporter
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - --path.procfs=/host/proc
-      - --path.sysfs=/host/sys
-      - --collector.filesystem.ignored-mount-points
+    # volumes:
+    #   - /proc:/host/proc:ro
+    #   - /sys:/host/sys:ro
+    #   - /:/rootfs:ro
+    # command:
+    #   - --path.procfs=/host/proc
+    #   - --path.sysfs=/host/sys
+    #   - --collector.filesystem.ignored-mount-points
     ports:
       - "9100:9100"
     tty: true
@@ -61,7 +61,6 @@ services:
       - "9090:9090"
     volumes:
       - ../prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ../prometheus/data:/prometheus
     depends_on:
       - node-exporter
     tty: true
@@ -71,6 +70,8 @@ services:
     container_name: grafana
     ports:
       - "3000:3000"
+    volumes:
+      - ../grafana:/var/lib/grafana
     tty: true
   # gateway and microservices
   rest-grpc:
@@ -139,6 +140,7 @@ services:
       - auth-grpc
     tty: true
   nginx:
+    restart: always
     image: nginx:latest
     container_name: nginx
     volumes:

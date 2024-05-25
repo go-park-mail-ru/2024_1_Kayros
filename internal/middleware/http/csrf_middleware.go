@@ -1,4 +1,4 @@
-package middleware
+package http
 
 import (
 	"crypto/sha256"
@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"strings"
 
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/utils/alias"
 	"2024_1_kayros/internal/utils/myerrors"
+
 	"go.uber.org/zap"
 
 	"2024_1_kayros/config"
@@ -19,7 +21,7 @@ import (
 )
 
 // Csrf checks for csrf_token availability in the request | Method `Signed Double-Submit Cookie`
-func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, logger *zap.Logger) http.Handler {
+func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, logger *zap.Logger, metrics *metrics.Metrics) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := functions.GetCtxRequestId(r)
 		csrfToken, err := functions.GetCookieCsrfValue(r)
@@ -48,7 +50,7 @@ func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, 
 		if !isValid {
 			errMsg := fmt.Sprintf("tokens are not equal %s:%s", invalidCsrfToken, csrfToken)
 			logger.Error(errMsg, zap.String(cnst.RequestId, requestId))
-			w, err = functions.FlashCookie(r, w, ucSession, &cfg.Redis)
+			w, err = functions.FlashCookie(r, w, ucSession, &cfg.Redis, metrics)
 			if err != nil {
 				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -61,7 +63,7 @@ func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, 
 		xCsrfTokenHeader := r.Header.Get(cnst.XCsrfHeader)
 		if xCsrfTokenHeader != csrfToken {
 			logger.Error(headerCsrfTokenMissing, zap.String(cnst.RequestId, requestId))
-			w, err = functions.FlashCookie(r, w, ucSession, &cfg.Redis)
+			w, err = functions.FlashCookie(r, w, ucSession, &cfg.Redis, metrics)
 			if err != nil {
 				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -74,7 +76,7 @@ func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, 
 		_, err = ucSession.GetValue(r.Context(), alias.SessionKey(csrfToken), int32(cfg.DatabaseCsrf))
 		if err != nil {
 			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w, err = functions.FlashCookie(r, w, ucSession, &cfg.Redis)
+			w, err = functions.FlashCookie(r, w, ucSession, &cfg.Redis, metrics)
 			if err != nil {
 				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)

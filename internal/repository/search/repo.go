@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/entity/dto"
+	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/myerrors"
 )
 
@@ -15,18 +18,23 @@ type Repo interface {
 
 type RepoLayer struct {
 	db *sql.DB
+	metrics *metrics.Metrics
 }
 
-func NewRepoLayer(db *sql.DB) Repo {
+func NewRepoLayer(db *sql.DB, metrics *metrics.Metrics) Repo {
 	return &RepoLayer{
 		db: db,
+		metrics: metrics,
 	}
 }
 
 func (repo *RepoLayer) Search(ctx context.Context, search string) ([]*dto.RestaurantAndFood, error) {
+	timeNow := time.Now()
 	rows, err := repo.db.QueryContext(ctx,
 		`SELECT id, name, img_url FROM restaurant 
 			WHERE LOWER(name) LIKE LOWER('%' || $1 || '%')`, search)
+	msRequestTimeout := time.Since(timeNow)
+	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +44,13 @@ func (repo *RepoLayer) Search(ctx context.Context, search string) ([]*dto.Restau
 		return nil, err
 	}
 	if len(rests) == 0 {
+		timeNow = time.Now()
 		rows, err = repo.db.QueryContext(ctx,
 			`SELECT DISTINCT r.id, r.name, r.img_url FROM restaurant AS r
 			JOIN rest_categories AS rc ON r.id=rc.restaurant_id JOIN category AS c
             ON rc.category_id=c.id WHERE LOWER(c.name) LIKE LOWER('%' || $1 || '%')`, search)
+		msRequestTimeout = time.Since(timeNow)
+		repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
 			return nil, err
 		}
@@ -62,8 +73,11 @@ func (repo *RepoLayer) SelectRests(ctx context.Context, rows *sql.Rows, rests []
 			}
 			return nil, err
 		}
+		timeNow := time.Now()
 		rs, err := repo.db.QueryContext(ctx, `SELECT id, name FROM category AS c
 			JOIN rest_categories AS rc ON c.id=rc.category_id WHERE rc.restaurant_id=$1`, rest.Id)
+		msRequestTimeout := time.Since(timeNow)
+		repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, myerrors.SqlNoRowsUserRelation

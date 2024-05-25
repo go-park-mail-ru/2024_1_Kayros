@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"2024_1_kayros/config"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/auth"
 	"2024_1_kayros/internal/usecase/session"
@@ -14,6 +15,7 @@ import (
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/sanitizer"
+
 	"go.uber.org/zap"
 )
 
@@ -22,14 +24,16 @@ type Delivery struct {
 	ucAuth    auth.Usecase
 	logger    *zap.Logger
 	cfg       *config.Project
+	metrics   *metrics.Metrics
 }
 
-func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucAuthProps auth.Usecase, loggerProps *zap.Logger) *Delivery {
+func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucAuthProps auth.Usecase, loggerProps *zap.Logger, metrics   *metrics.Metrics) *Delivery {
 	return &Delivery{
 		ucSession: ucSessionProps,
 		ucAuth:    ucAuthProps,
 		logger:    loggerProps,
 		cfg:       cfgProps,
+		metrics: metrics,
 	}
 }
 
@@ -147,7 +151,7 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w, err := functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis)
+	w, err := functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis, d.metrics)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)

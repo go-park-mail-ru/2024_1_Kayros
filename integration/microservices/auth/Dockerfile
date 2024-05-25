@@ -22,6 +22,9 @@ COPY ../../../../config config
 # copy internal dependences
 COPY ../../../../internal/entity/user.go internal/entity/
 COPY ../../../../internal/utils/myerrors internal/utils/myerrors
+COPY ../../../../internal/middleware/grpc/server internal/middleware/grpc/server
+COPY ../../../../internal/utils/constants internal/utils/constants
+COPY ../../../../microservices/metrics microservices/metrics
 
 # building exe ile
 RUN go build microservices/auth/cmd/main.go

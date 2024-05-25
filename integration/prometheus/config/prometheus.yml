@@ -7,23 +7,29 @@ scrape_configs:
   - job_name: 'gateway'
     static_configs:
     - targets: ['gateway:8000']
+
   - job_name: 'rest-grpc'
     static_configs:
-    - targets: ['rest-grpc:8001']
+    - targets: ['rest-grpc:8081']
+
   - job_name: 'auth-grpc'
     static_configs:
-    - targets: ['auth-grpc:8002']
+    - targets: ['auth-grpc:8082']
+
   - job_name: 'user-grpc'
     static_configs:
-    - targets: ['user-grpc:8004']
+    - targets: ['user-grpc:8084']
+
   - job_name: 'session-grpc'
     static_configs:
-    - targets: ['session-grpc:8005']
+    - targets: ['session-grpc:8085']
+
   - job_name: 'comment-grpc'
     static_configs:
-    - targets: ['comment-grpc:8003']
+    - targets: ['comment-grpc:8083']
+
 # prometheus units
-  - job_name: 'node_exporter'
+  - job_name: 'node-exporter'
     static_configs:
     - targets: [ 'node-exporter:9100' ]
   - job_name: 'prometheus'

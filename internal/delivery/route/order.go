@@ -9,21 +9,22 @@ import (
 
 	restproto "2024_1_kayros/gen/go/rest"
 	userproto "2024_1_kayros/gen/go/user"
+	"2024_1_kayros/internal/delivery/metrics"
 	delivery "2024_1_kayros/internal/delivery/order"
 	rFood "2024_1_kayros/internal/repository/food"
 	rOrder "2024_1_kayros/internal/repository/order"
 	ucOrder "2024_1_kayros/internal/usecase/order"
 )
 
-func AddOrderRouter(db *sql.DB, mux *mux.Router, userConn, restConn *grpc.ClientConn, logger *zap.Logger) {
-	repoOrder := rOrder.NewRepoLayer(db)
-	repoFood := rFood.NewRepoLayer(db)
+func AddOrderRouter(db *sql.DB, mux *mux.Router, userConn, restConn *grpc.ClientConn, logger *zap.Logger, metrics *metrics.Metrics) {
+	repoOrder := rOrder.NewRepoLayer(db, metrics)
+	repoFood := rFood.NewRepoLayer(db, metrics)
 	//init user grpc client
 	grpcUserClient := userproto.NewUserManagerClient(userConn)
 	//init rest grpc client
 	grpcRestClient := restproto.NewRestWorkerClient(restConn)
 
-	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, grpcUserClient, grpcRestClient)
+	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, grpcUserClient, grpcRestClient, metrics)
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)
 
 	mux.HandleFunc("/api/v1/order", handler.GetBasket).Methods("GET")
