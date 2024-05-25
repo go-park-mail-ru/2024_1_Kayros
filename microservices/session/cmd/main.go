@@ -3,13 +3,18 @@ package main
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 
 	"2024_1_kayros/gen/go/session"
+	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
+	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/microservices/session/internal/repo"
 	"2024_1_kayros/microservices/session/internal/usecase"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -27,13 +32,27 @@ func main() {
 		logger.Fatal("The microservice session doesn't respond", zap.String("error", err.Error()))
 	}
 	logger.Info(fmt.Sprintf("The microservice session responds on port %d", cfg.SessionGrpcServer.Port))
+	reg := prometheus.NewRegistry()
+	metrics := metrics.NewMetrics(reg, "session")
+	middleware := grpcServerMiddleware.NewMiddlewareChain(logger, metrics)
 
-	server := grpc.NewServer()
+	// Start metrics server
+	go func() {
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		address := fmt.Sprintf("%s:%d", cfg.SessionGrpcServerExporter.Host, cfg.SessionGrpcServerExporter.Port)
+		logger.Info(fmt.Sprintf("Serving metrics responds on port %d", cfg.SessionGrpcServerExporter.Port))
+		if err := http.ListenAndServe(address, nil); err != nil {
+			logger.Fatal("Error starting metrics server", zap.String("error", err.Error()))
+		}
+	}()
+
+
+	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
 	redisSession := redis.Init(cfg, logger, cfg.Redis.DatabaseSession)
 	redisCsrf := redis.Init(cfg, logger, cfg.Redis.DatabaseCsrf)
 
-	repoSession := repo.NewLayer(redisSession)
-	repoCsrf := repo.NewLayer(redisCsrf)
+	repoSession := repo.NewLayer(redisSession, metrics)
+	repoCsrf := repo.NewLayer(redisCsrf, metrics)
 
 	session.RegisterSessionManagerServer(server, usecase.NewLayer(repoCsrf, repoSession, logger, &cfg.Redis))
 	err = server.Serve(conn)

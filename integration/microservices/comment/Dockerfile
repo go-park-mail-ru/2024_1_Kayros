@@ -11,6 +11,7 @@ COPY ../../../../go.sum ./
 
 # copy auth microservice directory (dirs cmd and internal)
 COPY ../../../../microservices/comment microservices/comment
+COPY ../../../../microservices/metrics  microservices/metrics 
 
 # copy services (dbsql, s3, in-memory)
 COPY ../../../../services/postgres services/postgres
@@ -24,8 +25,10 @@ COPY ../../../../config config
 # copy internal dependences
 COPY ../../../../internal/utils/functions/null_db_string.go internal/utils/functions/
 COPY ../../../../internal/utils/myerrors internal/utils/myerrors
+COPY ../../../../internal/middleware/grpc/server internal/middleware/grpc/server
+COPY ../../../../internal/utils/constants internal/utils/constants
 
-# building exe ile
+# building exe file
 RUN go build microservices/comment/cmd/main.go
 
 # Production state

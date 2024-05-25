@@ -4,14 +4,18 @@ import (
 	"context"
 	"io"
 	"mime/multipart"
+	"time"
 
 	protouser "2024_1_kayros/gen/go/user"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/entity"
+	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/myerrors/grpcerr"
 	"2024_1_kayros/internal/utils/props"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Usecase interface {
@@ -24,23 +28,39 @@ type Usecase interface {
 
 type UsecaseLayer struct {
 	userClient protouser.UserManagerClient
+	metrics    *metrics.Metrics
 }
 
-func NewUsecaseLayer(userClientProps protouser.UserManagerClient) Usecase {
+func NewUsecaseLayer(userClientProps protouser.UserManagerClient, metrics *metrics.Metrics) Usecase {
 	return &UsecaseLayer{
 		userClient: userClientProps,
+		metrics: metrics,
 	}
 }
 
 // UserAddress - method returns user address by unauthId or email, but unauthId in priority
 func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId string) (string, error) {
 	address := ""
+	timeNow := time.Now()
 	u, err := uc.userClient.GetData(ctx, &protouser.Email{Email: email})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil && !grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		return "", err
 	}
+	timeNow = time.Now()
 	unauthAddress, err := uc.userClient.GetAddressByUnauthId(ctx, &protouser.UnauthId{UnauthId: unauthId})
+	msRequestTimeout = time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil && !grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUnauthAddressRelation) {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		return "", err
 	}
 	if unauthAddress.GetAddress() != "" {
@@ -53,14 +73,21 @@ func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId string)
 
 // GetData - method calls repo method to receive user data.
 func (uc *UsecaseLayer) GetData(ctx context.Context, email string) (*entity.User, error) {
+	timeNow := time.Now()
 	u, err := uc.userClient.GetData(ctx, &protouser.Email{Email: email})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return &entity.User{}, myerrors.SqlNoRowsUserRelation
 		}
 		return &entity.User{}, err
 	}
-	return entity.ConvertProtoUserIntoEntityUser(u), nil
+ 	return entity.ConvertProtoUserIntoEntityUser(u), nil
 }
 
 // UpdateData - method used to update user info. It accepts non-password fields.
@@ -87,8 +114,15 @@ func (uc *UsecaseLayer) UpdateData(ctx context.Context, data *props.UpdateUserDa
 		FileName:   fileName,
 		FileSize:   fileSize,
 	}
+	timeNow := time.Now()
 	u, err := uc.userClient.UpdateData(ctx, dataProps)
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return &entity.User{}, myerrors.SqlNoRowsUserRelation
 		}
@@ -113,8 +147,15 @@ func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email, password, new
 		Password:    password,
 		NewPassword: newPassword,
 	}
+	timeNow := time.Now()
 	_, err := uc.userClient.SetNewPassword(ctx, data)
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return myerrors.SqlNoRowsUserRelation
 		}
@@ -139,8 +180,15 @@ func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, addr
 			Email:   email,
 			Address: address,
 		}
+		timeNow := time.Now()
 		_, err := uc.userClient.UpdateAddress(ctx, data)
+		msRequestTimeout := time.Since(timeNow)
+		uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
+			grpcStatus, ok := status.FromError(err)
+			if !ok {
+				uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+			}
 			if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 				return myerrors.SqlNoRowsUserRelation
 			}
@@ -155,8 +203,15 @@ func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, addr
 			UnauthId: unauthId,
 			Address:  address,
 		}
+		timeNow := time.Now()
 		_, err := uc.userClient.UpdateAddressByUnauthId(ctx, data)
+		msRequestTimeout := time.Since(timeNow)
+		uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
+			grpcStatus, ok := status.FromError(err)
+			if !ok {
+				uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+			}
 			if grpcerr.Is(err, codes.Internal, myerrors.SqlNoRowsUnauthAddressRelation) {
 				return myerrors.SqlNoRowsUnauthAddressRelation
 			}
