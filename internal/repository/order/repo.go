@@ -40,6 +40,7 @@ type Repo interface {
 	SetPromocode(ctx context.Context, orderId alias.OrderId, codeId uint64) (uint64, error)
 	GetPromocodeByOrder(ctx context.Context, orderId *alias.OrderId) (*entity.Promocode, error)
 	DeletePromocode(ctx context.Context, orderId alias.OrderId) error
+	OrdersCount(ctx context.Context, userId alias.UserId, status string) (uint64, error)
 }
 
 type RepoLayer struct {
@@ -87,14 +88,14 @@ func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, statu
 	var rows *sql.Rows
 	var err error
 	if len(status) == 1 {
-		rows, err = repo.db.QueryContext(ctx, `SELECT id, user_id, created_at, status, address,
+		rows, err = repo.db.QueryContext(ctx, `SELECT id, user_id, order_created_at, status, address,
       				extra_address, sum FROM "order" WHERE user_id= $1 AND status=$2`, uint64(userId), status[0])
 	} else {
 		str := "$2"
 		for i := range len(status) - 1 {
 			str = str + ", $" + strconv.Itoa(i+3)
 		}
-		query := `SELECT id, user_id, created_at, status, address, 
+		query := `SELECT id, user_id, order_created_at, status, address, 
        			extra_address, sum FROM "order" WHERE user_id= $1 AND status IN (` + str + `)`
 		args := make([]interface{}, len(status)+1)
 		args[0] = uint64(userId)
@@ -109,7 +110,7 @@ func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, statu
 	orders := []*entity.Order{}
 	for rows.Next() {
 		var order entity.OrderDB
-		err = rows.Scan(&order.Id, &order.UserId, &order.CreatedAt, &order.Status, &order.Address,
+		err = rows.Scan(&order.Id, &order.UserId, &order.OrderCreatedAt, &order.Status, &order.Address,
 			&order.ExtraAddress, &order.Sum)
 		if err != nil {
 			return nil, err
@@ -490,6 +491,21 @@ func (repo *RepoLayer) SetUser(ctx context.Context, orderId alias.OrderId, userI
 	return nil
 }
 
+func (repo *RepoLayer) OrdersCount(ctx context.Context, userId alias.UserId, status string) (uint64, error) {
+	var res uint64
+	err := repo.db.QueryRowContext(ctx,
+		`SELECT count(*) FROM "order" WHERE user_id=$1 AND status=$2`, uint64(userId), status).Scan(&res)
+	if err != nil {
+		fmt.Println(err, res)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, err
+		}
+		return 0, err
+	}
+	return res, nil
+}
+
+// ПРОМОКОДЫ
 func (repo *RepoLayer) GetPromocode(ctx context.Context, code string) (*entity.Promocode, error) {
 	res := entity.PromocodeDB{}
 	fmt.Println(code)

@@ -178,6 +178,9 @@ func (uc *UsecaseLayer) GetArchiveOrders(ctx context.Context, email string) ([]*
 		return nil, err
 	}
 	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Delivered)
+	if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
+		return []*entity.ShortOrder{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -390,16 +393,16 @@ func (uc *UsecaseLayer) CheckPromocode(ctx context.Context, email string, codeNa
 
 	//промокод на первый заказ в сервисе
 	if code.Type == "first" {
-		orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Delivered)
+		//тут немного другую функцию вызывать
+		count, err := uc.repoOrder.OrdersCount(ctx, alias.UserId(u.Id), constants.Delivered)
 		//err :=
 		if err != nil && !errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
 			return nil, err
 		}
-		if orders != nil {
+		if count > 1 {
 			return nil, myerrors.OncePromocode
 		}
 	} else if code.Type == "sum" { //промокод от определенной суммы
-		//тут немного другую функцию вызывать
 		sum, err := uc.repoOrder.GetOrderSum(ctx, basketId)
 		if err != nil {
 			return nil, err

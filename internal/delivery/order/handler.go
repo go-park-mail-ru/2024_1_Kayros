@@ -159,11 +159,7 @@ func (h *OrderHandler) GetArchiveOrders(w http.ResponseWriter, r *http.Request) 
 	orders, err := h.uc.GetArchiveOrders(r.Context(), email)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
-			w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusNotFound)
-		} else {
-			w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusInternalServerError)
-		}
+		w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusInternalServerError)
 		return
 	}
 	ordersDTO := dto.NewShortOrderArray(orders)
