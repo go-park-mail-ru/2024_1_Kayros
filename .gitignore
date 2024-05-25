@@ -3,7 +3,6 @@ go.sum
 config/config.yaml
 integration/nginx/logs
 integration/dev-compose
-integration/prod-compose
 integration/prometheus/data
 integration/postgres/data
 integration/postgres/Dockerfile
