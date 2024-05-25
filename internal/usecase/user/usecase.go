@@ -76,7 +76,10 @@ func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId, userEm
 }
 
 func (uc *UsecaseLayer) UpdateUnauthAddress(ctx context.Context, address string, unauthId string) error {
+	timeNow := time.Now()
 	_, err := uc.userClient.UpdateAddressByUnauthId(ctx, &protouser.AddressDataUnauth{UnauthId: unauthId, Address: address})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
 		grpcStatus, ok := status.FromError(err)
 		if !ok {
