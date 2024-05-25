@@ -24,7 +24,7 @@ func AddOrderRouter(db *sql.DB, mux *mux.Router, userConn, restConn *grpc.Client
 	//init rest grpc client
 	grpcRestClient := restproto.NewRestWorkerClient(restConn)
 
-	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, grpcUserClient, grpcRestClient)
+	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, grpcUserClient, grpcRestClient, metrics)
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)
 
 	mux.HandleFunc("/api/v1/order", handler.GetBasket).Methods("GET")

@@ -8,10 +8,10 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/myerrors/grpcerr"
 	"context"
-	"fmt"
 	"time"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 //go:generate mockgen -source=./usecase.go -destination=./usecase_mock.go -package=session
@@ -43,7 +43,10 @@ func (uc *UsecaseLayer) GetValue(ctx context.Context, key alias.SessionKey, data
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.SessionMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
-		fmt.Printf("%v", err)
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.SessionMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.RedisNoData) {
 			return "", myerrors.RedisNoData
 		}
@@ -63,6 +66,10 @@ func (uc *UsecaseLayer) SetValue(ctx context.Context, key alias.SessionKey, valu
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.SessionMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.SessionMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.Internal, myerrors.RedisNoData) {
 			return myerrors.RedisNoData
 		}
@@ -81,6 +88,10 @@ func (uc *UsecaseLayer) DeleteKey(ctx context.Context, key alias.SessionKey, dat
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.SessionMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.SessionMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.Internal, myerrors.RedisNoData) {
 			return myerrors.RedisNoData
 		}

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Usecase interface {
@@ -42,6 +43,10 @@ func (uc *UsecaseLayer) SignUp(ctx context.Context, u *entity.User, unauthId str
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.AuthMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.AuthMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.AlreadyExists, myerrors.UserAlreadyExist) {
 			return &entity.User{}, myerrors.UserAlreadyExist
 		}
@@ -76,6 +81,10 @@ func (uc *UsecaseLayer) SignIn(ctx context.Context, email string, password strin
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.AuthMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.AuthMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return &entity.User{}, myerrors.SqlNoRowsUserRelation
 		}

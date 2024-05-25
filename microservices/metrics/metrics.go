@@ -28,7 +28,7 @@ func NewMetrics(reg prometheus.Registerer, namespace string) *MicroserviceMetric
 			prometheus.HistogramOpts{
 				Namespace: namespace,
 				Name:    "time_of_request",
-				Help:    "HTTP request  duration in milliseconds",
+				Help:    "HTTP request duration in milliseconds",
 				Buckets: []float64{10, 25, 50, 100, 250, 500, 1000},
 			},
 			[]string{"status"},
@@ -44,9 +44,9 @@ func NewMetrics(reg prometheus.Registerer, namespace string) *MicroserviceMetric
 		),
 	}
 	reg.MustRegister(collectors.NewGoCollector())
-	reg.MustRegister(m.TotalNumberOfRequests, 
-		m.RequestTime, 
-		m.DatabaseDuration)
+	reg.MustRegister(m.TotalNumberOfRequests)
+	reg.MustRegister(m.RequestTime)
+	reg.MustRegister(m.DatabaseDuration)
 	return m
 }
 

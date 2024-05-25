@@ -3,8 +3,10 @@ package order
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strconv"
+	"time"
 
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/repository/food"
@@ -19,6 +21,7 @@ import (
 	"2024_1_kayros/internal/utils/myerrors/grpcerr"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Usecase interface {
@@ -44,20 +47,29 @@ type UsecaseLayer struct {
 	userGrpcClient user.UserManagerClient
 	repoFood       food.Repo
 	restGrpcClient rest.RestWorkerClient
+	metrics  	   *metrics.Metrics
 }
 
-func NewUsecaseLayer(repoOrderProps order.Repo, repoFoodProps food.Repo, repoUserProps user.UserManagerClient, repoRestProps rest.RestWorkerClient) Usecase {
+func NewUsecaseLayer(repoOrderProps order.Repo, repoFoodProps food.Repo, repoUserProps user.UserManagerClient, repoRestProps rest.RestWorkerClient, metrics  	   *metrics.Metrics) Usecase {
 	return &UsecaseLayer{
 		repoOrder:      repoOrderProps,
 		userGrpcClient: repoUserProps,
 		repoFood:       repoFoodProps,
 		restGrpcClient: repoRestProps,
+		metrics: metrics,
 	}
 }
 
 func (uc *UsecaseLayer) GetBasketId(ctx context.Context, email string) (alias.OrderId, error) {
+	timeNow := time.Now()
 	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(constants.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(constants.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return 0, myerrors.SqlNoRowsUserRelation
 		}
@@ -79,8 +91,15 @@ func (uc *UsecaseLayer) GetBasketIdNoAuth(ctx context.Context, token string) (al
 }
 
 func (uc *UsecaseLayer) GetBasket(ctx context.Context, email string) (*entity.Order, error) {
+	timeNow := time.Now()
 	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(constants.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(constants.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return nil, myerrors.SqlNoRowsUserRelation
 		}
@@ -115,8 +134,15 @@ func (uc *UsecaseLayer) GetOrderById(ctx context.Context, id alias.OrderId) (*en
 	}
 	if len(Order.Food) != 0 {
 		Order.RestaurantId = Order.Food[0].RestaurantId
+		timeNow := time.Now()
 		r, err := uc.restGrpcClient.GetById(ctx, &rest.RestId{Id: Order.RestaurantId})
+		msRequestTimeout := time.Since(timeNow)
+		uc.metrics.MicroserviceTimeout.WithLabelValues(constants.RestMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
+			grpcStatus, ok := status.FromError(err)
+			if !ok {
+				uc.metrics.MicroserviceErrors.WithLabelValues(constants.RestMicroservice, grpcStatus.String()).Inc()
+			}
 			if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsRestaurantRelation) {
 				return nil, myerrors.SqlNoRowsRestaurantRelation
 			}
@@ -128,8 +154,15 @@ func (uc *UsecaseLayer) GetOrderById(ctx context.Context, id alias.OrderId) (*en
 }
 
 func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*entity.ShortOrder, error) {
+	timeNow := time.Now()
 	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(constants.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(constants.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return nil, myerrors.SqlNoRowsUserRelation
 		}
@@ -142,8 +175,15 @@ func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*
 	res := []*entity.ShortOrder{}
 	for _, o := range orders {
 		id := o.Food[0].RestaurantId
+		timeNow = time.Now()
 		rest, err := uc.restGrpcClient.GetById(ctx, &rest.RestId{Id: id})
+		msRequestTimeout = time.Since(timeNow)
+		uc.metrics.MicroserviceTimeout.WithLabelValues(constants.RestMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
+			grpcStatus, ok := status.FromError(err)
+			if !ok {
+				uc.metrics.MicroserviceErrors.WithLabelValues(constants.RestMicroservice, grpcStatus.String()).Inc()
+			}
 			if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsRestaurantRelation) {
 				return nil, myerrors.SqlNoRowsRestaurantRelation
 			}
@@ -162,8 +202,15 @@ func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*
 }
 
 func (uc *UsecaseLayer) Create(ctx context.Context, email string) (alias.OrderId, error) {
+	timeNow := time.Now()
 	u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(constants.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(constants.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return 0, myerrors.SqlNoRowsUserRelation
 		}
@@ -197,8 +244,15 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 		return nil, myerrors.AlreadyPayed
 	}
 	if userId == 0 {
+		timeNow := time.Now()
 		u, err := uc.userGrpcClient.GetData(ctx, &user.Email{Email: email})
+		msRequestTimeout := time.Since(timeNow)
+		uc.metrics.MicroserviceTimeout.WithLabelValues(constants.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
+			grpcStatus, ok := status.FromError(err)
+			if !ok {
+				uc.metrics.MicroserviceErrors.WithLabelValues(constants.UserMicroservice, grpcStatus.String()).Inc()
+			}
 			if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 				return nil, myerrors.SqlNoRowsUserRelation
 			}
@@ -226,7 +280,6 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 func (uc *UsecaseLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId, status string) (*entity.Order, error) {
 	id, err := uc.repoOrder.UpdateStatus(ctx, orderId, status)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	Order, err := uc.repoOrder.GetOrderById(ctx, id)
@@ -242,7 +295,6 @@ func (uc *UsecaseLayer) UpdateStatus(ctx context.Context, orderId alias.OrderId,
 func (uc *UsecaseLayer) Clean(ctx context.Context, orderId alias.OrderId) error {
 	err := uc.repoOrder.DeleteBasket(ctx, orderId)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	return nil
@@ -274,6 +326,7 @@ func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId,
 		}
 	}
 	err = uc.repoOrder.AddToOrder(ctx, orderId, foodId, count)
+	uc.metrics.PopularFood.WithLabelValues(strconv.Itoa(int(foodId))).Inc()
 	if err != nil {
 		return err
 	}
@@ -282,6 +335,7 @@ func (uc *UsecaseLayer) AddFoodToOrder(ctx context.Context, foodId alias.FoodId,
 
 func (uc *UsecaseLayer) UpdateCountInOrder(ctx context.Context, orderId alias.OrderId, foodId alias.FoodId, count uint32) (*entity.Order, error) {
 	err := uc.repoOrder.UpdateCountInOrder(ctx, orderId, foodId, count)
+	uc.metrics.PopularFood.WithLabelValues(strconv.Itoa(int(foodId))).Inc()
 	if err != nil {
 		return nil, err
 	}

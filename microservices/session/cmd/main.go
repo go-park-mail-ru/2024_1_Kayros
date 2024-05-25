@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 
@@ -13,6 +14,7 @@ import (
 	"2024_1_kayros/microservices/session/internal/usecase"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -33,6 +35,16 @@ func main() {
 	reg := prometheus.NewRegistry()
 	metrics := metrics.NewMetrics(reg, "session")
 	middleware := grpcServerMiddleware.NewMiddlewareChain(logger, metrics)
+
+	// Start metrics server
+	go func() {
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		address := fmt.Sprintf("%s:%d", cfg.SessionGrpcServerExporter.Host, cfg.SessionGrpcServerExporter.Port)
+		logger.Info(fmt.Sprintf("Serving metrics responds on port %d", cfg.SessionGrpcServerExporter.Port))
+		if err := http.ListenAndServe(address, nil); err != nil {
+			logger.Fatal("Error starting metrics server", zap.String("error", err.Error()))
+		}
+	}()
 
 
 	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))

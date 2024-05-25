@@ -6,27 +6,33 @@ scrape_configs:
 # microservices
   - job_name: 'gateway'
     static_configs:
-    - targets: ['localhost:8000']
+    - targets: ['gateway:8000']
+
   - job_name: 'rest-grpc'
     static_configs:
-    - targets: ['localhost:8001']
+    - targets: ['rest-grpc:8081']
+
   - job_name: 'auth-grpc'
     static_configs:
-    - targets: ['localhost:8002']
+    - targets: ['auth-grpc:8082']
+
   - job_name: 'user-grpc'
     static_configs:
-    - targets: ['localhost:8004']
+    - targets: ['user-grpc:8084']
+
   - job_name: 'session-grpc'
     static_configs:
-    - targets: ['localhost:8005']
+    - targets: ['session-grpc:8085']
+
   - job_name: 'comment-grpc'
     static_configs:
-    - targets: ['localhost:8003']
+    - targets: ['comment-grpc:8083']
+
 # prometheus units
-  - job_name: 'node_exporter'
+  - job_name: 'node-exporter'
     static_configs:
-    - targets: [ 'localhost:9100' ]
+    - targets: [ 'node-exporter:9100' ]
   - job_name: 'prometheus'
     static_configs:
-    - targets: ['localhost:9090']
+    - targets: ['prometheus:9090']
 

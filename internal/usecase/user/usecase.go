@@ -15,6 +15,7 @@ import (
 	"2024_1_kayros/internal/utils/props"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Usecase interface {
@@ -45,6 +46,10 @@ func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId string)
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil && !grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		return "", err
 	}
 	timeNow = time.Now()
@@ -52,6 +57,10 @@ func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId string)
 	msRequestTimeout = time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil && !grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUnauthAddressRelation) {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		return "", err
 	}
 	if unauthAddress.GetAddress() != "" {
@@ -69,6 +78,10 @@ func (uc *UsecaseLayer) GetData(ctx context.Context, email string) (*entity.User
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return &entity.User{}, myerrors.SqlNoRowsUserRelation
 		}
@@ -106,6 +119,10 @@ func (uc *UsecaseLayer) UpdateData(ctx context.Context, data *props.UpdateUserDa
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return &entity.User{}, myerrors.SqlNoRowsUserRelation
 		}
@@ -135,6 +152,10 @@ func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email, password, new
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
 		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 			return myerrors.SqlNoRowsUserRelation
 		}
@@ -164,6 +185,10 @@ func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, addr
 		msRequestTimeout := time.Since(timeNow)
 		uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
+			grpcStatus, ok := status.FromError(err)
+			if !ok {
+				uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+			}
 			if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
 				return myerrors.SqlNoRowsUserRelation
 			}
@@ -183,6 +208,10 @@ func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, addr
 		msRequestTimeout := time.Since(timeNow)
 		uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
+			grpcStatus, ok := status.FromError(err)
+			if !ok {
+				uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+			}
 			if grpcerr.Is(err, codes.Internal, myerrors.SqlNoRowsUnauthAddressRelation) {
 				return myerrors.SqlNoRowsUnauthAddressRelation
 			}

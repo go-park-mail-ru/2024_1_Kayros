@@ -2,6 +2,7 @@ package rest
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"2024_1_kayros/gen/go/rest"
@@ -9,6 +10,8 @@ import (
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
+
+	"google.golang.org/grpc/status"
 )
 
 type Usecase interface {
@@ -35,6 +38,10 @@ func (uc *UsecaseLayer) GetAll(ctx context.Context) ([]*entity.Restaurant, error
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.RestMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.RestMicroservice, grpcStatus.String()).Inc()
+		}
 		return nil, err
 	}
 	return FromGrpcStructToRestaurantArray(rests), nil
@@ -45,7 +52,12 @@ func (uc *UsecaseLayer) GetById(ctx context.Context, restId alias.RestId) (*enti
 	r, err := uc.grpcClient.GetById(ctx, &rest.RestId{Id: uint64(restId)})
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.RestMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
+	uc.metrics.PopularRestaurant.WithLabelValues(strconv.Itoa(int(restId))).Inc()
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.RestMicroservice, grpcStatus.String()).Inc()
+		}
 		return nil, err
 	}
 	return FromGrpcStructToRestaurant(r), nil
@@ -56,7 +68,12 @@ func (uc *UsecaseLayer) GetByFilter(ctx context.Context, id alias.CategoryId) ([
 	rests, err := uc.grpcClient.GetByFilter(ctx, &rest.Id{Id: uint64(id)})
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.RestMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
+	uc.metrics.PopularRestaurant.WithLabelValues(strconv.Itoa(int(id))).Inc()
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.RestMicroservice, grpcStatus.String()).Inc()
+		}
 		return nil, err
 	}
 	return FromGrpcStructToRestaurantArray(rests), nil
@@ -68,6 +85,10 @@ func (uc *UsecaseLayer) GetCategoryList(ctx context.Context) ([]*entity.Category
 	msRequestTimeout := time.Since(timeNow)
 	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.RestMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.RestMicroservice, grpcStatus.String()).Inc()
+		}
 		return nil, err
 	}
 	return FromGrpcStructToCategoryArray(cats), nil

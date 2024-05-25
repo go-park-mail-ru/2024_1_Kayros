@@ -66,3 +66,7 @@ const (
 	DELETE = "DELETE"
 	INSERT = "INSERT"
 )
+
+const (
+	StatusCode = "status_code"
+)

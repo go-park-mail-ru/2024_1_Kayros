@@ -32,7 +32,7 @@ func Run(cfg *config.Project) {
 	postgreDB := postgres.Init(cfg, logger)
 	minioDB := minio.Init(cfg, logger)
 	reg := prometheus.NewRegistry()
-	m := metrics.NewMetrics(reg)
+	m := metrics.NewMetrics(reg, "gateway")
 
 	middleware := grpcClientMiddleware.NewGrpcClientUnaryMiddlewares(m)
 
