@@ -8,10 +8,7 @@ import (
 	"strconv"
 	"time"
 
-<<<<<<< HEAD
 	"2024_1_kayros/internal/delivery/metrics"
-=======
->>>>>>> rk4-archive-orders
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
@@ -48,17 +45,13 @@ type Repo interface {
 }
 
 type RepoLayer struct {
-<<<<<<< HEAD
-	db     *sql.DB
+	db      *sql.DB
 	metrics *metrics.Metrics
-=======
-	db *sql.DB
->>>>>>> rk4-archive-orders
 }
 
 func NewRepoLayer(dbProps *sql.DB, metrics *metrics.Metrics) Repo {
 	return &RepoLayer{
-		db: dbProps,
+		db:      dbProps,
 		metrics: metrics,
 	}
 }
