@@ -15,8 +15,8 @@ import (
 )
 
 type Usecase interface {
-	SignUp(ctx context.Context, u *entity.User, unauthId string) (*entity.User, error)
-	SignIn(ctx context.Context, email string, password string, unauthId string) (*entity.User, error)
+	SignUp(ctx context.Context, u *entity.User) (*entity.User, error)
+	SignIn(ctx context.Context, email string, password string) (*entity.User, error)
 }
 
 type UsecaseLayer struct {
@@ -31,10 +31,9 @@ func NewUsecaseLayer(restClientProps auth.AuthManagerClient, m *metrics.Metrics)
 	}
 }
 
-func (uc *UsecaseLayer) SignUp(ctx context.Context, u *entity.User, unauthId string) (*entity.User, error) {
+func (uc *UsecaseLayer) SignUp(ctx context.Context, u *entity.User) (*entity.User, error) {
 	data := &auth.SignUpCredentials{
 		Email:    u.Email,
-		UnauthId: unauthId,
 		Password: u.Password,
 		Name:     u.Name,
 	}
@@ -70,11 +69,10 @@ func cnvAuthUserIntoEntityUser(u *auth.User) *entity.User {
 	}
 }
 
-func (uc *UsecaseLayer) SignIn(ctx context.Context, email string, password string, unauthId string) (*entity.User, error) {
+func (uc *UsecaseLayer) SignIn(ctx context.Context, email string, password string) (*entity.User, error) {
 	data := &auth.SignInCredentials{
 		Email:    email,
 		Password: password,
-		UnauthId: unauthId,
 	}
 	timeNow := time.Now()
 	u, err := uc.grpcClient.SignIn(ctx, data)

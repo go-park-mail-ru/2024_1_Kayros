@@ -43,14 +43,8 @@ func (uc *Layer) SignUp(ctx context.Context, data *auth.SignUpCredentials) (*aut
 		return &auth.User{}, grpcerr.NewError(codes.AlreadyExists, myerrors.UserAlreadyExist.Error())
 	}
 
-	address, err := uc.client.GetAddressByUnauthId(ctx, &user.UnauthId{UnauthId: data.GetUnauthId()})
-	if err != nil && !grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUnauthAddressRelation) {
-		uc.logger.Error(err.Error())
-		return &auth.User{}, err
-	}
-
 	// we do copy for clean function
-	uCopy := entity.Copy(convAuthUserIntoUser(data, address.GetAddress()))
+	uCopy := entity.Copy(convAuthUserIntoUser(data))
 	uCreated, err := uc.client.Create(ctx, uCopy)
 	if err != nil {
 		uc.logger.Error(err.Error())
@@ -101,11 +95,10 @@ func (uc *Layer) checkPassword(ctx context.Context, email string, password strin
 	return isEqual.Value, err
 }
 
-func convAuthUserIntoUser(u *auth.SignUpCredentials, address string) *user.User {
+func convAuthUserIntoUser(u *auth.SignUpCredentials) *user.User {
 	return &user.User{
 		Name:     u.GetName(),
 		Email:    u.GetEmail(),
-		Address:  address,
 		Password: u.Password,
 	}
 }
