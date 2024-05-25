@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strings"
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/metrics"
@@ -44,7 +45,16 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
 
-	address, err := d.ucUser.UserAddress(r.Context(), email, unauthId)
+	userEmail := r.URL.Query().Get("user_address")
+	userEmail =  strings.TrimSpace(userEmail)
+
+	if userEmail == "true" && email == "" {
+		d.logger.Error("unauthorized user can't get authorized user's email", zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadRequestGetEmail, http.StatusBadRequest)
+		return
+	}
+
+	address, err := d.ucUser.UserAddress(r.Context(), email, unauthId, userEmail)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -52,6 +62,51 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 	}
 	address = sanitizer.Address(address)
 	w = functions.JsonResponse(w, map[string]string{"address": address})
+}
+
+func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" {
+		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		return
+	}
+	if unauthId == "" {
+		w = functions.ErrorResponse(w, myerrors.BadRequestUpdateUnauthAddress, http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+
+	var address dto.Address
+	err = json.Unmarshal(body, &address)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+	isValid, err := address.Validate()
+	if err != nil || !isValid {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		return
+	}
+
+	err = d.ucUser.UpdateUnauthAddress(r.Context(), address.Data, unauthId)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+
+	w = functions.JsonResponse(w, map[string]string{"detail": "Адрес успешно обновлен"})
 }
 
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
@@ -156,6 +211,15 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
 
+	userEmail := r.URL.Query().Get("user_address")
+	userEmail =  strings.TrimSpace(userEmail)
+
+	if userEmail == "true" && email == "" {
+		d.logger.Error("unauthorized user can't update authorized user's email", zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.BadRequestUpdateEmail, http.StatusBadRequest)
+		return
+	}
+
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -178,7 +242,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = d.ucUser.UpdateAddress(r.Context(), email, unauthId, address.Data)
+	err = d.ucUser.UpdateAddress(r.Context(), email, unauthId, address.Data, userEmail)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {

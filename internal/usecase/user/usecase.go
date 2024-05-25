@@ -19,10 +19,11 @@ import (
 )
 
 type Usecase interface {
-	UserAddress(ctx context.Context, email, unauthId string) (string, error)
+	UserAddress(ctx context.Context, email, unauthId, userEmail string) (string, error)
 	GetData(ctx context.Context, email string) (*entity.User, error)
 	UpdateData(ctx context.Context, data *props.UpdateUserDataProps) (*entity.User, error)
-	UpdateAddress(ctx context.Context, email, unauthId, address string) error
+	UpdateAddress(ctx context.Context, email, unauthId, addressm, userEmail string) error
+	UpdateUnauthAddress(ctx context.Context, address string, unauthId string) error
 	SetNewPassword(ctx context.Context, email, password, newPassword string) error
 }
 
@@ -39,7 +40,7 @@ func NewUsecaseLayer(userClientProps protouser.UserManagerClient, metrics *metri
 }
 
 // UserAddress - method returns user address by unauthId or email, but unauthId in priority
-func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId string) (string, error) {
+func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId, userEmail string) (string, error) {
 	address := ""
 	timeNow := time.Now()
 	u, err := uc.userClient.GetData(ctx, &protouser.Email{Email: email})
@@ -51,6 +52,9 @@ func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId string)
 			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
 		}
 		return "", err
+	}
+	if userEmail == "true" {
+		return u.Address, nil
 	}
 	timeNow = time.Now()
 	unauthAddress, err := uc.userClient.GetAddressByUnauthId(ctx, &protouser.UnauthId{UnauthId: unauthId})
@@ -71,6 +75,24 @@ func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId string)
 	return address, nil
 }
 
+func (uc *UsecaseLayer) UpdateUnauthAddress(ctx context.Context, address string, unauthId string) error {
+	timeNow := time.Now()
+	_, err := uc.userClient.UpdateAddressByUnauthId(ctx, &protouser.AddressDataUnauth{UnauthId: unauthId, Address: address})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
+	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+		}
+		if grpcerr.Is(err, codes.Internal, myerrors.SqlNoRowsUnauthAddressRelation) {
+			return myerrors.SqlNoRowsUnauthAddressRelation
+		}
+		return err
+	}
+	return nil
+}
+ 
 // GetData - method calls repo method to receive user data.
 func (uc *UsecaseLayer) GetData(ctx context.Context, email string) (*entity.User, error) {
 	timeNow := time.Now()
@@ -174,7 +196,7 @@ func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email, password, new
 }
 
 // UpdateAddress - method updates only address.
-func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, address string) error {
+func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, address, userEmail string) error {
 	if email != "" {
 		data := &protouser.AddressData{
 			Email:   email,
@@ -196,6 +218,9 @@ func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, addr
 				return myerrors.SqlNoRowsUserRelation
 			}
 			return err
+		}
+		if userEmail == "true" {
+			return nil
 		}
 	}
 	if unauthId != "" {

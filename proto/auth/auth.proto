@@ -10,13 +10,11 @@ service AuthManager {
 
 message SignInCredentials {
   string email = 1;
-  string unauth_id = 2;
   string password = 3;
 }
 
 message SignUpCredentials {
   string email = 1;
-  string unauth_id= 2;
   string name = 3;
   string password =4;
 }

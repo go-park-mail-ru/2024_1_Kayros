@@ -39,7 +39,6 @@ func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, 
 
 func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
-	unauthId := functions.GetCtxUnauthId(r)
 	email := functions.GetCtxEmail(r)
 	if email != "" {
 		d.logger.Error(myerrors.CtxEmail.Error(), zap.String(cnst.RequestId, requestId))
@@ -71,7 +70,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u := dto.NewUserFromSignUpForm(&signupDTO)
-	uSignedUp, err := d.ucAuth.SignUp(r.Context(), u, unauthId)
+	uSignedUp, err := d.ucAuth.SignUp(r.Context(), u)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.UserAlreadyExist) {
@@ -93,7 +92,6 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 
 func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
-	unauthId := functions.GetCtxUnauthId(r)
 	email := functions.GetCtxEmail(r)
 	if email != "" {
 		d.logger.Error(myerrors.CtxEmail.Error(), zap.String(cnst.RequestId, requestId))
@@ -124,7 +122,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := d.ucAuth.SignIn(r.Context(), bodyDTO.Email, bodyDTO.Password, unauthId)
+	u, err := d.ucAuth.SignIn(r.Context(), bodyDTO.Email, bodyDTO.Password)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) || errors.Is(err, myerrors.BadAuthPassword) {
