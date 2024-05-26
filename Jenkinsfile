@@ -3,7 +3,7 @@
 def microservices = 'comment, rest, session, user, auth, gateway'.split(', ')
 
 pipeline {
-  agent any
+  agent any 
 
   tools {go "recent go"}
 
