@@ -11,5 +11,19 @@ pipeline {
            }
         }
       }
+
+      stage("Push to Dockerhub") {
+          steps {
+            script {
+                def localImage = "resto-auth-service:latest"
+                def repositoryName = "kayrosteam/${localImage}"
+                sh "docker tag ${localImage} ${repositoryName} "
+                docker.withRegistry("", "dockerhub-credentials") {
+                  def image = docker.image("${repositoryName}");
+                  image.push()
+                }
+            }
+          }
+        }
   }
 }
