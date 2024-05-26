@@ -2,6 +2,7 @@ package dto
 
 import (
 	"2024_1_kayros/internal/entity"
+	"2024_1_kayros/internal/utils/constants"
 )
 
 type Promocode struct {
@@ -16,7 +17,7 @@ func NewPromocode(promo *entity.Promocode) *Promocode {
 		Id:   promo.Id,
 		Code: promo.Code,
 		Sale: promo.Sale,
-		Date: promo.Date.String(),
+		Date: promo.Date.Format(constants.Timestamptz),
 	}
 }
 
