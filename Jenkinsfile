@@ -11,17 +11,14 @@ pipeline {
       script {
       for (int i = 0; i < microservices.length; i++) {
           stage("Build Microservice: ${microservices[i]}") {
-              steps {
                 script {
                   sh "cp /home/ubuntu/config.yaml ./config/"
                   sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
                 }
-              }
           }
 
           stage("Push Microservice: ${microservices[i]}") {
-              steps {
-                script {
+                script 
                   def localImage = "resto-${microservices[i]}-service:latest"
                   def repositoryName = "kayrosteam/${localImage}"
                   sh "docker tag ${localImage} ${repositoryName} "
@@ -29,7 +26,6 @@ pipeline {
                     def image = docker.image("${repositoryName}");
                     image.push()
                   }
-                }
               }
           }
         }
