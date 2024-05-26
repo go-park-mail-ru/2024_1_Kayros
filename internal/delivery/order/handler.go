@@ -680,6 +680,19 @@ func (h *OrderHandler) SetPromocode(w http.ResponseWriter, r *http.Request) {
 	w = functions.JsonResponse(w, codeDTO)
 }
 
+func (h *OrderHandler) GetAllPromocode(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	codes, err := h.uc.GetAllPromocode(r.Context())
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusInternalServerError)
+		return
+	}
+	codesDTO := dto.NewPromocodeArray(codes)
+	w = functions.JsonResponse(w, codesDTO)
+}
+
 type promo struct {
 	Id     uint64 `json:"code_id"`
 	Code   string `json:"code"`

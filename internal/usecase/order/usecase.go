@@ -47,6 +47,7 @@ type Usecase interface {
 	SetPromocode(ctx context.Context, orderId alias.OrderId, code *entity.Promocode) (uint64, error)
 	GetPromocodeByOrder(ctx context.Context, orderId *alias.OrderId) (*entity.Promocode, error)
 	DeletePromocode(ctx context.Context, orderId alias.OrderId) error
+	GetAllPromocode(ctx context.Context) ([]*entity.Promocode, error)
 }
 
 type UsecaseLayer struct {
@@ -529,4 +530,15 @@ func (uc *UsecaseLayer) UpdateSum(ctx context.Context, sum uint64, orderId alias
 		return err
 	}
 	return nil
+}
+
+func (uc *UsecaseLayer) GetAllPromocode(ctx context.Context) ([]*entity.Promocode, error) {
+	codes, err := uc.repoOrder.GetAllPromocode(ctx)
+	if err != nil {
+		if errors.Is(err, myerrors.SqlNoRowsPromocodeRelation) {
+			return []*entity.Promocode{}, nil
+		}
+		return nil, err
+	}
+	return codes, nil
 }

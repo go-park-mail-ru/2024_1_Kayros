@@ -16,5 +16,14 @@ func NewPromocode(promo *entity.Promocode) *Promocode {
 		Id:   promo.Id,
 		Code: promo.Code,
 		Sale: promo.Sale,
+		Date: promo.Date.String(),
 	}
+}
+
+func NewPromocodeArray(arr []*entity.Promocode) []*Promocode {
+	codeArray := make([]*Promocode, len(arr))
+	for i, o := range arr {
+		codeArray[i] = NewPromocode(o)
+	}
+	return codeArray
 }

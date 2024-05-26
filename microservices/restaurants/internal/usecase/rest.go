@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"2024_1_kayros/gen/go/rest"
 	"2024_1_kayros/internal/utils/myerrors"
@@ -25,7 +24,6 @@ type Rest interface {
 
 type RestLayer struct {
 	rest.UnimplementedRestWorkerServer
-	mu       *sync.RWMutex
 	repoRest repo.Rest
 	logger   *zap.Logger
 }
@@ -34,7 +32,6 @@ func NewRestLayer(repoRestProps repo.Rest, loggerProps *zap.Logger) *RestLayer {
 	return &RestLayer{
 		UnimplementedRestWorkerServer: rest.UnimplementedRestWorkerServer{},
 		repoRest:                      repoRestProps,
-		mu:                            &sync.RWMutex{},
 		logger:                        loggerProps,
 	}
 }
