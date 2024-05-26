@@ -4,12 +4,12 @@ RUN apk add --update make git curl
 
 ARG MODULE_NAME=backend
 
-COPY ../../../../go.mod /home/${MODULE_NAME}/go.mod
-COPY ../../../../go.sum /home/${MODULE_NAME}/go.sum
+COPY go.mod /home/${MODULE_NAME}/go.mod
+COPY go.sum /home/${MODULE_NAME}/go.sum
 
 WORKDIR /home/${MODULE_NAME}
 
-COPY ../../../../. /home/${MODULE_NAME}
+COPY . /home/${MODULE_NAME}
 
 RUN go build /home/${MODULE_NAME}/cmd/main/main.go
 
