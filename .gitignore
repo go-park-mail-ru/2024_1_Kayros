@@ -1,6 +1,7 @@
 .idea/
 go.sum
 config/config.yaml
+config/.env
 integration/nginx/logs
 integration/prometheus/data
 integration/postgres/data

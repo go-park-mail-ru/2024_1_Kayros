@@ -87,7 +87,7 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 		"capture": true,
 		"confirmation": {
 		"type": "redirect",
-			"return_url": "https://resto-go.ru"
+			"return_url": "https://resto-go.online
 		},
 		"description": "Заказ №%d"
 	}`, basket.Sum, basket.Id)
