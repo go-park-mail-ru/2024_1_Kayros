@@ -5,6 +5,8 @@ def microservices = 'comment, rest, session, user, auth, gateway'.split(', ')
 pipeline {
   agent any
 
+  tools {go "recent go"}
+
   stages {
     stage('Initialize') {
     steps {
@@ -16,8 +18,24 @@ pipeline {
                   sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
                 }
           }
+        }
+      }
 
-          stage("Push Microservice: ${microservices[i]}") {
+      stage('Test') {
+            steps {
+                sh 'go test ./... -coverprofile=cover.out'
+            }
+        }
+
+      stage('Code Analysis') {
+          steps {
+              sh 'curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | bash -s -- -b $GOPATH/bin v1.22.3'
+              sh 'golangci-lint run'
+          }
+      }
+      
+      for (int i = 0; i < microservices.length; i++) {
+        stage("Push Microservice: ${microservices[i]}") {
                 script {
                   def localImage = "resto-${microservices[i]}-service:latest"
                   def repositoryName = "kayrosteam/${localImage}"
@@ -28,9 +46,8 @@ pipeline {
                   }
                 }
           }
-        }
-      }
-    } 
+      } 
+    }
     }
   }
 }
