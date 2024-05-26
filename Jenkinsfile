@@ -4,6 +4,9 @@ pipeline {
   agent any
 
   stages {
+    stage('Initialize') {
+    steps {
+      script {
       def microservices = ['comments', 'rest', 'session', 'user', 'auth', 'gateway']
       for (int i = 0; i < microservices.length; i++) {
           stage("Build Microservice: ${microservices[i]}") {
@@ -14,7 +17,7 @@ pipeline {
                 }
               }
           }
-          
+
           stage("Push Microservice: ${microservices[i]}") {
               steps {
                 script {
@@ -29,5 +32,7 @@ pipeline {
               }
           }
         }
+      }
+    } 
   }
 }
