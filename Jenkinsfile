@@ -18,9 +18,8 @@ pipeline {
                   sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
                 }
           }
-        }
       }
-
+      
       stage('Test') {
             steps {
                 sh 'go test ./... -coverprofile=cover.out'
@@ -33,7 +32,7 @@ pipeline {
               sh 'golangci-lint run'
           }
       }
-      
+
       for (int i = 0; i < microservices.length; i++) {
         stage("Push Microservice: ${microservices[i]}") {
                 script {
@@ -47,6 +46,8 @@ pipeline {
                 }
           }
       } 
+
+      }
     }
     }
   }
