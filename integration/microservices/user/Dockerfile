@@ -6,33 +6,33 @@ ARG MODULE_NAME=2024_1_kayros
 WORKDIR /home/${MODULE_NAME}
 
 # copy go.mod and go.sum in the root
-COPY ../../../../go.mod ./
-COPY ../../../../go.sum ./
+COPY go.mod ./
+COPY go.sum ./
 
 # copy auth microservice directory (dirs cmd and internal)
-COPY ../../../../microservices/user microservices/user
-COPY ../../../../microservices/metrics  microservices/metrics 
+COPY microservices/user microservices/user
+COPY microservices/metrics  microservices/metrics 
 
 # copy services (dbsql, s3, in-memory)
-COPY ../../../../services/postgres services/postgres
-COPY ../../../../services/minio services/minio
+COPY services/postgres services/postgres
+COPY services/minio services/minio
 
 # copy proto interfaces and data types
-COPY ../../../../gen/go/user gen/go/user
+COPY gen/go/user gen/go/user
 
 # copy files configuration
-COPY ../../../../config config
+COPY config config
 
 # copy internal dependences
-COPY ../../../../internal/repository/minios3 internal/repository/minios3 
-COPY ../../../../internal/utils/constants internal/utils/constants 
-COPY ../../../../internal/entity/user.go internal/entity/
-COPY ../../../../internal/utils/functions/null_db_string.go  internal/utils/functions/
-COPY ../../../../internal/utils/functions/get_file_info.go  internal/utils/functions/
-COPY ../../../../internal/utils/functions/hash.go  internal/utils/functions/
-COPY ../../../../internal/utils/myerrors  internal/utils/myerrors
-COPY ../../../../internal/utils/alias  internal/utils/alias
-COPY ../../../../internal/middleware/grpc/server internal/middleware/grpc/server
+COPY internal/repository/minios3 internal/repository/minios3 
+COPY internal/utils/constants internal/utils/constants 
+COPY internal/entity/user.go internal/entity/
+COPY internal/utils/functions/null_db_string.go  internal/utils/functions/
+COPY internal/utils/functions/get_file_info.go  internal/utils/functions/
+COPY internal/utils/functions/hash.go  internal/utils/functions/
+COPY internal/utils/myerrors  internal/utils/myerrors
+COPY internal/utils/alias  internal/utils/alias
+COPY internal/middleware/grpc/server internal/middleware/grpc/server
 
 # building exe ile
 RUN go build microservices/user/cmd/main.go
