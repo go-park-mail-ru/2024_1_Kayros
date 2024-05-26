@@ -18,7 +18,7 @@ pipeline {
           }
 
           stage("Push Microservice: ${microservices[i]}") {
-                script 
+                script {
                   def localImage = "resto-${microservices[i]}-service:latest"
                   def repositoryName = "kayrosteam/${localImage}"
                   sh "docker tag ${localImage} ${repositoryName} "
@@ -26,10 +26,11 @@ pipeline {
                     def image = docker.image("${repositoryName}");
                     image.push()
                   }
-              }
+                }
           }
         }
       }
     } 
     }
   }
+}
