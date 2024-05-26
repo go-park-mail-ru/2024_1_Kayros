@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"2024_1_kayros/gen/go/rest"
@@ -19,6 +20,7 @@ type Rest interface {
 	GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error)
 	GetByFilter(ctx context.Context, filter *rest.Id) (*rest.RestList, error)
 	GetCategoryList(ctx context.Context, _ *rest.Empty) (*rest.CategoryList, error)
+	GetRecomendation(ctx context.Context, in *rest.UserAndLimit) (*rest.RestList, error)
 }
 
 type RestLayer struct {
@@ -74,4 +76,48 @@ func (uc *RestLayer) GetCategoryList(ctx context.Context, _ *rest.Empty) (*rest.
 		return &rest.CategoryList{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
 	return cats, nil
+}
+
+// если у пользователя нет заказов, то возвращаем пять заказов
+// иначе возвращаем 2 последних рестика и 3 топовых
+func (uc *RestLayer) GetRecomendation(ctx context.Context, in *rest.UserAndLimit) (*rest.RestList, error) {
+	topRests, err := uc.repoRest.GetTop(ctx, in.Limit+2)
+	if err != nil {
+		uc.logger.Error(err.Error())
+		return &rest.RestList{}, grpcerr.NewError(codes.Internal, err.Error())
+	}
+	if in.UserId == 0 {
+		return &rest.RestList{Rest: topRests.Rest[:in.Limit]}, nil
+	}
+	rests, err := uc.repoRest.GetLastRests(ctx, in.UserId, 2)
+	if err != nil {
+		uc.logger.Error(err.Error())
+		return &rest.RestList{}, grpcerr.NewError(codes.Internal, err.Error())
+	}
+	//если ресторанов по заказам нет (то есть у пользователя нет заказов), то возвращаем топовые рестораны
+	if rests == nil {
+		return topRests, nil
+	}
+	res := rest.RestList{}
+	res.Rest = rests.Rest
+	add := true
+	for i, topEl := range topRests.Rest {
+		if len(res.Rest) == 5 {
+			break
+		}
+		for _, el := range rests.Rest {
+			fmt.Println(i, topEl.Id, el.Id)
+			if el.Id == topEl.Id {
+				add = false
+				break
+			}
+		}
+		if add {
+			fmt.Println(add, topEl.Id)
+			res.Rest = append(res.Rest, topEl)
+
+		}
+		add = true
+	}
+	return &res, nil
 }

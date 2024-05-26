@@ -160,4 +160,6 @@ services:
       - "443:443"
     depends_on:
       - gateway
+    extra_hosts:
+      - host.docker.internal:host-gateway
     tty: true

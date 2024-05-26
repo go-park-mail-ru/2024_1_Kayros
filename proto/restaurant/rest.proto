@@ -16,6 +16,10 @@ message Id {
   uint64 id= 1;
 }
 
+message Limit {
+  uint64 value= 1;
+}
+
 message Empty {}
 
 message Rest {
@@ -37,9 +41,19 @@ message CategoryList {
   repeated Category c= 1;
 }
 
+message UserAndLimit {
+  uint64 user_id= 1;
+  uint64 limit= 2;
+}
+
+message RestIdList {
+  repeated Id i=1;
+}
+
 service RestWorker {
   rpc GetAll(Empty) returns (RestList) {};
   rpc GetById(RestId) returns (Rest) {};
   rpc GetByFilter(Id) returns (RestList) {};
   rpc GetCategoryList(Empty) returns (CategoryList) {};
+  rpc GetRecomendation(UserAndLimit) returns (RestList) {};
 }

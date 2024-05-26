@@ -21,6 +21,7 @@ import (
 	ucFood "2024_1_kayros/internal/usecase/food"
 	ucRest "2024_1_kayros/internal/usecase/restaurants"
 	ucSearch "2024_1_kayros/internal/usecase/search"
+	ucUser "2024_1_kayros/internal/usecase/user"
 )
 
 func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn, userConn, commentConn *grpc.ClientConn, metrics *metrics.Metrics) {
@@ -30,6 +31,7 @@ func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn, us
 	usecaseSearch := ucSearch.NewUsecaseLayer(repoSearch)
 	// init user grpc client
 	grpcUser := user.NewUserManagerClient(userConn)
+	usecaseUser := ucUser.NewUsecaseLayer(grpcUser, metrics)
 
 	//init rest grpc client
 	grpcRest := rest.NewRestWorkerClient(restConn)
@@ -39,7 +41,7 @@ func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn, us
 	grpcComment := comment.NewCommentWorkerClient(commentConn)
 	usecaseComment := ucComment.NewUseCaseLayer(grpcComment, grpcUser, metrics)
 
-	deliveryRest := dRest.NewRestaurantHandler(usecaseRest, usecaseFood, logger)
+	deliveryRest := dRest.NewRestaurantHandler(usecaseRest, usecaseFood, usecaseUser, logger)
 	deliveryComment := dComment.NewDelivery(usecaseComment, logger)
 	deliverySearch := dSearch.NewDelivery(usecaseSearch, logger)
 
@@ -50,4 +52,5 @@ func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn, us
 	mux.HandleFunc("/api/v1/restaurants/{id}/comment/{com_id}", deliveryComment.DeleteComment).Methods("DELETE").Name("delete-comment")
 	mux.HandleFunc("/api/v1/restaurants/{id}/comments", deliveryComment.GetComments).Methods("GET").Name("comments-list")
 	mux.HandleFunc("/api/v1/category", deliveryRest.CategoryList).Methods("GET").Name("category-list")
+	mux.HandleFunc("/api/v1/recomendation", deliveryRest.Recomendation).Methods("GET").Name("recomendation")
 }

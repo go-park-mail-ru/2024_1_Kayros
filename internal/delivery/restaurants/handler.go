@@ -12,6 +12,7 @@ import (
 	"2024_1_kayros/internal/entity/dto"
 	foodUc "2024_1_kayros/internal/usecase/food"
 	restUc "2024_1_kayros/internal/usecase/restaurants"
+	userUc "2024_1_kayros/internal/usecase/user"
 	"2024_1_kayros/internal/utils/alias"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
@@ -29,13 +30,15 @@ type RestaurantAndFoodDTO struct {
 type RestaurantHandler struct {
 	ucRest restUc.Usecase
 	ucFood foodUc.Usecase
+	ucUser userUc.Usecase
 	logger *zap.Logger
 }
 
-func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase, loggerProps *zap.Logger) *RestaurantHandler {
+func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase, ucu userUc.Usecase, loggerProps *zap.Logger) *RestaurantHandler {
 	return &RestaurantHandler{
 		ucRest: ucr,
 		ucFood: ucf,
+		ucUser: ucu,
 		logger: loggerProps,
 	}
 }
@@ -109,4 +112,37 @@ func (h *RestaurantHandler) CategoryList(w http.ResponseWriter, r *http.Request)
 	}
 	catsDTO := &dto.CategoryArray{Payload: dto.NewCategoryArray(categories)} 
 	w = functions.JsonResponse(w, catsDTO)
+}
+
+func (h *RestaurantHandler) Recomendation(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	requestId := functions.GetCtxRequestId(r)
+	email := functions.GetCtxEmail(r)
+	unauthId := functions.GetCtxUnauthId(r)
+	if email == "" && unauthId == "" {
+		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
+		return
+	}
+
+	rests := []*entity.Restaurant{}
+	var err error
+	if email != "" {
+		u, err := h.ucUser.GetData(r.Context(), email)
+		if err != nil {
+			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		rests, err = h.ucRest.GetRecomendation(r.Context(), u.Id)
+	} else {
+		rests, err = h.ucRest.GetRecomendation(r.Context(), 0)
+	}
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		return
+	}
+	restsDTO := dto.NewRestaurantArray(rests)
+	w = functions.JsonResponse(w, restsDTO)
 }

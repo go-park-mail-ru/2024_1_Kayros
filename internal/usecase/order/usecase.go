@@ -216,7 +216,7 @@ func (uc *UsecaseLayer) GetArchiveOrders(ctx context.Context, email string) ([]*
 		}
 		return nil, err
 	}
-	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Delivered)
+	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Created, constants.Cooking, constants.OnTheWay, constants.Delivered)
 	if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
 		return []*entity.ShortOrder{}, nil
 	}

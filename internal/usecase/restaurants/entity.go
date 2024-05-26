@@ -20,7 +20,7 @@ func FromGrpcStructToRestaurant(grpcRest *rest.Rest) *entity.Restaurant {
 
 func FromGrpcStructToRestaurantArray(grpcRest *rest.RestList) []*entity.Restaurant {
 	if len(grpcRest.GetRest()) == 0 {
-		return nil
+		return []*entity.Restaurant{}
 	}
 	restArray := make([]*entity.Restaurant, len(grpcRest.GetRest()))
 	for i, r := range grpcRest.GetRest() {
