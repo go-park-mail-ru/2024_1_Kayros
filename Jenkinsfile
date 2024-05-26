@@ -1,5 +1,7 @@
 #!/usr/bin/env groovy
 
+def microservices = 'comments, rest, session, user, auth, gateway'.split(', ')
+
 pipeline {
   agent any
 
@@ -7,7 +9,6 @@ pipeline {
     stage('Initialize') {
     steps {
       script {
-      def microservices = ['comments', 'rest', 'session', 'user', 'auth', 'gateway']
       for (int i = 0; i < microservices.length; i++) {
           stage("Build Microservice: ${microservices[i]}") {
               steps {
