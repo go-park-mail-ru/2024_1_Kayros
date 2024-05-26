@@ -15,7 +15,7 @@ pipeline {
           stage("Build Microservice: ${microservices[i]}") {
                 script {
                   sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
-                  sh "sudo docker build -t resto-${microservices[i]}-service:latest -f /var/lib/jenkins/workspace/resto-backend/integration/microservices/${microservices[i]}/Dockerfile ."
+                  sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
                 }
           }
       }
