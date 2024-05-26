@@ -18,3 +18,10 @@ func NewPromocode(promo *entity.Promocode) *Promocode {
 		Sale: promo.Sale,
 	}
 }
+
+type Promo struct {
+	Id     uint64 `json:"code_id"`
+	Code   string `json:"code"`
+	NewSum uint64 `json:"new_sum"`
+}
+

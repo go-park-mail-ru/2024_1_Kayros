@@ -36,6 +36,10 @@ type ShortOrder struct {
 	Sum            uint32 `json:"sum,omitempty" valid:"-"`
 }
 
+type ShortOrderArray struct {
+	Payload []*ShortOrder `json:"payload" valid:"-"`
+}
+
 type FullAddress struct {
 	Address      string `json:"address" valid:"user_address_domain"`
 	ExtraAddress string `json:"extra_address" valid:"user_extra_address_domain"`

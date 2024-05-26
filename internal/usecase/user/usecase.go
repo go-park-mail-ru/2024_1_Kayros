@@ -19,10 +19,10 @@ import (
 )
 
 type Usecase interface {
-	UserAddress(ctx context.Context, email, unauthId, userEmail string) (string, error)
+	UserAddress(ctx context.Context, email, unauthId, isUserAddress string) (string, error)
 	GetData(ctx context.Context, email string) (*entity.User, error)
 	UpdateData(ctx context.Context, data *props.UpdateUserDataProps) (*entity.User, error)
-	UpdateAddress(ctx context.Context, email, unauthId, addressm, userEmail string) error
+	UpdateAddress(ctx context.Context, email, unauthId, addressm, isUserAddress string) error
 	UpdateUnauthAddress(ctx context.Context, address string, unauthId string) error
 	SetNewPassword(ctx context.Context, email, password, newPassword string) error
 }
@@ -40,7 +40,7 @@ func NewUsecaseLayer(userClientProps protouser.UserManagerClient, metrics *metri
 }
 
 // UserAddress - method returns user address by unauthId or email, but unauthId in priority
-func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId, userEmail string) (string, error) {
+func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId, isUserAddress string) (string, error) {
 	address := ""
 	timeNow := time.Now()
 	u, err := uc.userClient.GetData(ctx, &protouser.Email{Email: email})
@@ -53,7 +53,7 @@ func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId, userEm
 		}
 		return "", err
 	}
-	if userEmail == "true" {
+	if isUserAddress == "true" {
 		return u.Address, nil
 	}
 	timeNow = time.Now()
@@ -196,7 +196,7 @@ func (uc *UsecaseLayer) SetNewPassword(ctx context.Context, email, password, new
 }
 
 // UpdateAddress - method updates only address.
-func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, address, userEmail string) error {
+func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, address, isUserAddress string) error {
 	if email != "" {
 		data := &protouser.AddressData{
 			Email:   email,
@@ -219,7 +219,7 @@ func (uc *UsecaseLayer) UpdateAddress(ctx context.Context, email, unauthId, addr
 			}
 			return err
 		}
-		if userEmail == "true" {
+		if isUserAddress == "true" {
 			return nil
 		}
 	}

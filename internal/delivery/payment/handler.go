@@ -10,6 +10,7 @@ import (
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/metrics"
+	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/order"
 	"2024_1_kayros/internal/usecase/session"
 	cnst "2024_1_kayros/internal/utils/constants"
@@ -39,7 +40,6 @@ func NewPaymentDelivery(loggerProps *zap.Logger, ucOrderProps order.Usecase, ucS
 }
 
 func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email == "" {
@@ -128,5 +128,5 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 
 	// receiving 'confirmation_url'
 	confirmationURL := data["confirmation"].(map[string]interface{})["confirmation_url"].(string)
-	w = functions.JsonResponse(w, map[string]string{"url": confirmationURL})
+	w = functions.JsonResponse(w, &dto.ResponseUrlPay{Url: confirmationURL})
 }

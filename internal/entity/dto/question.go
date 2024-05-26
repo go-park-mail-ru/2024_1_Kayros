@@ -2,6 +2,7 @@ package dto
 
 import (
 	"2024_1_kayros/internal/entity"
+
 	"github.com/asaskevich/govalidator"
 )
 
@@ -22,14 +23,18 @@ type Question struct {
 	ParamType string `json:"param_type"`
 }
 
+type QuestionArray struct {
+	Payload []*Question `json:"payload" valid:"-"`
+}
+
 func (d *Question) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
 
-func QuestionReturn(qArray []*entity.Question) []Question {
-	arr := []Question{}
+func QuestionReturn(qArray []*entity.Question) []*Question {
+	arr := []*Question{}
 	for _, q := range qArray {
-		qDTO := Question{
+		qDTO := &Question{
 			Id:        q.Id,
 			Name:      q.Name,
 			ParamType: q.ParamType,

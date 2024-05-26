@@ -12,6 +12,10 @@ type Category struct {
 	Food []*Food `json:"food,omitempty" valid:"-"`
 }
 
+type CategoryArray struct {
+	Payload []*Category `json:"payload" valid:"-"`
+}
+
 type RestaurantAndFood struct {
 	Id               uint64      `json:"id" valid:"-"`
 	Name             string      `json:"name" valid:"-"`
@@ -21,6 +25,10 @@ type RestaurantAndFood struct {
 	Rating           float64     `json:"rating"`
 	CommentCount     uint32      `json:"comment_count"`
 	Categories       []*Category `json:"categories" valid:"-"`
+}
+
+type RestaurantAndFoodArray struct {
+	Payload []*RestaurantAndFood `json:"payload" valid:"-"`
 }
 
 func (d *RestaurantAndFood) Validate() (bool, error) {

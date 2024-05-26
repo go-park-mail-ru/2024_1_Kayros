@@ -155,5 +155,5 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w, map[string]string{"detail": "Сессия успешно завершена"})
+	w = functions.JsonResponse(w,  &dto.ResponseDetail{Detail: "Сессия успешно завершена"})
 }

@@ -43,7 +43,6 @@ type InputComment struct {
 }
 
 func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email == "" {
@@ -101,7 +100,6 @@ func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Delivery) GetComments(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 
 	vars := mux.Vars(r)
@@ -124,12 +122,11 @@ func (h *Delivery) GetComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	commentArrayDTO := dto.NewCommentArray(comments)
+	commentArrayDTO := &dto.CommentArray{Payload: dto.NewCommentArray(comments)} 
 	w = functions.JsonResponse(w, commentArrayDTO)
 }
 
 func (h *Delivery) DeleteComment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email == "" {
@@ -156,5 +153,5 @@ func (h *Delivery) DeleteComment(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Комментарий успешно удален"})
 }

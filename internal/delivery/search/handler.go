@@ -25,7 +25,6 @@ func NewDelivery(ucs search.Usecase, loggerProps *zap.Logger) *Delivery {
 }
 
 func (h *Delivery) Search(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	str := r.URL.Query().Get("search")
 	var rests []*dto.RestaurantAndFood
@@ -40,5 +39,6 @@ func (h *Delivery) Search(w http.ResponseWriter, r *http.Request) {
 	} else {
 		return
 	}
-	w = functions.JsonResponse(w, rests)
+	restaurantAndFoodArray := &dto.RestaurantAndFoodArray{Payload: rests}
+	w = functions.JsonResponse(w, restaurantAndFoodArray)
 }

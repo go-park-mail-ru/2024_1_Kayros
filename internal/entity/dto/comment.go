@@ -12,6 +12,10 @@ type Comment struct {
 	Rating    uint32 `json:"rating"`
 }
 
+type CommentArray struct {
+	Payload  []*Comment `json:"payload" valid:"-"`
+}
+
 func NewComment(com *entity.Comment) *Comment {
 	return &Comment{
 		Id:        com.Id,

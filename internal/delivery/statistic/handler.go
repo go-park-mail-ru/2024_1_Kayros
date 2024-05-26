@@ -43,7 +43,6 @@ func NewDeliveryLayer(ucQuizProps statistic.Usecase, ucUserProps user.Usecase, u
 }
 
 func (d *Delivery) GetStatistic(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email != "" {
@@ -59,12 +58,11 @@ func (d *Delivery) GetStatistic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dtoStats := dto.NewDtoStatistic(stats)
-	w = functions.JsonResponse(w, dtoStats)
+	statisticArray := &dto.StatisticArray{Payload: dto.NewDtoStatistic(stats)} 
+	w = functions.JsonResponse(w, statisticArray)
 }
 
 func (d *Delivery) GetQuestions(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 
 	url := r.URL.Query().Get("url")
@@ -78,12 +76,11 @@ func (d *Delivery) GetQuestions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	qDTO := dto.QuestionReturn(qs)
-	w = functions.JsonResponse(w, qDTO)
+	questionArray := &dto.QuestionArray{Payload: dto.QuestionReturn(qs)} 
+	w = functions.JsonResponse(w, questionArray)
 }
 
 func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 
 	var qi []*dto.QuestionInput
@@ -150,7 +147,7 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 		hasVoted = true
 	}
 	if hasVoted {
-		w = functions.JsonResponse(w, map[string]string{"detail": "Пользователь успешно проголосовал"})
+		w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Пользователь успешно проголосовал"})
 	} else {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 	}

@@ -10,6 +10,10 @@ type Statistic struct {
 	CSAT         int8  `json:"csat" valid:"-"`
 }
 
+type StatisticArray struct {
+	Payload []*Statistic `json:"payload" valid:"-"`
+}
+
 func NewDtoStatistic (statArray []*entity.Statistic) []*Statistic {
 	statsDtoArray := []*Statistic{}
 	for _, stat := range statArray {

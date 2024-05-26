@@ -55,13 +55,9 @@ func (d *FoodCount) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
 
-type payedOrderInfo struct {
-	Id     alias.OrderId `json:"id"`
-	Status string        `json:"status"`
-}
+
 
 func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
@@ -93,7 +89,6 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email == "" {
@@ -122,7 +117,6 @@ func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) GetCurrentOrders(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email == "" {
@@ -141,12 +135,11 @@ func (h *OrderHandler) GetCurrentOrders(w http.ResponseWriter, r *http.Request) 
 		}
 		return
 	}
-	ordersDTO := dto.NewShortOrderArray(orders)
-	w = functions.JsonResponse(w, ordersDTO)
+	ordersDtoArray := &dto.ShortOrderArray{Payload: dto.NewShortOrderArray(orders)} 
+	w = functions.JsonResponse(w, ordersDtoArray)
 }
 
 func (h *OrderHandler) GetArchiveOrders(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email == "" {
@@ -161,12 +154,11 @@ func (h *OrderHandler) GetArchiveOrders(w http.ResponseWriter, r *http.Request) 
 		w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusInternalServerError)
 		return
 	}
-	ordersDTO := dto.NewShortOrderArray(orders)
-	w = functions.JsonResponse(w, ordersDTO)
+	ordersDtoArray := &dto.ShortOrderArray{Payload: dto.NewShortOrderArray(orders)} 
+	w = functions.JsonResponse(w, ordersDtoArray)
 }
 
 func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
@@ -225,12 +217,11 @@ func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w, map[string]string{"detail": "Адрес заказа был успешно обновлен"})
+	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail:"Адрес заказа был успешно обновлен"})
 }
 
 // добавить проверку промокодов
 func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
@@ -279,7 +270,6 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 			sum := basket.Sum * (100 - uint64(promocode.Sale)) / 100
 			err = h.uc.UpdateSum(r.Context(), sum, alias.OrderId(basket.Id))
 			if err != nil {
-				//fmt.Println(err)
 				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			}
 		}
@@ -301,13 +291,12 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, cnst.RequestId, requestId)
 	go ChangingStatus(ctx, h, payedOrder.Id, statuses)
-	response := payedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
+	response := &dto.PayedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
 	w = functions.JsonResponse(w, response)
 }
 
 // добавить проверку промокодов - добавила
 func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
@@ -430,7 +419,6 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) Clean(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
@@ -468,12 +456,11 @@ func (h *OrderHandler) Clean(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	w = functions.JsonResponse(w, map[string]string{"detail": "Корзина очищена"})
+	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Корзина очищена"} )
 }
 
 // добавить проверку промокодов
 func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
@@ -535,7 +522,6 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 
 // добавить проверку промокодов
 func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
@@ -566,7 +552,7 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 	order, err := h.uc.DeleteFromOrder(r.Context(), basketId, alias.FoodId(foodId))
 	if err != nil {
 		if errors.Is(err, myerrors.SuccessCleanRu) {
-			w = functions.JsonResponse(w, map[string]string{"detail": "Корзина очищена"})
+			w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Корзина очищена"})
 		} else if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
 			w = functions.ErrorResponse(w, myerrors.NoDeleteFoodRu, http.StatusInternalServerError)
 		} else {
@@ -579,7 +565,6 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *OrderHandler) SetPromocode(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
@@ -607,7 +592,7 @@ func (h *OrderHandler) SetPromocode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c := promo{}
+	c := dto.Promo{}
 	err = json.Unmarshal(body, &c)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
@@ -655,7 +640,7 @@ func (h *OrderHandler) SetPromocode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if codeInfo == nil {
-		w = functions.JsonResponse(w, map[string]string{"detail": "Такого промокода нет"})
+		w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Такого промокода нет"})
 		return
 	}
 
@@ -672,7 +657,7 @@ func (h *OrderHandler) SetPromocode(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	codeDTO := &promo{
+	codeDTO := &dto.Promo{
 		Id:     codeInfo.Id,
 		Code:   codeInfo.Code,
 		NewSum: saleSum,
@@ -680,8 +665,3 @@ func (h *OrderHandler) SetPromocode(w http.ResponseWriter, r *http.Request) {
 	w = functions.JsonResponse(w, codeDTO)
 }
 
-type promo struct {
-	Id     uint64 `json:"code_id"`
-	Code   string `json:"code"`
-	NewSum uint64 `json:"new_sum"`
-}

@@ -41,7 +41,6 @@ func NewRestaurantHandler(ucr restUc.Usecase, ucf foodUc.Usecase, loggerProps *z
 }
 
 func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	filter := r.URL.Query().Get("filter")
 	var id int
@@ -68,12 +67,11 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-	restsDTO := dto.NewRestaurantArray(rests)
-	w = functions.JsonResponse(w, restsDTO)
+	restArray := &dto.RestaurantArray{Payload: dto.NewRestaurantArray(rests)} 
+	w = functions.JsonResponse(w, restArray)
 }
 
 func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -102,7 +100,6 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *RestaurantHandler) CategoryList(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	categories, err := h.ucRest.GetCategoryList(r.Context())
 	if err != nil {
@@ -110,6 +107,6 @@ func (h *RestaurantHandler) CategoryList(w http.ResponseWriter, r *http.Request)
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	catsDTO := dto.NewCategoryArray(categories)
+	catsDTO := &dto.CategoryArray{Payload: dto.NewCategoryArray(categories)} 
 	w = functions.JsonResponse(w, catsDTO)
 }

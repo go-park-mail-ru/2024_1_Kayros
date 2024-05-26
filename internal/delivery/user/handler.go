@@ -62,7 +62,7 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 	}
 	address = sanitizer.Address(address)
 	
-	w = functions.JsonResponse(w, dto.Address{Data: address})
+	w = functions.JsonResponse(w, &dto.Address{Data: address})
 }
 
 func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +107,7 @@ func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w = functions.JsonResponse(w, dto.ResponseDetail{Detail: "Адрес успешно обновлен"})
+	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Адрес успешно обновлен"})
 }
 
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
@@ -212,10 +212,10 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
 
-	userEmail := r.URL.Query().Get("user_address")
-	userEmail =  strings.TrimSpace(userEmail)
+	isUserAddress := r.URL.Query().Get("user_address")
+	isUserAddress =  strings.TrimSpace(isUserAddress)
 
-	if userEmail == "true" && email == "" {
+	if isUserAddress == "true" && email == "" {
 		d.logger.Error("unauthorized user can't update authorized user's email", zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadRequestUpdateEmail, http.StatusBadRequest)
 		return
@@ -243,7 +243,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = d.ucUser.UpdateAddress(r.Context(), email, unauthId, address.Data, userEmail)
+	err = d.ucUser.UpdateAddress(r.Context(), email, unauthId, address.Data, isUserAddress)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) {
@@ -259,7 +259,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w, dto.ResponseDetail{Detail: "Адрес успешно добавлен"})
+	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Адрес успешно добавлен"})
 }
 
 func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
@@ -327,5 +327,5 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
-	w = functions.JsonResponse(w, dto.ResponseDetail{Detail: "Пароль был успешно обновлен"})
+	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Пароль был успешно обновлен"})
 }

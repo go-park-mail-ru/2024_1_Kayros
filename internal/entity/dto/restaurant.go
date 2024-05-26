@@ -18,6 +18,10 @@ type Restaurant struct {
 	CommentCount     uint32  `json:"comment_count"`
 }
 
+type RestaurantArray struct {
+	Payload []*Restaurant `json:"payload" valid:"-"`
+}
+
 func (d *Restaurant) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
