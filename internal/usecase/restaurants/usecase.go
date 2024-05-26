@@ -19,16 +19,17 @@ type Usecase interface {
 	GetById(ctx context.Context, restId alias.RestId) (*entity.Restaurant, error)
 	GetByFilter(ctx context.Context, id alias.CategoryId) ([]*entity.Restaurant, error)
 	GetCategoryList(ctx context.Context) ([]*entity.Category, error)
+	GetRecomendation(ctx context.Context, userId uint64) ([]*entity.Restaurant, error)
 }
 type UsecaseLayer struct {
 	grpcClient rest.RestWorkerClient
-	metrics *metrics.Metrics
+	metrics    *metrics.Metrics
 }
 
 func NewUsecaseLayer(restClient rest.RestWorkerClient, m *metrics.Metrics) *UsecaseLayer {
 	return &UsecaseLayer{
 		grpcClient: restClient,
-		metrics: m,
+		metrics:    m,
 	}
 }
 
@@ -92,4 +93,12 @@ func (uc *UsecaseLayer) GetCategoryList(ctx context.Context) ([]*entity.Category
 		return nil, err
 	}
 	return FromGrpcStructToCategoryArray(cats), nil
+}
+
+func (uc *UsecaseLayer) GetRecomendation(ctx context.Context, userId uint64) ([]*entity.Restaurant, error) {
+	rests, err := uc.grpcClient.GetRecomendation(ctx, &rest.UserAndLimit{UserId: userId, Limit: 5})
+	if err != nil {
+		return nil, err
+	}
+	return FromGrpcStructToRestaurantArray(rests), nil
 }

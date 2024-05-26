@@ -10,12 +10,12 @@ import (
 type Restaurant struct {
 	Id               uint64  `json:"id" valid:"-"`
 	Name             string  `json:"name" valid:"-"`
-	ShortDescription string  `json:"short_description" valid:"-"`
-	LongDescription  string  `json:"long_description" valid:"-"`
-	Address          string  `json:"address" valid:"-"`
+	ShortDescription string  `json:"short_description,omitempty" valid:"-"`
+	LongDescription  string  `json:"long_description,omitempty" valid:"-"`
+	Address          string  `json:"address,omitempty" valid:"-"`
 	ImgUrl           string  `json:"img_url" valid:"url"`
-	Rating           float64 `json:"rating"`
-	CommentCount     uint32  `json:"comment_count"`
+	Rating           float64 `json:"rating,omitempty"`
+	CommentCount     uint32  `json:"comment_count,omitempty"`
 }
 
 func (d *Restaurant) Validate() (bool, error) {
