@@ -1,14 +1,15 @@
 package functions
 
 import (
-	"encoding/json"
+	"2024_1_kayros/internal/entity/dto"
 	"net/http"
+
+	"github.com/mailru/easyjson"
 )
 
 func ErrorResponse(w http.ResponseWriter, responseError error, codeStatus int) http.ResponseWriter {
-	w.Header().Set("Content-Type", "application/json")
-	errObject := map[string]string{"detail": responseError.Error()}
-	body, err := json.Marshal(errObject)
+	errObject := &dto.ResponseDetail{Detail: responseError.Error()}
+	body, err := easyjson.Marshal(errObject)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return w
