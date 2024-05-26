@@ -20,10 +20,10 @@ func JsonResponse(w http.ResponseWriter, data interface{}) http.ResponseWriter {
 		"*dto.RestaurantArray", "*dto.RestaurantAndFood", "*dto.CategoryArray",
 		"*dto.ResponseUrlPay", "*dto.Order", "*dto.ShortOrderArray", 
 		"*dto.PayedOrderInfo", "*dto.Promo", "*dto.Comment", 
-		"*dto.CommentArray":
+		"*dto.CommentArray", "*dto.PromocodeArray":
 			_, _, err = easyjson.MarshalToHTTPResponseWriter(data.(easyjson.Marshaler), w)
 	default:
-		fmt.Println("NO MATCH")
+		fmt.Println("NO MATCH" + reflect.TypeOf(data).String())
 	}
 	if err != nil {
 		logger.Error(err.Error())

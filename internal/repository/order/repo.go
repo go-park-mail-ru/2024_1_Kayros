@@ -34,6 +34,7 @@ type Repo interface {
 	DeleteBasket(ctx context.Context, orderId alias.OrderId) error
 	SetUser(ctx context.Context, orderId alias.OrderId, userId alias.UserId) error
 	UpdateSum(ctx context.Context, sum uint32, orderId alias.OrderId) error
+	OrdersCount(ctx context.Context, userId alias.UserId, status string) (uint64, error)
 
 	GetPromocode(ctx context.Context, code string) (*entity.Promocode, error)
 	WasPromocodeUsed(ctx context.Context, userId alias.UserId, codeId uint64) error
@@ -41,7 +42,7 @@ type Repo interface {
 	SetPromocode(ctx context.Context, orderId alias.OrderId, codeId uint64) (uint64, error)
 	GetPromocodeByOrder(ctx context.Context, orderId *alias.OrderId) (*entity.Promocode, error)
 	DeletePromocode(ctx context.Context, orderId alias.OrderId) error
-	OrdersCount(ctx context.Context, userId alias.UserId, status string) (uint64, error)
+	GetAllPromocode(ctx context.Context) ([]*entity.Promocode, error)
 }
 
 type RepoLayer struct {
@@ -694,4 +695,25 @@ func (repo *RepoLayer) GetPromocodeByOrder(ctx context.Context, orderId *alias.O
 		return nil, err
 	}
 	return entity.ToPromocode(&res), nil
+}
+
+func (repo *RepoLayer) GetAllPromocode(ctx context.Context) ([]*entity.Promocode, error) {
+	res := []*entity.PromocodeDB{}
+	rows, err := repo.db.QueryContext(ctx,
+		`SELECT id, code, date, sale, type, restaurant_id, sum FROM promocode WHERE date > CURRENT_DATE`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, myerrors.SqlNoRowsPromocodeRelation
+		}
+		return nil, err
+	}
+	for rows.Next() {
+		code := entity.PromocodeDB{}
+		err = rows.Scan(&code.Id, &code.Code, &code.Date, &code.Sale, &code.Type, &code.Rest, &code.Sum)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, &code)
+	}
+	return entity.NewPromocodeArray(res), nil
 }

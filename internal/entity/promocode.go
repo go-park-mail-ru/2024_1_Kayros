@@ -42,3 +42,11 @@ func ToPromocode(promoDB *PromocodeDB) *Promocode {
 		Sum:  Int(promoDB.Sum),
 	}
 }
+
+func NewPromocodeArray(arr []*PromocodeDB) []*Promocode {
+	codeArray := make([]*Promocode, len(arr))
+	for i, o := range arr {
+		codeArray[i] = ToPromocode(o)
+	}
+	return codeArray
+}
