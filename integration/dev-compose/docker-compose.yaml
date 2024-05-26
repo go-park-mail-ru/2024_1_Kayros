@@ -7,9 +7,9 @@ services:
     build: ../postgres
     container_name: postgres
     environment:
-      - POSTGRES_USER=kayrosteam
-      - POSTGRES_PASSWORD=resto123
-      - POSTGRES_DB=main_db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - ../postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - ../postgres/data:/var/lib/postgresql/data
@@ -33,8 +33,8 @@ services:
     volumes:
       - ../minio/data:/data
     environment:
-      - MINIO_ROOT_USER=kayrosteam
-      - MINIO_ROOT_PASSWORD=resto123
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     command: server --console-address :9001 /data
     tty: true
   # metrics
@@ -42,14 +42,6 @@ services:
     restart: always
     image: prom/node-exporter:latest
     container_name: node-exporter
-    # volumes:
-    #   - /proc:/host/proc:ro
-    #   - /sys:/host/sys:ro
-    #   - /:/rootfs:ro
-    # command:
-    #   - --path.procfs=/host/proc
-    #   - --path.sysfs=/host/sys
-    #   - --collector.filesystem.ignored-mount-points
     ports:
       - "9100:9100"
     tty: true

@@ -2,15 +2,14 @@
 go.sum
 config/config.yaml
 integration/nginx/logs
-integration/dev-compose
 integration/prometheus/data
 integration/postgres/data
-integration/postgres/Dockerfile
 integration/minio
-integration/minios3
+integration/dev-compose/.env
 api.md
 bd.md
 .DS_Store
 .vscode/
 integration/grafana
 internal/entity/dto/dto_easyjson.go
+integration/prod-compose/.env
