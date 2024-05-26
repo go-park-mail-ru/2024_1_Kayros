@@ -7,7 +7,7 @@ pipeline {
         steps {
            script {
               sh "cp /home/ubuntu/config.yaml ./config/"
-              docker.build("resto-auth-service:latest", "-f ./integration/microservices/auth .")
+              sh "sudo docker build -t resto-auth-service:latest -f ./integration/microservices/auth ."
            }
         }
       }
