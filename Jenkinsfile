@@ -11,14 +11,14 @@ pipeline {
     stage('Initialize') {
     steps {
       script {
-      for (int i = 0; i < microservices.length; i++) {
-          stage("Build Microservice: ${microservices[i]}") {
-                script {
-                  sh "cp /home/ubuntu/config.yaml ./config/"
-                  sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
-                }
-          }
-      }
+      // for (int i = 0; i < microservices.length; i++) {
+      //     stage("Build Microservice: ${microservices[i]}") {
+      //           script {
+      //             sh "cp /home/ubuntu/config.yaml ./config/"
+      //             sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
+      //           }
+      //     }
+      // }
       
       stage('Test') {
             script {
@@ -28,7 +28,7 @@ pipeline {
 
       stage('Code Analysis') {
           script {
-              sh 'curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | bash -s -- -b $GOPATH/bin v1.22.3'
+              sh 'curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | bash -s -- -b $GOPATH/bin v1.58.2'
               sh 'golangci-lint run'
           }
       }
