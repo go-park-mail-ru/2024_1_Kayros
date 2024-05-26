@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-def microservices = 'comments, rest, session, user, auth, gateway'.split(', ')
+def microservices = 'comment, rest, session, user, auth, gateway'.split(', ')
 
 pipeline {
   agent any
