@@ -4,14 +4,14 @@ import "errors"
 
 // Response errors (external) RUSSIA
 var (
-	InternalServerRu     = errors.New("Ошибка сервера")
-	BadAuthCredentialsRu = errors.New("Неверный логин или пароль")
-	BadCredentialsRu     = errors.New("Предоставлены некорректные данные")
-	UserAlreadyExistRu   = errors.New("Пользователь с таким логином уже зарегистрирован")
-	NotFoundRu           = errors.New("Данные не найдены")
-	BadRequestGetEmail      = errors.New("Необходимо авторизоваться для получения почты")
-	BadRequestUpdateEmail      = errors.New("Необходимо авторизоваться для изменения почты")
-	BadRequestUpdateUnauthAddress      = errors.New("Невозможно выбрать почту")
+	InternalServerRu              = errors.New("Ошибка сервера")
+	BadAuthCredentialsRu          = errors.New("Неверный логин или пароль")
+	BadCredentialsRu              = errors.New("Предоставлены некорректные данные")
+	UserAlreadyExistRu            = errors.New("Пользователь с таким логином уже зарегистрирован")
+	NotFoundRu                    = errors.New("Данные не найдены")
+	BadRequestGetEmail            = errors.New("Необходимо авторизоваться для получения почты")
+	BadRequestUpdateEmail         = errors.New("Необходимо авторизоваться для изменения почты")
+	BadRequestUpdateUnauthAddress = errors.New("Невозможно выбрать почту")
 
 	UnauthorizedRu   = errors.New("Вы не авторизованы")
 	RegisteredRu     = errors.New("Вы уже зарегистрированы")
@@ -36,7 +36,7 @@ var (
 	NoDeleteFoodRu      = errors.New("Не удалось убрать блюдо из заказа, попробуйте еще раз")
 	OverDatePromocodeRu = errors.New("Срок действия промокода истек")
 	OncePromocodeRu     = errors.New("Данный промокод нельзя использовать повторно")
-	SumPromocodeRu      = errors.New("Чтобы применить промокод, сумма должна быть")
+	SumPromocodeRu      = errors.New("Чтобы применить промокод, сумма должна быть больше")
 	NoSetPromocodeRu    = errors.New("Не удалось применить промокод")
 )
 

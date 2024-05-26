@@ -32,6 +32,7 @@ type Order struct {
 	RestaurantName string
 	Commented      bool
 	PromocodeId    uint64
+	Error          string
 	Food           []*FoodInOrder
 }
 
