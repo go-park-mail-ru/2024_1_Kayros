@@ -6,26 +6,26 @@ ARG MODULE_NAME=2024_1_kayros
 WORKDIR /home/${MODULE_NAME}
 
 # copy go.mod and go.sum in the root
-COPY ../../../../go.mod ./
-COPY ../../../../go.sum ./
+COPY go.mod ./
+COPY go.sum ./
 
 # copy auth microservice directory (dirs cmd and internal)
-COPY ../../../../microservices/session microservices/session
-COPY ../../../../microservices/metrics  microservices/metrics 
+COPY microservices/session microservices/session
+COPY microservices/metrics  microservices/metrics 
 
 # copy services (dbsql, s3, in-memory)
-COPY ../../../../services/redis services/redis
+COPY services/redis services/redis
 
 # copy proto interfaces and data types
-COPY ../../../../gen/go/session gen/go/session
+COPY gen/go/session gen/go/session
 
 # copy files configuration
-COPY ../../../../config config
+COPY config config
 
 # copy internal dependences
-COPY ../../../../internal/utils/myerrors internal/utils/myerrors
-COPY ../../../../internal/middleware/grpc/server internal/middleware/grpc/server
-COPY ../../../../internal/utils/constants internal/utils/constants
+COPY internal/utils/myerrors internal/utils/myerrors
+COPY internal/middleware/grpc/server internal/middleware/grpc/server
+COPY internal/utils/constants internal/utils/constants
 
 # building exe ile
 RUN go build microservices/session/cmd/main.go
