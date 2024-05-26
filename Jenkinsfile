@@ -14,7 +14,7 @@ pipeline {
       for (int i = 0; i < microservices.length; i++) {
           stage("Build Microservice: ${microservices[i]}") {
                 script {
-                  sh "cp /home/ubuntu/config.yaml ./config/"
+                  sh "cp /root/backend/config/config.yaml ./config/"
                   sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
                 }
           }
