@@ -14,9 +14,8 @@ pipeline {
       for (int i = 0; i < microservices.length; i++) {
           stage("Build Microservice: ${microservices[i]}") {
                 script {
-                  sh "pwd"
                   sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
-                  sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
+                  sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile"
                 }
           }
       }
