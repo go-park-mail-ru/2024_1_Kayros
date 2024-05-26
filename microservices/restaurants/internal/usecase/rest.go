@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"2024_1_kayros/gen/go/rest"
@@ -99,11 +100,24 @@ func (uc *RestLayer) GetRecomendation(ctx context.Context, in *rest.UserAndLimit
 	}
 	res := rest.RestList{}
 	res.Rest = rests.Rest
-	for i := 0; i < int(in.Limit)-len(rests.Rest); i++ {
-		res.Rest = append(res.Rest, topRests.Rest[i])
-	}
-	// length := len(rests.GetRest())
-	// len := rests[:2]
+	add := true
+	for i, topEl := range topRests.Rest {
+		if len(res.Rest) == 5 {
+			break
+		}
+		for _, el := range rests.Rest {
+			fmt.Println(i, topEl.Id, el.Id)
+			if el.Id == topEl.Id {
+				add = false
+				break
+			}
+		}
+		if add {
+			fmt.Println(add, topEl.Id)
+			res.Rest = append(res.Rest, topEl)
 
+		}
+		add = true
+	}
 	return &res, nil
 }
