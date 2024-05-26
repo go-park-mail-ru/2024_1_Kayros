@@ -7,9 +7,9 @@ services:
     build: ../postgres
     container_name: postgres
     environment:
-      - POSTGRES_USER=kayrosteam
-      - POSTGRES_PASSWORD=resto123
-      - POSTGRES_DB=main_db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - ../postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - ../postgres/data:/var/lib/postgresql/data
@@ -35,8 +35,8 @@ services:
       - /etc/nginx/sslcert/server.key:/root/.minio/certs/private.key:ro
       - ../minio/data:/data
     environment:
-      - MINIO_ROOT_USER=kayrosteam
-      - MINIO_ROOT_PASSWORD=resto123
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_SERVER_URL=https://resto-go.online:9000
       - MINIO_BROWSER_REDIRECT_URL=https://resto-go.online/minio-admin
     hostname: resto-go.online
