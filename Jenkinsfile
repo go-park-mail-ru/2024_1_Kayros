@@ -11,14 +11,14 @@ pipeline {
     stage('Initialize') {
     steps {
       script {
-      // for (int i = 0; i < microservices.length; i++) {
-      //     stage("Build Microservice: ${microservices[i]}") {
-      //           script {
-      //             sh "cp /home/ubuntu/config.yaml ./config/"
-      //             sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
-      //           }
-      //     }
-      // }
+      for (int i = 0; i < microservices.length; i++) {
+          stage("Build Microservice: ${microservices[i]}") {
+                script {
+                  sh "cp /home/ubuntu/config.yaml ./config/"
+                  sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
+                }
+          }
+      }
       
       stage('Test') {
             script {
