@@ -59,7 +59,8 @@ func (d *Delivery) GetStatistic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w = functions.JsonResponse(w, stats)
+	dtoStats := dto.NewDtoStatistic(stats)
+	w = functions.JsonResponse(w, dtoStats)
 }
 
 func (d *Delivery) GetQuestions(w http.ResponseWriter, r *http.Request) {

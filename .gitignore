@@ -13,3 +13,4 @@ bd.md
 .DS_Store
 .vscode/
 integration/grafana
+internal/entity/dto/dto_easyjson.go

@@ -61,7 +61,8 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	address = sanitizer.Address(address)
-	w = functions.JsonResponse(w, map[string]string{"address": address})
+	
+	w = functions.JsonResponse(w, dto.Address{Data: address})
 }
 
 func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +107,7 @@ func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w = functions.JsonResponse(w, map[string]string{"detail": "Адрес успешно обновлен"})
+	w = functions.JsonResponse(w, dto.ResponseDetail{Detail: "Адрес успешно обновлен"})
 }
 
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
@@ -258,7 +259,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w, map[string]string{"detail": "Адрес успешно добавлен"})
+	w = functions.JsonResponse(w, dto.ResponseDetail{Detail: "Адрес успешно добавлен"})
 }
 
 func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
@@ -326,5 +327,5 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
-	w = functions.JsonResponse(w, map[string]string{"detail": "Пароль был успешно обновлен"})
+	w = functions.JsonResponse(w, dto.ResponseDetail{Detail: "Пароль был успешно обновлен"})
 }

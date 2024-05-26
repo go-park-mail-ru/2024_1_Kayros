@@ -6,6 +6,7 @@ import (
 	"2024_1_kayros/internal/entity"
 )
 
+
 type Food struct {
 	Id          uint64 `json:"id" valid:"-"`
 	Name        string `json:"name" valid:"-"`
