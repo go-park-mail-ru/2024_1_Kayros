@@ -600,7 +600,7 @@ func (repo *RepoLayer) GetPromocode(ctx context.Context, code string) (*entity.P
 func (repo *RepoLayer) WasPromocodeUsed(ctx context.Context, userId alias.UserId, codeId uint64) error {
 	var res uint64
 	err := repo.db.QueryRowContext(ctx,
-		`SELECT count(*) FROM "order" WHERE user_id=$1 AND promocode_id=$2 AND status='delivered'`, uint64(userId), codeId).Scan(&res)
+		`SELECT count(*) FROM "order" WHERE user_id=$1 AND promocode_id=$2 AND status!='draft'`, uint64(userId), codeId).Scan(&res)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
@@ -687,7 +687,7 @@ func (repo *RepoLayer) GetPromocodeByOrder(ctx context.Context, orderId *alias.O
 func (repo *RepoLayer) GetAllPromocode(ctx context.Context) ([]*entity.Promocode, error) {
 	res := []*entity.PromocodeDB{}
 	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, code, date, sale, type, sum FROM promocode WHERE date > CURRENT_DATE`)
+		`SELECT id, code, date, sale, description FROM promocode WHERE date > CURRENT_DATE`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsPromocodeRelation
@@ -696,10 +696,7 @@ func (repo *RepoLayer) GetAllPromocode(ctx context.Context) ([]*entity.Promocode
 	}
 	for rows.Next() {
 		code := entity.PromocodeDB{}
-		err = rows.Scan(&code.Id, &code.Code, &code.Date, &code.Sale, &code.Type, &code.Sum)
-		if code.Code == "italy" {
-			code.RestName = "Горыныч"
-		}
+		err = rows.Scan(&code.Id, &code.Code, &code.Date, &code.Sale, &code.Description)
 		if err != nil {
 			return nil, err
 		}
