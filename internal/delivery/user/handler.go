@@ -86,14 +86,16 @@ func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = d.ucUser.UpdateUnauthAddress(r.Context(), u.Address, unauthId)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-		return
-	}
-
-	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Адрес успешно обновлен"})
+	if u != nil {
+		err = d.ucUser.UpdateUnauthAddress(r.Context(), u.Address, unauthId)
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Адрес успешно выбран"})
+	} 
+	w = functions.ErrorResponse(w, errors.New("Адрес не был выбран"), http.StatusInternalServerError)
 }
 
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
