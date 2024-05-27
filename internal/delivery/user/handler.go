@@ -19,6 +19,7 @@ import (
 	"2024_1_kayros/internal/utils/props"
 	"2024_1_kayros/internal/utils/sanitizer"
 
+	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 )
 
@@ -45,16 +46,16 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
 
-	userEmail := r.URL.Query().Get("user_address")
-	userEmail =  strings.TrimSpace(userEmail)
+	isUserAddress := r.URL.Query().Get("user_address")
+	isUserAddress =  strings.TrimSpace(isUserAddress)
 
-	if userEmail == "true" && email == "" {
+	if isUserAddress == "true" && email == "" {
 		d.logger.Error("unauthorized user can't get authorized user's email", zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadRequestGetEmail, http.StatusBadRequest)
 		return
 	}
 
-	address, err := d.ucUser.UserAddress(r.Context(), email, unauthId, userEmail)
+	address, err := d.ucUser.UserAddress(r.Context(), email, unauthId, isUserAddress)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -78,36 +79,23 @@ func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
+	u, err := d.ucUser.GetData(r.Context(), email)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 
-	var address dto.Address
-	err = json.Unmarshal(body, &address)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
-		return
-	}
-	isValid, err := address.Validate()
-	if err != nil || !isValid {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
-		return
-	}
-
-	err = d.ucUser.UpdateUnauthAddress(r.Context(), address.Data, unauthId)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-		return
-	}
-
-	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Адрес успешно обновлен"})
+	if u != nil {
+		err = d.ucUser.UpdateUnauthAddress(r.Context(), u.Address, unauthId)
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Адрес успешно выбран"})
+	} 
+	w = functions.ErrorResponse(w, errors.New("Адрес не был выбран"), http.StatusInternalServerError)
 }
 
 func (d *Delivery) UserData(w http.ResponseWriter, r *http.Request) {
@@ -230,7 +218,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var address dto.Address
-	err = json.Unmarshal(body, &address)
+	err = easyjson.Unmarshal(body, &address)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)

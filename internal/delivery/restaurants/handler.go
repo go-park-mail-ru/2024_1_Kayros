@@ -137,6 +137,6 @@ func (h *RestaurantHandler) Recomendation(w http.ResponseWriter, r *http.Request
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	restsDTO := dto.NewRestaurantArray(rests)
-	w = functions.JsonResponse(w, restsDTO)
+	restaurantArray := &dto.RestaurantArray{Payload: dto.NewRestaurantArray(rests)}
+	w = functions.JsonResponse(w, restaurantArray)
 }
