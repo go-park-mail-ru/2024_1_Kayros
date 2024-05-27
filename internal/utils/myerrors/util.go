@@ -11,7 +11,7 @@ var (
 	NotFoundRu                    = errors.New("Данные не найдены")
 	BadRequestGetEmail            = errors.New("Необходимо авторизоваться для получения почты")
 	BadRequestUpdateEmail         = errors.New("Необходимо авторизоваться для изменения почты")
-	BadRequestUpdateUnauthAddress = errors.New("Невозможно выбрать почту")
+	BadRequestUpdateUnauthAddress = errors.New("Невозможно изменить адрес")
 
 	UnauthorizedRu   = errors.New("Вы не авторизованы")
 	RegisteredRu     = errors.New("Вы уже зарегистрированы")

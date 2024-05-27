@@ -79,29 +79,14 @@ func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
+	u, err := d.ucUser.GetData(r.Context(), email)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 
-	var address dto.Address
-	err = json.Unmarshal(body, &address)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
-		return
-	}
-	isValid, err := address.Validate()
-	if err != nil || !isValid {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
-		return
-	}
-
-	err = d.ucUser.UpdateUnauthAddress(r.Context(), address.Data, unauthId)
+	err = d.ucUser.UpdateUnauthAddress(r.Context(), u.Address, unauthId)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
