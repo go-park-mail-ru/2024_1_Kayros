@@ -6,26 +6,24 @@ import (
 )
 
 type Promocode struct {
-	Id          uint64 `json:"id"`
-	Code        string `json:"code"`
-	Date        string `json:"date"`
-	Sale        uint8  `json:"sale"`
-	Type        string `json:"type,omitempty"`
-	Rest        string `json:"rest,omitempty"`
-	Sum         uint64 `json:"sum,omitempty"`
-	Description string `json:"description,omitempty"`
+	Id   uint64 `json:"id"`
+	Code string `json:"code"`
+	Date string `json:"date"`
+	Sale uint8  `json:"sale"`
+	Type string `json:"type,omitempty"`
+	Rest string `json:"rest,omitempty"`
+	Sum  uint64 `json:"sum,omitempty"`
 }
 
 func NewPromocode(promo *entity.Promocode) *Promocode {
 	return &Promocode{
-		Id:          promo.Id,
-		Code:        promo.Code,
-		Sale:        promo.Sale,
-		Date:        promo.Date.Format(constants.Timestamptz),
-		Type:        promo.Type,
-		Rest:        promo.RestName,
-		Sum:         promo.Sum,
-		Description: promo.Description,
+		Id:   promo.Id,
+		Code: promo.Code,
+		Sale: promo.Sale,
+		Date: promo.Date.Format(constants.Timestamptz),
+		Type: promo.Type,
+		Rest: promo.RestName,
+		Sum:  promo.Sum,
 	}
 }
 

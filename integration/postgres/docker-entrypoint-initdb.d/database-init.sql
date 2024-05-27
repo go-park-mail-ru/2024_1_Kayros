@@ -88,8 +88,7 @@ CREATE TABLE IF NOT EXISTS promocode(
     restaurant_id           INTEGER
         CONSTRAINT foreign_key_rest CHECK (restaurant_id > 0)      NULL REFERENCES restaurant (id) ON DELETE CASCADE,
     sum            INTEGER
-        CONSTRAINT non_negatve_sum CHECK (sum > 0)  NULL,
-    description TEXT NOT NULL
+        CONSTRAINT non_negatve_sum CHECK (sum > 0)  NULL
 );
 
 CREATE TABLE IF NOT EXISTS "order"
