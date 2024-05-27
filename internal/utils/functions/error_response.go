@@ -8,6 +8,7 @@ import (
 )
 
 func ErrorResponse(w http.ResponseWriter, responseError error, codeStatus int) http.ResponseWriter {
+	w.Header().Add("Content-Type", "application/json")
 	errObject := &dto.ResponseDetail{Detail: responseError.Error()}
 	body, err := easyjson.Marshal(errObject)
 	if err != nil {

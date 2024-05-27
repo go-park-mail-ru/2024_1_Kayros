@@ -56,20 +56,24 @@ func (uc *UsecaseLayer) UserAddress(ctx context.Context, email, unauthId, isUser
 	if isUserAddress == "true" {
 		return u.Address, nil
 	}
-	timeNow = time.Now()
-	unauthAddress, err := uc.userClient.GetAddressByUnauthId(ctx, &protouser.UnauthId{UnauthId: unauthId})
-	msRequestTimeout = time.Since(timeNow)
-	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
-	if err != nil && !grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUnauthAddressRelation) {
-		grpcStatus, ok := status.FromError(err)
-		if !ok {
-			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+	if unauthId != "" {
+		timeNow = time.Now()
+		unauthAddress, err := uc.userClient.GetAddressByUnauthId(ctx, &protouser.UnauthId{UnauthId: unauthId})
+		msRequestTimeout = time.Since(timeNow)
+		uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
+		if err != nil && !grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUnauthAddressRelation) {
+			grpcStatus, ok := status.FromError(err)
+			if !ok {
+				uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
+			}
+			return "", err
 		}
-		return "", err
+		if unauthAddress != nil && unauthAddress.GetAddress() != "" {
+			address = unauthAddress.GetAddress()
+		}
+		return address, nil
 	}
-	if unauthAddress.GetAddress() != "" {
-		address = unauthAddress.GetAddress()
-	} else if !entity.ProtoUserIsNIL(u) && u.Address != "" {
+	if !entity.ProtoUserIsNIL(u) && u.Address != "" {
 		address = u.Address
 	}
 	return address, nil

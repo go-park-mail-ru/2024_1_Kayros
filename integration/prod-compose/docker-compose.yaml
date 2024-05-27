@@ -93,7 +93,7 @@ services:
     build:
       context: ../../
       dockerfile: integration/microservices/comment/Dockerfile
-    container_name: comment_grpc
+    container_name: comment-grpc
     ports:
       - "8003:8003"
     tty: true

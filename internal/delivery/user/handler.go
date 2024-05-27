@@ -19,6 +19,7 @@ import (
 	"2024_1_kayros/internal/utils/props"
 	"2024_1_kayros/internal/utils/sanitizer"
 
+	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 )
 
@@ -45,16 +46,16 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	unauthId := functions.GetCtxUnauthId(r)
 
-	userEmail := r.URL.Query().Get("user_address")
-	userEmail =  strings.TrimSpace(userEmail)
+	isUserAddress := r.URL.Query().Get("user_address")
+	isUserAddress =  strings.TrimSpace(isUserAddress)
 
-	if userEmail == "true" && email == "" {
+	if isUserAddress == "true" && email == "" {
 		d.logger.Error("unauthorized user can't get authorized user's email", zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadRequestGetEmail, http.StatusBadRequest)
 		return
 	}
 
-	address, err := d.ucUser.UserAddress(r.Context(), email, unauthId, userEmail)
+	address, err := d.ucUser.UserAddress(r.Context(), email, unauthId, isUserAddress)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
@@ -230,7 +231,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var address dto.Address
-	err = json.Unmarshal(body, &address)
+	err = easyjson.Unmarshal(body, &address)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
