@@ -246,6 +246,6 @@ VALUES (1, 1, 'Хорошее заведение, закажу еще раз', 4
 
 INSERT INTO promocode (code, date, sale, type, restaurant_id, sum) 
 VALUES ('code40', '2024-06-20 15:04:05+00:00', 40, 'once', null, null), 
-        ('first10', '2024-06-20 15:04:05+00:00', 40, 'first', null, null), 
+        ('first40', '2024-06-20 15:04:05+00:00', 40, 'first', null, null), 
         ('sum1000', '2024-06-20 15:04:05+00:00', 40, 'sum', null, 1000), 
-        ('italy', '2024-06-20 15:04:05+00:00', 40, 'first', 1, null);
+        ('italy', '2024-06-20 15:04:05+00:00', 40, 'rest', 1, null);
