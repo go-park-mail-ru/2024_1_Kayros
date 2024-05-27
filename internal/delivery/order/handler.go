@@ -17,6 +17,7 @@ import (
 	"2024_1_kayros/internal/entity/dto"
 	ucOrder "2024_1_kayros/internal/usecase/order"
 	"2024_1_kayros/internal/utils/alias"
+	"2024_1_kayros/internal/utils/constants"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/internal/utils/myerrors"
@@ -55,8 +56,6 @@ func (d *FoodCount) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
 
-
-
 func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
@@ -84,6 +83,45 @@ func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	//проверка промокода
+
+	//есть basketId
+	//надо чекнуть наличие промокода в заказе
+	promocode, err := h.uc.GetPromocodeByOrder(r.Context(), (*alias.OrderId)(&order.Id))
+	//fmt.Println(promocode, err)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	}
+	//есть промокод
+	if promocode != nil && promocode.Id != 0 && email != "" {
+		//но нет кук, надо удалить промик
+		if email == "" {
+			err = h.uc.DeletePromocode(r.Context(), alias.OrderId(order.Id))
+			if err != nil {
+				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			}
+			order.Error = constants.PromocodeIsDeleted
+		} else {
+			//куки есть, надо проверить актуальность промокода
+			_, err = h.uc.CheckPromocode(r.Context(), email, promocode.Code, alias.OrderId(order.Id))
+			//если неактуален, то удалить
+			if errors.Is(err, myerrors.OverDatePromocode) || errors.Is(err, myerrors.OncePromocode) || errors.Is(err, myerrors.SumPromocode) {
+				err = h.uc.DeletePromocode(r.Context(), alias.OrderId(order.Id))
+				promocode = nil
+				if err != nil {
+					h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				}
+				order.Error = constants.PromocodeIsDeleted
+			}
+		}
+	}
+
+	if promocode != nil {
+		order.Promocode = promocode.Code
+		order.NewSum = order.Sum * (100 - uint64(promocode.Sale)) / 100
+	}
+
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)
 }
@@ -135,7 +173,7 @@ func (h *OrderHandler) GetCurrentOrders(w http.ResponseWriter, r *http.Request) 
 		}
 		return
 	}
-	ordersDtoArray := &dto.ShortOrderArray{Payload: dto.NewShortOrderArray(orders)} 
+	ordersDtoArray := &dto.ShortOrderArray{Payload: dto.NewShortOrderArray(orders)}
 	w = functions.JsonResponse(w, ordersDtoArray)
 }
 
@@ -154,7 +192,7 @@ func (h *OrderHandler) GetArchiveOrders(w http.ResponseWriter, r *http.Request) 
 		w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusInternalServerError)
 		return
 	}
-	ordersDtoArray := &dto.ShortOrderArray{Payload: dto.NewShortOrderArray(orders)} 
+	ordersDtoArray := &dto.ShortOrderArray{Payload: dto.NewShortOrderArray(orders)}
 	w = functions.JsonResponse(w, ordersDtoArray)
 }
 
@@ -217,7 +255,7 @@ func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail:"Адрес заказа был успешно обновлен"})
+	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Адрес заказа был успешно обновлен"})
 }
 
 // добавить проверку промокодов
@@ -264,6 +302,8 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 			}
+			w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: constants.PromocodeIsDeleted})
+			return
 		} else if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		} else {
@@ -381,7 +421,7 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
 	//есть промокод
-	if promocode != nil && promocode.Id != 0 && email == "" {
+	if promocode != nil && promocode.Id != 0 {
 		//но нет кук, надо удалить промик
 		if email == "" {
 			err = h.uc.DeletePromocode(r.Context(), basketId)
@@ -411,7 +451,7 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 
 	if promocode != nil {
 		order.Promocode = promocode.Code
-		order.NewSum = order.Sum * uint64(promocode.Sale) / 100
+		order.NewSum = order.Sum * (100 - uint64(promocode.Sale)) / 100
 	}
 
 	orderDTO := dto.NewOrder(order)
@@ -456,7 +496,7 @@ func (h *OrderHandler) Clean(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Корзина очищена"} )
+	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Корзина очищена"})
 }
 
 // добавить проверку промокодов
@@ -516,6 +556,45 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
+
+	//проверка промокода
+
+	//есть basketId
+	//надо чекнуть наличие промокода в заказе
+	promocode, err := h.uc.GetPromocodeByOrder(r.Context(), &basketId)
+	//fmt.Println(promocode, err)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	}
+	//есть промокод
+	if promocode != nil && promocode.Id != 0 {
+		//но нет кук, надо удалить промик
+		if email == "" {
+			err = h.uc.DeletePromocode(r.Context(), basketId)
+			if err != nil {
+				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			}
+			order.Error = constants.PromocodeIsDeleted
+		} else {
+			//куки есть, надо проверить актуальность промокода
+			_, err = h.uc.CheckPromocode(r.Context(), email, promocode.Code, basketId)
+			//если неактуален, то удалить
+			if errors.Is(err, myerrors.OverDatePromocode) || errors.Is(err, myerrors.OncePromocode) || errors.Is(err, myerrors.SumPromocode) {
+				err = h.uc.DeletePromocode(r.Context(), basketId)
+				promocode = nil
+				if err != nil {
+					h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				}
+				order.Error = constants.PromocodeIsDeleted
+			}
+		}
+	}
+
+	if promocode != nil {
+		order.Promocode = promocode.Code
+		order.NewSum = order.Sum * (100 - uint64(promocode.Sale)) / 100
+	}
+
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)
 }
@@ -560,6 +639,45 @@ func (h *OrderHandler) DeleteFoodFromOrder(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
+
+	//проверка промокода
+
+	//есть basketId
+	//надо чекнуть наличие промокода в заказе
+	promocode, err := h.uc.GetPromocodeByOrder(r.Context(), &basketId)
+	//fmt.Println(promocode, err)
+	if err != nil {
+		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	}
+	//есть промокод
+	if promocode != nil && promocode.Id != 0 {
+		//но нет кук, надо удалить промик
+		if email == "" {
+			err = h.uc.DeletePromocode(r.Context(), basketId)
+			if err != nil {
+				h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			}
+			order.Error = constants.PromocodeIsDeleted
+		} else {
+			//куки есть, надо проверить актуальность промокода
+			_, err = h.uc.CheckPromocode(r.Context(), email, promocode.Code, basketId)
+			//если неактуален, то удалить
+			if errors.Is(err, myerrors.OverDatePromocode) || errors.Is(err, myerrors.OncePromocode) || errors.Is(err, myerrors.SumPromocode) {
+				err = h.uc.DeletePromocode(r.Context(), basketId)
+				promocode = nil
+				if err != nil {
+					h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+				}
+				order.Error = constants.PromocodeIsDeleted
+			}
+		}
+	}
+
+	if promocode != nil {
+		order.Promocode = promocode.Code
+		order.NewSum = order.Sum * (100 - uint64(promocode.Sale)) / 100
+	}
+
 	orderDTO := dto.NewOrder(order)
 	w = functions.JsonResponse(w, orderDTO)
 }
@@ -665,7 +783,6 @@ func (h *OrderHandler) SetPromocode(w http.ResponseWriter, r *http.Request) {
 	w = functions.JsonResponse(w, codeDTO)
 }
 
-
 func (h *OrderHandler) GetAllPromocode(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
@@ -675,7 +792,7 @@ func (h *OrderHandler) GetAllPromocode(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.NoOrdersRu, http.StatusInternalServerError)
 		return
 	}
-	codesDtoArray  := &dto.PromocodeArray{Payload: dto.NewPromocodeArray(codes)} 
+	codesDtoArray := &dto.PromocodeArray{Payload: dto.NewPromocodeArray(codes)}
 	w = functions.JsonResponse(w, codesDtoArray)
 }
 

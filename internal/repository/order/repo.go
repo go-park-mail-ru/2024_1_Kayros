@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -90,7 +89,6 @@ func (repo *RepoLayer) CreateNoAuth(ctx context.Context, unauthId string) (alias
 		}
 		return 0, err
 	}
-	fmt.Println(id)
 	return alias.OrderId(id), nil
 }
 
@@ -575,7 +573,6 @@ func (repo *RepoLayer) OrdersCount(ctx context.Context, userId alias.UserId, sta
 	err := repo.db.QueryRowContext(ctx,
 		`SELECT count(*) FROM "order" WHERE user_id=$1 AND status=$2`, uint64(userId), status).Scan(&res)
 	if err != nil {
-		fmt.Println(err, res)
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, err
 		}
@@ -587,11 +584,9 @@ func (repo *RepoLayer) OrdersCount(ctx context.Context, userId alias.UserId, sta
 // ПРОМОКОДЫ
 func (repo *RepoLayer) GetPromocode(ctx context.Context, code string) (*entity.Promocode, error) {
 	res := entity.PromocodeDB{}
-	fmt.Println(code)
 	err := repo.db.QueryRowContext(ctx,
 		`SELECT id, date, sale, type, restaurant_id, sum FROM promocode WHERE code=$1`, code).Scan(&res.Id, &res.Date, &res.Sale, &res.Type, &res.Rest, &res.Sum)
 	if err != nil {
-		fmt.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsPromocodeRelation
 		}
@@ -607,7 +602,6 @@ func (repo *RepoLayer) WasPromocodeUsed(ctx context.Context, userId alias.UserId
 	err := repo.db.QueryRowContext(ctx,
 		`SELECT count(*) FROM "order" WHERE user_id=$1 AND promocode_id=$2 AND status='delivered'`, uint64(userId), codeId).Scan(&res)
 	if err != nil {
-		fmt.Println(err, res)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
 		}
@@ -624,7 +618,6 @@ func (repo *RepoLayer) WasRestPromocodeUsed(ctx context.Context, orderId alias.O
 	err := repo.db.QueryRowContext(ctx,
 		`SELECT count(*) FROM "order" WHERE id=$1 AND promocode_id=$2`, uint64(orderId), codeId).Scan(&res)
 	if err != nil {
-		fmt.Println(err, res)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
 		}
@@ -641,7 +634,6 @@ func (repo *RepoLayer) SetPromocode(ctx context.Context, orderId alias.OrderId, 
 	err := repo.db.QueryRowContext(ctx,
 		`UPDATE "order" SET promocode_id=$1 WHERE id=$2 RETURNING sum`, codeId, orderId).Scan(&res)
 	if err != nil {
-		fmt.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, myerrors.SqlNoRowsPromocodeRelation
 		}
@@ -670,9 +662,7 @@ func (repo *RepoLayer) GetPromocodeByOrder(ctx context.Context, orderId *alias.O
 	var i sql.NullInt64
 	err := repo.db.QueryRowContext(ctx,
 		`SELECT promocode_id FROM "order" WHERE id=$1`, orderId).Scan(&i)
-	fmt.Println(err, i.Int64)
 	if err != nil {
-		fmt.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsPromocodeRelation
 		}
@@ -680,15 +670,12 @@ func (repo *RepoLayer) GetPromocodeByOrder(ctx context.Context, orderId *alias.O
 	}
 	id := entity.Int(i)
 	if id == 0 {
-		fmt.Println("tut")
 		return nil, myerrors.SqlNoRowsPromocodeRelation
 	}
 	res := entity.PromocodeDB{}
 	err = repo.db.QueryRowContext(ctx,
 		`SELECT id, code, date, sale, type, restaurant_id, sum FROM promocode WHERE id=$1`, id).Scan(&res.Id, &res.Code, &res.Date, &res.Sale, &res.Type, &res.Rest, &res.Sum)
-	fmt.Println(err)
 	if err != nil {
-		fmt.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsPromocodeRelation
 		}

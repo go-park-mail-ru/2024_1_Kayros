@@ -23,6 +23,7 @@ type Order struct {
 	RestaurantId   uint64         `json:"restaurant_id"`
 	RestaurantName string         `json:"restaurant_name"`
 	Commented      bool           `json:"commented"`
+	Error          string         `json:"error,omitempty"`
 	Food           []*FoodInOrder `json:"food" valid:"-"`
 }
 
@@ -76,6 +77,7 @@ func NewOrder(order *entity.Order) *Order {
 		RestaurantId:   order.RestaurantId,
 		RestaurantName: order.RestaurantName,
 		Commented:      order.Commented,
+		Error:          order.Error,
 		Food:           foodInOrder,
 	}
 }
