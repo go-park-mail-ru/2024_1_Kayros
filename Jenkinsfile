@@ -29,7 +29,7 @@ pipeline {
 
       stage('Code Analysis') {
           script {
-              sh '/home/kayros/home/golangci-lint run'
+              sh '/home/kayros/go/bin/golangci-lint run'
           }
       }
 
