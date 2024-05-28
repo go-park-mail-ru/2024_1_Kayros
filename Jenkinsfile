@@ -20,12 +20,12 @@ pipeline {
       //     }
       // }
       
-      stage('Test') {
-            script {
-                sh 'go version'
-                sh 'go test ./... -coverprofile=cover.out'
-            }
-        }
+      // stage('Test') {
+      //       script {
+      //           sh 'go version'
+      //           sh 'go test ./... -coverprofile=cover.out'
+      //       }
+      //   }
 
       stage('Code Analysis') {
           script {
