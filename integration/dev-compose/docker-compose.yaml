@@ -35,6 +35,8 @@ services:
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_SERVER_URL=http://localhost:9000
+      - MINIO_BROWSER_REDIRECT_URL=https://localhost/minio-admin
     command: server --console-address :9001 /data
     tty: true
   # metrics
@@ -63,7 +65,11 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ../grafana:/var/lib/grafana
+      - ../grafana/data:/var/lib/grafana
+      - ../grafana/config:/etc/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
     tty: true
   # gateway and microservices
   rest-grpc:

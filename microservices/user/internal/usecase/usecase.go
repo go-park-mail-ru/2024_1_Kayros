@@ -206,20 +206,7 @@ func (uc *Layer) SetNewPassword(ctx context.Context, data *user.PasswordsChange)
 }
 
 func (uc *Layer) UpdateAddressByUnauthId(ctx context.Context, unauth *user.AddressDataUnauth) (*emptypb.Empty, error) {
-	_, err := uc.repoUser.GetAddressByUnauthId(ctx, &user.UnauthId{UnauthId: unauth.GetUnauthId()})
-	if err != nil {
-		uc.logger.Error(err.Error())
-		if errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
-			err = uc.repoUser.CreateAddressByUnauthId(ctx, unauth)
-			if err != nil {
-				uc.logger.Error(err.Error())
-				return nil, grpcerr.NewError(codes.Internal, err.Error())
-			}
-			return nil, nil
-		}
-		return nil, grpcerr.NewError(codes.Internal, err.Error())
-	}
-	err = uc.repoUser.UpdateAddressByUnauthId(ctx, unauth)
+	err := uc.repoUser.UpdateAddressByUnauthId(ctx, unauth)
 	if err != nil {
 		uc.logger.Error(err.Error())
 		return nil, grpcerr.NewError(codes.Internal, err.Error())
