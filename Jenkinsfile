@@ -20,16 +20,16 @@ pipeline {
       //     }
       // }
       
-      // stage('Test') {
-      //       script {
-      //           sh 'go version'
-      //           sh 'go test ./... -coverprofile=cover.out'
-      //       }
-      //   }
+      stage('Test') {
+            script {
+                // sh 'go test ./... -coverprofile=cover.out'
+            }
+        }
 
       stage('Code Analysis') {
           script {
-              sh '/home/kayros/go/bin/golangci-lint run'
+            sh 'make easyjs'
+            sh '/home/kayros/go/bin/golangci-lint run'
           }
       }
 
