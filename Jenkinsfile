@@ -22,6 +22,7 @@ pipeline {
       
       stage('Test') {
             script {
+                sh 'go version'
                 sh 'sudo go test ./... -coverprofile=cover.out'
             }
         }
