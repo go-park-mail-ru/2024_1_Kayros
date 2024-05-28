@@ -13,10 +13,13 @@ pipeline {
       script {
       for (int i = 0; i < microservices.length; i++) {
           stage("Build Microservice: ${microservices[i]}") {
+                when { changeset pattern: "*${microservices[i]}*", comparator: "REGEXP" } 
+
                 script {
                  // sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
                  // sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
-                  sh "sudo docker-compose -f /home/kayros/backend/integration/prod-compose/docker-compose.yaml up --no-deps --build ${microservices[i]}-grpc"
+  
+                  sh "sudo docker-compose -f /home/kayros/backend/integration/prod-compose up --no-deps --build ${microservices[i]}-grpc"
                 }
           }
       }
