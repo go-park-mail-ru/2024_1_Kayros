@@ -29,7 +29,7 @@ pipeline {
 
       stage('Code Analysis') {
           script {
-              sh 'sudo curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | bash -s -- -b $GOPATH/bin v1.58.2'
+              sh 'curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | bash -s -- -b $GOPATH/bin v1.58.2'
               sh 'golangci-lint run'
           }
       }
