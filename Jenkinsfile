@@ -16,7 +16,7 @@ pipeline {
                 script {
                  // sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
                  // sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
-                  sh "sudo docker compose -f /home/kayros/backend/integration/prod-compose/docker-compose.yaml up --no-deps --build prod-compose-${microservices[i]}-grpc"
+                  sh "sudo docker compose -f /home/kayros/backend/integration/prod-compose/docker-compose.yaml up --no-deps --build ${microservices[i]}-grpc"
                 }
           }
       }
