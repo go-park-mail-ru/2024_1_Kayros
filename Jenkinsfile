@@ -11,14 +11,15 @@ pipeline {
     stage('Initialize') {
     steps {
       script {
-      // for (int i = 0; i < microservices.length; i++) {
-      //     stage("Build Microservice: ${microservices[i]}") {
-      //           script {
-      //             sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
-      //             sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
-      //           }
-      //     }
-      // }
+      for (int i = 0; i < microservices.length; i++) {
+          stage("Build Microservice: ${microservices[i]}") {
+                script {
+                 // sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
+                 // sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
+                  sh "sudo docker compose up --no-deps --build prod-compose-${microservices[i]}-grpc"
+                }
+          }
+      }
       
       stage('Test') {
             script {
