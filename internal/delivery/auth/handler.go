@@ -27,13 +27,13 @@ type Delivery struct {
 	metrics   *metrics.Metrics
 }
 
-func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucAuthProps auth.Usecase, loggerProps *zap.Logger, metrics   *metrics.Metrics) *Delivery {
+func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucAuthProps auth.Usecase, loggerProps *zap.Logger, metrics *metrics.Metrics) *Delivery {
 	return &Delivery{
 		ucSession: ucSessionProps,
 		ucAuth:    ucAuthProps,
 		logger:    loggerProps,
 		cfg:       cfgProps,
-		metrics: metrics,
+		metrics:   metrics,
 	}
 }
 
@@ -155,5 +155,5 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w,  &dto.ResponseDetail{Detail: "Сессия успешно завершена"})
+	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Сессия успешно завершена"})
 }
