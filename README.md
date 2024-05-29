@@ -24,4 +24,4 @@
 
 [Фронтенд проекта](https://github.com/frontend-park-mail-ru/2024_1_Kayros)
 
-[Деплой](https://resto-go.ru)
+[Деплой](https://resto-go.online/)
