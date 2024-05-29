@@ -29,7 +29,7 @@ pipeline {
                   for (change in currentBuild.changeSets) {
                     for (entry in change.getItems()) {
                           for (file in entry.getAffectedFiles()) {
-                            if (file.getPath() !=~ "${service}") {
+                            if (!file.getPath().contains(service)) {
                                 externalChange = 'true'
                             }
                           }
