@@ -17,6 +17,7 @@ pipeline {
                   def flag
 
                 for (change in currentBuild.changeSets) {
+                  sh 'echo ${change}'
                         for (path in change.paths) {
                             if (path =~ "${microservices[i]}") {
                                 flag = 'true'
