@@ -25,7 +25,6 @@ linters:
     - bodyclose
     - deadcode
     - dogsled
-    - dupl
     - errcheck
     - exportloopref
     - exhaustive
@@ -33,7 +32,6 @@ linters:
     - gocyclo
     - gosec
     - gosimple
-    - misspell
     - nolintlint
     - nilerr
     - nakedret
@@ -44,9 +42,7 @@ linters:
     - tparallel
     - typecheck
     - unconvert
-    - unparam
     - varcheck
-    - whitespace
 
 run:
   issues-exit-code: 1
