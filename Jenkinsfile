@@ -30,6 +30,7 @@ pipeline {
                     for (entry in change.getItems()) {
                           for (file in entry.getAffectedFiles()) {
                             if (file.getPath() !=~ "${service}") {
+                                sh 'echo ${file.getPath()} ${service}'
                                 externalChange = 'true'
                             }
                           }
