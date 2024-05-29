@@ -13,6 +13,7 @@ pipeline {
       script {
       for (int i = 0; i < microservices.length; i++) {
                 def flag
+                def externalChange
 
                 for (change in currentBuild.changeSets) {
                     for (entry in change.getItems()) {
@@ -23,13 +24,25 @@ pipeline {
                           }
                         }
                     }
-          if (flag) {
+
+                for (service in microservices) {
+                  for (change in currentBuild.changeSets) {
+                    for (entry in change.getItems()) {
+                          for (file in entry.getAffectedFiles()) {
+                            if (file.getPath() !=~ "${service}") {
+                                externalChange = 'true'
+                            }
+                          }
+                        }
+                    }
+                }
+          if (flag || externalChange) {
           stage("Build Microservice: ${microservices[i]}") {        
                 script {
                  // sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
                  // sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
   
-                  sh "sudo docker-compose -f /home/kayros/backend/integration/prod-compose/docker-compose.yaml up --no-deps --build ${microservices[i]}-grpc"
+                  sh "sudo docker-compose -f /home/kayros/backend/integration/prod-compose/docker-compose.yaml up -d --no-deps --build ${microservices[i]}-grpc"
                 }
               }
           }
