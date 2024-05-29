@@ -46,7 +46,7 @@ func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn, us
 	deliverySearch := dSearch.NewDelivery(usecaseSearch, logger)
 
 	mux.HandleFunc("/api/v1/search", deliverySearch.Search).Methods("GET").Name("restaurants-list")
-	mux.HandleFunc("/api/v1/restaurants", deliveryRest.RestaurantList).Methods("GET").Name("restaurants-list")
+	mux.HandleFunc("/api/v1/restaurantss", deliveryRest.RestaurantList).Methods("GET").Name("restaurants-list")
 	mux.HandleFunc("/api/v1/restaurants/{id}", deliveryRest.RestaurantById).Methods("GET").Name("restaurants-detail")
 	mux.HandleFunc("/api/v1/restaurants/{id}/comment", deliveryComment.CreateComment).Methods("POST").Name("create-comment")
 	mux.HandleFunc("/api/v1/restaurants/{id}/comment/{com_id}", deliveryComment.DeleteComment).Methods("DELETE").Name("delete-comment")
