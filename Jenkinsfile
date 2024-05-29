@@ -11,6 +11,20 @@ pipeline {
           steps {
               script {
                  sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
+
+                 stage('Test') {
+                    script {
+                        sh 'go test ./... -coverprofile=cover.out'
+                    }
+                 }
+
+                 stage('Code Analysis') {
+                    script {
+                        sh 'make easyjs'
+                        sh '/home/kayros/go/bin/golangci-lint run'
+                    }
+                 }
+
                  for (int i = 0; i < microservices.length; i++) {
                      def currentChange
                      def externalChange
@@ -61,18 +75,6 @@ pipeline {
                 //    }
                 // }
       
-                 stage('Test') {
-                    script {
-                       // sh 'go test ./... -coverprofile=cover.out'
-                    }
-                 }
-
-                 stage('Code Analysis') {
-                    script {
-                         sh 'make easyjs'
-                           //     sh '/home/kayros/go/bin/golangci-lint run'
-                    }
-                 }
 
       // for (int i = 0; i < microservices.length; i++) {
       //   stage("Push Microservice: ${microservices[i]}") {
