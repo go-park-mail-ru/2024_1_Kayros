@@ -17,7 +17,7 @@ pipeline {
                   def flag
 
                 for (change in currentBuild.changeSets) {
-                    for (entry in changeLogSet.getItems()) {
+                    for (entry in change.getItems()) {
                           for (file in entry.getAffectedFiles()) {
                             if (file.getPath() =~ "${microservices[i]}") {
                                 flag = 'true'
