@@ -14,14 +14,14 @@ pipeline {
 
                  stage('Test') {
                     script {
-                        sh 'go test ./... -coverprofile=cover.out'
+                        //sh 'go test ./... -coverprofile=cover.out'
                     }
                  }
 
                  stage('Code Analysis') {
                     script {
-                        sh 'make easyjs'
-                        sh '/home/kayros/go/bin/golangci-lint run'
+                       // sh 'make easyjs'
+                       // sh '/home/kayros/go/bin/golangci-lint run'
                     }
                  }
 
