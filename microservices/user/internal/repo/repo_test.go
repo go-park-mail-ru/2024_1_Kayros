@@ -20,7 +20,7 @@ func TestGetByEmail(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
-	t.Run("db error", func(t *testing.T) {
+	t.Run("internal db error", func(t *testing.T) {
 		s := setUp(t)
 		defer s.db.Close()
 		email := &user.Email{Email: "aaa@aa.aa"}
@@ -32,10 +32,9 @@ func TestGetByEmail(t *testing.T) {
 		_, err := s.repo.GetByEmail(ctx, email)
 		require.NoError(t, s.mock.ExpectationsWereMet())
 		assert.Error(t, err)
-
 	})
 
-	t.Run("not found", func(t *testing.T) {
+	t.Run("user not found", func(t *testing.T) {
 		s := setUp(t)
 		defer s.db.Close()
 		email := &user.Email{Email: "aaa@aa.aa"}
@@ -66,16 +65,31 @@ func TestGetByEmail(t *testing.T) {
 			ImgUrl:     "aaaa.a",
 			CardNumber: "1234",
 		}
-
 		rows = rows.AddRow(u.Id, u.Name, u.Email, u.Phone, u.Password, u.Address, u.ImgUrl, u.CardNumber)
 
 		s.mock.ExpectQuery(`SELECT id, name, email, COALESCE\(phone, ''\), password, COALESCE\(address, ''\), img_url, COALESCE\(card_number, ''\) FROM "user" WHERE email = \$1`).
 			WithArgs(email.Email).
 			WillReturnRows(rows)
-		_, err := s.repo.GetByEmail(ctx, email)
-		require.NoError(t, s.mock.ExpectationsWereMet())
-		assert.NoError(t, err)
+		uReturn, err := s.repo.GetByEmail(ctx, email)
 
+		require.NoError(t, s.mock.ExpectationsWereMet())
+		assert.Error(t, err)
+		assert.Equal(t, u, uReturn)
+	})
+}
+
+func TestDeleteByEmail(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	t.Run("db internal error", func (t *testing.T)  {
+		s := setUp(t)
+		email := "ivan"
+		defer s.db.Close()
+		s.mock.ExpectQuery(`DELETE FROM "user" WHERE email = $1`).WithArgs(email).WillReturnError(fmt.Errorf("db_error"))
+		
+		err := s.repo.DeleteByEmail(ctx, &user.Email{Email: email})
+		assert.NoError(t, err)
 	})
 }
 

@@ -14,6 +14,7 @@ import (
 	metrics "2024_1_kayros/microservices/metrics"
 )
 
+//go:generate mockgen -source ./repo.go -destination=./mocks/repo.go -package=mock_repo
 type Repo interface {
 	GetByEmail(ctx context.Context, email *user.Email) (*user.User, error)
 	DeleteByEmail(ctx context.Context, email *user.Email) error

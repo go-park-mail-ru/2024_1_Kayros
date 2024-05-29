@@ -24,7 +24,7 @@ func Setup(cfg *config.Project, db *sql.DB, minio *minio.Client, mux *mux.Router
 	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 	mux.Handle("/metrics", promHandler)
 	
-	AddAuthRouter(cfg, db, authConn, sessionConn, mux, logger, m)
+	AddAuthRouter(cfg, db, authConn, userConn, sessionConn, mux, logger, m)
 	AddUserRouter(db, cfg, userConn, sessionConn, mux, logger, m)
 	AddRestRouter(db, mux, logger, restConn, userConn, commentConn, m)
 	AddOrderRouter(db, mux, userConn, restConn, logger, m)
