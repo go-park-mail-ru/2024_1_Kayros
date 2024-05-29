@@ -23,7 +23,6 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
     - dogsled
     - exportloopref
     - exhaustive
@@ -35,12 +34,10 @@ linters:
     - nakedret
     - prealloc
     - predeclared
-    - structcheck
     - thelper
     - tparallel
     - typecheck
     - unconvert
-    - varcheck
 
 run:
   issues-exit-code: 1
