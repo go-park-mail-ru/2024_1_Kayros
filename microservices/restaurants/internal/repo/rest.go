@@ -11,6 +11,7 @@ import (
 	metrics "2024_1_kayros/microservices/metrics"
 )
 
+//go:generate mockgen -source ./rest.go -destination=./mocks/service.go -package=mock_service
 type Rest interface {
 	GetAll(ctx context.Context) (*rest.RestList, error)
 	GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error)

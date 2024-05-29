@@ -80,7 +80,7 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
+		functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusBadRequest)
 		return
 	}
 	rest, err := h.ucRest.GetById(r.Context(), alias.RestId(id))

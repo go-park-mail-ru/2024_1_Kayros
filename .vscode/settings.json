@@ -11,5 +11,6 @@
             "username": "kayrosteam",
             "connectionTimeout": 20
         }
-    ]
+    ],
+    "liveServer.settings.port": 8007
 }

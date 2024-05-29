@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+//go:generate mockgen -source ./usecase.go -destination=./mocks/service.go -package=mock_service
 type Usecase interface {
 	SignUp(ctx context.Context, u *entity.User) (*entity.User, error)
 	SignIn(ctx context.Context, email string, password string) (*entity.User, error)
