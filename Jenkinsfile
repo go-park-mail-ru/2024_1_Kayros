@@ -37,7 +37,7 @@ pipeline {
                         }
                     }
                 }
-          if (flag) {
+          if (externalChange) {
           stage("Build Microservice: ${microservices[i]}") {        
                 script {
                  // sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
