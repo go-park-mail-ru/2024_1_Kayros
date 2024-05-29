@@ -12,8 +12,8 @@ pipeline {
     steps {
       script {
       for (int i = 0; i < microservices.length; i++) {
+        when { changeset pattern: "*${microservices[i]}*", comparator: "REGEXP" } 
           stage("Build Microservice: ${microservices[i]}") {
-                when { changeset pattern: "*${microservices[i]}*", comparator: "REGEXP" } 
 
                 script {
                  // sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
