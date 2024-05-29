@@ -70,7 +70,7 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-	restArray := &dto.RestaurantArray{Payload: dto.NewRestaurantArray(rests)} 
+	restArray := &dto.RestaurantArray{Payload: dto.NewRestaurantArray(rests)}
 	w = functions.JsonResponse(w, restArray)
 }
 
@@ -110,7 +110,7 @@ func (h *RestaurantHandler) CategoryList(w http.ResponseWriter, r *http.Request)
 		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	catsDTO := &dto.CategoryArray{Payload: dto.NewCategoryArray(categories)} 
+	catsDTO := &dto.CategoryArray{Payload: dto.NewCategoryArray(categories)}
 	w = functions.JsonResponse(w, catsDTO)
 }
 
@@ -118,12 +118,6 @@ func (h *RestaurantHandler) Recomendation(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
-	unauthId := functions.GetCtxUnauthId(r)
-	if email == "" && unauthId == "" {
-		h.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
-		return
-	}
 
 	rests := []*entity.Restaurant{}
 	var err error

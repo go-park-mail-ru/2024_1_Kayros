@@ -10,6 +10,9 @@ type Promocode struct {
 	Code string `json:"code"`
 	Date string `json:"date"`
 	Sale uint8  `json:"sale"`
+	Type string `json:"type,omitempty"`
+	Rest string `json:"rest,omitempty"`
+	Sum  uint64 `json:"sum,omitempty"`
 }
 
 func NewPromocode(promo *entity.Promocode) *Promocode {
@@ -18,6 +21,9 @@ func NewPromocode(promo *entity.Promocode) *Promocode {
 		Code: promo.Code,
 		Sale: promo.Sale,
 		Date: promo.Date.Format(constants.Timestamptz),
+		Type: promo.Type,
+		Rest: promo.RestName,
+		Sum:  promo.Sum,
 	}
 }
 

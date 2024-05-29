@@ -687,7 +687,7 @@ func (repo *RepoLayer) GetPromocodeByOrder(ctx context.Context, orderId *alias.O
 func (repo *RepoLayer) GetAllPromocode(ctx context.Context) ([]*entity.Promocode, error) {
 	res := []*entity.PromocodeDB{}
 	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, code, date, sale, type, restaurant_id, sum FROM promocode WHERE date > CURRENT_DATE`)
+		`SELECT id, code, date, sale, type, sum FROM promocode WHERE date > CURRENT_DATE`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsPromocodeRelation
@@ -696,11 +696,15 @@ func (repo *RepoLayer) GetAllPromocode(ctx context.Context) ([]*entity.Promocode
 	}
 	for rows.Next() {
 		code := entity.PromocodeDB{}
-		err = rows.Scan(&code.Id, &code.Code, &code.Date, &code.Sale, &code.Type, &code.Rest, &code.Sum)
+		err = rows.Scan(&code.Id, &code.Code, &code.Date, &code.Sale, &code.Type, &code.Sum)
+		if code.Code == "italy" {
+			code.RestName = "Горыныч"
+		}
 		if err != nil {
 			return nil, err
 		}
 		res = append(res, &code)
 	}
+
 	return entity.NewPromocodeArray(res), nil
 }

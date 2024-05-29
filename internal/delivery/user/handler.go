@@ -31,13 +31,13 @@ type Delivery struct {
 	metrics   *metrics.Metrics
 }
 
-func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, loggerProps *zap.Logger, metrics   *metrics.Metrics) *Delivery {
+func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, loggerProps *zap.Logger, metrics *metrics.Metrics) *Delivery {
 	return &Delivery{
 		ucUser:    ucUserProps,
 		ucSession: ucSessionProps,
 		cfg:       cfgProps,
 		logger:    loggerProps,
-		metrics: metrics,
+		metrics:   metrics,
 	}
 }
 
@@ -47,7 +47,7 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 	unauthId := functions.GetCtxUnauthId(r)
 
 	isUserAddress := r.URL.Query().Get("user_address")
-	isUserAddress =  strings.TrimSpace(isUserAddress)
+	isUserAddress = strings.TrimSpace(isUserAddress)
 
 	if isUserAddress == "true" && email == "" {
 		d.logger.Error("unauthorized user can't get authorized user's email", zap.String(cnst.RequestId, requestId))
@@ -62,7 +62,7 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	address = sanitizer.Address(address)
-	
+
 	w = functions.JsonResponse(w, &dto.Address{Data: address})
 }
 
@@ -94,7 +94,7 @@ func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Адрес успешно выбран"})
-	} 
+	}
 	w = functions.ErrorResponse(w, errors.New("Адрес не был выбран"), http.StatusInternalServerError)
 }
 
@@ -201,7 +201,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	unauthId := functions.GetCtxUnauthId(r)
 
 	isUserAddress := r.URL.Query().Get("user_address")
-	isUserAddress =  strings.TrimSpace(isUserAddress)
+	isUserAddress = strings.TrimSpace(isUserAddress)
 
 	if isUserAddress == "true" && email == "" {
 		d.logger.Error("unauthorized user can't update authorized user's email", zap.String(cnst.RequestId, requestId))

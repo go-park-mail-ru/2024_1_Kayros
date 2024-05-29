@@ -20,13 +20,13 @@ type Comment interface {
 }
 
 type CommentLayer struct {
-	db *sql.DB
+	db      *sql.DB
 	metrics *metrics.MicroserviceMetrics
 }
 
 func NewCommentLayer(dbProps *sql.DB, metrics *metrics.MicroserviceMetrics) Comment {
 	return &CommentLayer{
-		db: dbProps,
+		db:      dbProps,
 		metrics: metrics,
 	}
 }
