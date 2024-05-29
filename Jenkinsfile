@@ -17,12 +17,12 @@ pipeline {
                   def flag
 
                 for (change in currentBuild.changeSets) {
-                  sh 'echo ${change}'
-                        for (path in change.paths) {
-                            if (path =~ "${microservices[i]}") {
+                    for (entry in changeLogSet.getItems()) {
+                          for (file in entry.getAffectedFiles()) {
+                            if (file.getPath() =~ "${microservices[i]}") {
                                 flag = 'true'
                             }
-                            // Add more if conditions here for other paths
+                          }
                         }
                     }
 
