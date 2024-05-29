@@ -12,8 +12,9 @@ pipeline {
     steps {
       script {
       for (int i = 0; i < microservices.length; i++) {
-          stage("Build Microservice: ${microservices[i]}") {
-                def flag
+          stage("Build Microservice: ${microservices[i]}") {        
+                script {
+                  def flag
 
                 for (change in currentBuild.changeSets) {
                         for (path in change.paths) {
@@ -24,8 +25,7 @@ pipeline {
                         }
                     }
 
-                if (flag) {
-                script {
+                  if (flag) {
                  // sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
                  // sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
   
