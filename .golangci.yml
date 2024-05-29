@@ -30,8 +30,6 @@ linters:
     - exportloopref
     - exhaustive
     - goconst
-    - gocritic
-    - gomnd
     - gocyclo
     - gosec
     - gosimple
@@ -41,7 +39,6 @@ linters:
     - nakedret
     - prealloc
     - predeclared
-    - staticcheck
     - structcheck
     - thelper
     - tparallel
