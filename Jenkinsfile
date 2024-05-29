@@ -13,10 +13,16 @@ pipeline {
       script {
       for (int i = 0; i < microservices.length; i++) {
           stage("Build Microservice: ${microservices[i]}") {
-                when { changeset pattern: "*${microservices[i]}*", comparator: "REGEXP" } 
-
                 def flag
 
+                for (change in currentBuild.changeSets) {
+                        for (path in change.paths) {
+                            if (path =~ "${microservices[i]}") {
+                                flag = 'true'
+                            }
+                            // Add more if conditions here for other paths
+                        }
+                    }
 
                 if (flag) {
                 script {
