@@ -30,14 +30,14 @@ pipeline {
                   for (change in currentBuild.changeSets) {
                     for (entry in change.getItems()) {
                           for (file in entry.getAffectedFiles()) {
-                            if (!file.getPath().contains(service)) {
+                            if (file.getPath().contains(service)) {
                                 externalChange = 'true'
                             }
                           }
                         }
                     }
                 }
-          if (externalChange) {
+          if (flag || !externalChange) {
           stage("Build Microservice: ${microservices[i]}") {        
                 script {
                  // sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
