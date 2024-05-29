@@ -47,19 +47,19 @@ func (d *Delivery) GetStatistic(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	if email != "" {
 		d.logger.Error(myerrors.CtxEmail.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
 	stats, err := d.ucQuiz.GetStatistic(r.Context())
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusUnauthorized)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusUnauthorized)
 		return
 	}
 
 	statisticArray := &dto.StatisticArray{Payload: dto.NewDtoStatistic(stats)} 
-	w = functions.JsonResponse(w, statisticArray)
+	functions.JsonResponse(w, statisticArray)
 }
 
 func (d *Delivery) GetQuestions(w http.ResponseWriter, r *http.Request) {
@@ -72,12 +72,12 @@ func (d *Delivery) GetQuestions(w http.ResponseWriter, r *http.Request) {
 		qs, err = d.ucQuiz.GetQuestionsOnFocus(r.Context(), url)
 		if err != nil {
 			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 	}
 	questionArray := &dto.QuestionArray{Payload: dto.QuestionReturn(qs)} 
-	w = functions.JsonResponse(w, questionArray)
+	functions.JsonResponse(w, questionArray)
 }
 
 func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
@@ -87,18 +87,18 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 	if err = r.Body.Close(); err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	err = json.Unmarshal(body, &qi)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
@@ -113,13 +113,13 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 				w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis, d.metrics)
 				if err != nil {
 					d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-					w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+					functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 					return
 				}
-				w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+				functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 				return
 			}
-			w = functions.ErrorResponse(w, myerrors.InternalServerEn, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerEn, http.StatusInternalServerError)
 			return
 		}
 		for _, q := range qi {
@@ -127,9 +127,9 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 				if errors.Is(err, myerrors.QuizAdd) {
-					w = functions.ErrorResponse(w, myerrors.QuizAddRu, http.StatusInternalServerError)
+					functions.ErrorResponse(w, myerrors.QuizAddRu, http.StatusInternalServerError)
 				} else {
-					w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+					functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 				}
 				return
 			}
@@ -140,16 +140,16 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 			err = d.ucQuiz.Create(r.Context(), q.Id, q.Rating, unauthId)
 			if err != nil {
 				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 				return
 			}
 		}
 		hasVoted = true
 	}
 	if hasVoted {
-		w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Пользователь успешно проголосовал"})
+		functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Пользователь успешно проголосовал"})
 	} else {
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 	}
 
 }

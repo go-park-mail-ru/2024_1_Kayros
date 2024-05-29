@@ -44,7 +44,7 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	if email == "" {
 		d.logger.Error(myerrors.AuthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
@@ -55,17 +55,17 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 			w, err = functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis, d.metrics)
 			if err != nil {
 				d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 				return
 			}
-			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+			functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 			return
 		}
 		if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
-			w = functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
+			functions.ErrorResponse(w, myerrors.NoBasketRu, http.StatusNotFound)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	// we need to retrieve basket sum
@@ -97,7 +97,7 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 	req, err := http.NewRequest("POST", "https://api.yookassa.ru/v3/payments", requestBody)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -107,7 +107,7 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 	resp, err := client.Do(req)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
@@ -116,17 +116,17 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	var data map[string]interface{}
 	if err = json.Unmarshal(body, &data); err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 
 	// receiving 'confirmation_url'
 	confirmationURL := data["confirmation"].(map[string]interface{})["confirmation_url"].(string)
-	w = functions.JsonResponse(w, &dto.ResponseUrlPay{Url: confirmationURL})
+	functions.JsonResponse(w, &dto.ResponseUrlPay{Url: confirmationURL})
 }

@@ -57,9 +57,6 @@ func (mdlwr *MiddlewareChain) AccessMiddleware (ctx context.Context, req any, in
 	mdlwr.logger.Info(fmt.Sprintf("request done %s", requestId), 
 									zap.String(latencyHumanMs, timeEnd),
 									zap.String(responseGrpcStatus, grpcCode.String()))
-	//collect context data for metric middleware
-	ctx = metadata.AppendToOutgoingContext(ctx, latencyHumanMs, timeEnd)
-	ctx = metadata.AppendToOutgoingContext(ctx, responseGrpcStatus, grpcCode.String())
 	return resp, err
 }
 

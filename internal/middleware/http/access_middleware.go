@@ -51,7 +51,7 @@ func Access(handler http.Handler, logger *zap.Logger) http.Handler {
 
 		rec, ok := w.(*recorder.ResponseWriter)
 		if !ok {
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 

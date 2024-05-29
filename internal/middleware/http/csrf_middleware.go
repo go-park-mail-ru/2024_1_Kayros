@@ -27,13 +27,13 @@ func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, 
 		csrfToken, err := functions.GetCookieCsrfValue(r)
 		if err != nil && !errors.Is(err, http.ErrNoCookie) {
 			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 		sessionId, err := functions.GetCookieSessionValue(r)
 		if err != nil && !errors.Is(err, http.ErrNoCookie) {
 			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 
@@ -53,10 +53,10 @@ func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, 
 			w, err = functions.FlashCookie(r, w, ucSession, &cfg.Redis, metrics)
 			if err != nil {
 				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 				return
 			}
-			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+			functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 			return
 		}
 
@@ -66,10 +66,10 @@ func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, 
 			w, err = functions.FlashCookie(r, w, ucSession, &cfg.Redis, metrics)
 			if err != nil {
 				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 				return
 			}
-			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
+			functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
 			return
 		}
 
@@ -79,10 +79,10 @@ func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, 
 			w, err = functions.FlashCookie(r, w, ucSession, &cfg.Redis, metrics)
 			if err != nil {
 				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 				return
 			}
-			w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
+			functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusForbidden)
 			return
 		}
 

@@ -42,7 +42,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	if email != "" {
 		d.logger.Error(myerrors.CtxEmail.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.RegisteredRu, http.StatusUnauthorized)
+		functions.ErrorResponse(w, myerrors.RegisteredRu, http.StatusUnauthorized)
 		return
 	}
 
@@ -50,7 +50,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 
@@ -58,14 +58,14 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &signupDTO)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
 	isValid, err := signupDTO.Validate()
 	if err != nil || !isValid {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
@@ -74,11 +74,11 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.UserAlreadyExist) {
-			w = functions.ErrorResponse(w, myerrors.UserAlreadyExistRu, http.StatusBadRequest)
+			functions.ErrorResponse(w, myerrors.UserAlreadyExistRu, http.StatusBadRequest)
 			return
 		}
 		// error `myerrors.SqlNoRowsUserRelation` is handled
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	uDTO := dto.NewUserData(sanitizer.User(uSignedUp))
@@ -87,7 +87,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
-	w = functions.JsonResponse(w, uDTO)
+	functions.JsonResponse(w, uDTO)
 }
 
 func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +95,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	if email != "" {
 		d.logger.Error(myerrors.CtxEmail.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
+		functions.ErrorResponse(w, myerrors.AuthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
@@ -103,7 +103,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 
@@ -111,14 +111,14 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &bodyDTO)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
 	isValid, err := bodyDTO.Validate()
 	if err != nil || !isValid {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
@@ -126,10 +126,10 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsUserRelation) || errors.Is(err, myerrors.BadAuthPassword) {
-			w = functions.ErrorResponse(w, myerrors.BadAuthCredentialsRu, http.StatusBadRequest)
+			functions.ErrorResponse(w, myerrors.BadAuthCredentialsRu, http.StatusBadRequest)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	uDTO := dto.NewUserData(sanitizer.User(u))
@@ -138,22 +138,22 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 	}
-	w = functions.JsonResponse(w, uDTO)
+	functions.JsonResponse(w, uDTO)
 }
 
 func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 	if email == "" {
-		w = functions.ErrorResponse(w, myerrors.SignOutAlreadyRu, http.StatusUnauthorized)
+		functions.ErrorResponse(w, myerrors.SignOutAlreadyRu, http.StatusUnauthorized)
 		return
 	}
 
 	w, err := functions.FlashCookie(r, w, d.ucSession, &d.cfg.Redis, d.metrics)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Сессия успешно завершена"})
+	functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Сессия успешно завершена"})
 }

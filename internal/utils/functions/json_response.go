@@ -8,14 +8,12 @@ import (
 )
 
 
-func JsonResponse(w http.ResponseWriter, data interface{}) http.ResponseWriter {
+func JsonResponse(w http.ResponseWriter, data interface{}) {
 	logger := zap.Logger{}
 	var err error
 	_, _, err = easyjson.MarshalToHTTPResponseWriter(data.(easyjson.Marshaler), w)
 	if err != nil {
 		logger.Error(err.Error())
-		return w
+		return
 	}
-
-	return w
 }

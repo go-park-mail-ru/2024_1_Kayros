@@ -7,13 +7,13 @@ import (
 	"github.com/mailru/easyjson"
 )
 
-func ErrorResponse(w http.ResponseWriter, responseError error, codeStatus int) http.ResponseWriter {
+func ErrorResponse(w http.ResponseWriter, responseError error, codeStatus int) {
 	w.Header().Add("Content-Type", "application/json")
 	errObject := &dto.ResponseDetail{Detail: responseError.Error()}
 	body, err := easyjson.Marshal(errObject)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return w
+		return
 	}
 
 	w.WriteHeader(codeStatus)
@@ -21,5 +21,4 @@ func ErrorResponse(w http.ResponseWriter, responseError error, codeStatus int) h
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	return w
 }

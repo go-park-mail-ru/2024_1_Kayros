@@ -53,25 +53,25 @@ func (h *RestaurantHandler) RestaurantList(w http.ResponseWriter, r *http.Reques
 		id, err = strconv.Atoi(filter)
 		if err != nil || id < 0 {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+			functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 			return
 		}
 		rests, err = h.ucRest.GetByFilter(r.Context(), alias.CategoryId(id))
 		if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 	} else {
 		rests, err = h.ucRest.GetAll(r.Context())
 		if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 	}
 	restArray := &dto.RestaurantArray{Payload: dto.NewRestaurantArray(rests)}
-	w = functions.JsonResponse(w, restArray)
+	functions.JsonResponse(w, restArray)
 }
 
 func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Request) {
@@ -80,26 +80,26 @@ func (h *RestaurantHandler) RestaurantById(w http.ResponseWriter, r *http.Reques
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
+		functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
 		return
 	}
 	rest, err := h.ucRest.GetById(r.Context(), alias.RestId(id))
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsRestaurantRelation) {
-			w = functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
+			functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	categories, err := h.ucFood.GetByRestId(r.Context(), alias.RestId(id))
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	restDTO := dto.NewRestaurantAndFood(rest, categories)
-	w = functions.JsonResponse(w, restDTO)
+	functions.JsonResponse(w, restDTO)
 }
 
 func (h *RestaurantHandler) CategoryList(w http.ResponseWriter, r *http.Request) {
@@ -107,11 +107,11 @@ func (h *RestaurantHandler) CategoryList(w http.ResponseWriter, r *http.Request)
 	categories, err := h.ucRest.GetCategoryList(r.Context())
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	catsDTO := &dto.CategoryArray{Payload: dto.NewCategoryArray(categories)}
-	w = functions.JsonResponse(w, catsDTO)
+	functions.JsonResponse(w, catsDTO)
 }
 
 func (h *RestaurantHandler) Recomendation(w http.ResponseWriter, r *http.Request) {
@@ -119,24 +119,24 @@ func (h *RestaurantHandler) Recomendation(w http.ResponseWriter, r *http.Request
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
 
-	rests := []*entity.Restaurant{}
-	var err error
+	var rests []*entity.Restaurant
+	var errOut error
 	if email != "" {
 		u, err := h.ucUser.GetData(r.Context(), email)
 		if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
-		rests, err = h.ucRest.GetRecomendation(r.Context(), u.Id)
+		rests, errOut = h.ucRest.GetRecomendation(r.Context(), u.Id)
 	} else {
-		rests, err = h.ucRest.GetRecomendation(r.Context(), 0)
+		rests, errOut = h.ucRest.GetRecomendation(r.Context(), 0)
 	}
-	if err != nil {
-		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+	if errOut != nil {
+		h.logger.Error(errOut.Error(), zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	restaurantArray := &dto.RestaurantArray{Payload: dto.NewRestaurantArray(rests)}
-	w = functions.JsonResponse(w, restaurantArray)
+	functions.JsonResponse(w, restaurantArray)
 }

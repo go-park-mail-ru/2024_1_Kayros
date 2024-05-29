@@ -24,7 +24,7 @@ func SessionAuthentication(handler http.Handler, ucUser user.Usecase, ucSession 
 		sessionId, err := functions.GetCookieSessionValue(r)
 		if err != nil && !errors.Is(err, http.ErrNoCookie) {
 			logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 
@@ -32,7 +32,7 @@ func SessionAuthentication(handler http.Handler, ucUser user.Usecase, ucSession 
 		if err != nil {
 			if !errors.Is(err, myerrors.RedisNoData) {
 				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 				return
 			}
 		}
@@ -41,7 +41,7 @@ func SessionAuthentication(handler http.Handler, ucUser user.Usecase, ucSession 
 		if err != nil {
 			if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 				logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-				w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+				functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 				return
 			}
 		}

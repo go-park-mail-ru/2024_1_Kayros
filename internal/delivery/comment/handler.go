@@ -47,7 +47,7 @@ func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	if email == "" {
 		h.logger.Error(myerrors.UnauthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
+		functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
 		return
 	}
 
@@ -64,18 +64,18 @@ func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 	if err = r.Body.Close(); err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	err = json.Unmarshal(body, &inputComment)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
@@ -89,14 +89,14 @@ func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsCommentRelation) {
-			w = functions.ErrorResponse(w, myerrors.FailCreateCommentRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.FailCreateCommentRu, http.StatusInternalServerError)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 	comDTO := dto.NewComment(res)
-	w = functions.JsonResponse(w, comDTO)
+	functions.JsonResponse(w, comDTO)
 }
 
 func (h *Delivery) GetComments(w http.ResponseWriter, r *http.Request) {
@@ -106,24 +106,24 @@ func (h *Delivery) GetComments(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
 		return
 	}
 
 	comments, err := h.uc.GetCommentsByRest(r.Context(), alias.RestId(id))
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
 
 	if comments == nil {
-		w = functions.ErrorResponse(w, myerrors.NoCommentsRu, http.StatusOK)
+		functions.ErrorResponse(w, myerrors.NoCommentsRu, http.StatusOK)
 		return
 	}
 
 	commentArrayDTO := &dto.CommentArray{Payload: dto.NewCommentArray(comments)} 
-	w = functions.JsonResponse(w, commentArrayDTO)
+	functions.JsonResponse(w, commentArrayDTO)
 }
 
 func (h *Delivery) DeleteComment(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +131,7 @@ func (h *Delivery) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	email := functions.GetCtxEmail(r)
 	if email == "" {
 		h.logger.Error(myerrors.UnauthorizedEn.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
+		functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
 
@@ -139,7 +139,7 @@ func (h *Delivery) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(vars["com_id"])
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		w = functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
+		functions.ErrorResponse(w, myerrors.NotFoundRu, http.StatusNotFound)
 		return
 	}
 
@@ -147,11 +147,11 @@ func (h *Delivery) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		if errors.Is(err, myerrors.SqlNoRowsCommentRelation) {
-			w = functions.ErrorResponse(w, myerrors.FailCreateCommentRu, http.StatusNotFound)
+			functions.ErrorResponse(w, myerrors.FailCreateCommentRu, http.StatusNotFound)
 			return
 		}
-		w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	w = functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Комментарий успешно удален"})
+	functions.JsonResponse(w, &dto.ResponseDetail{Detail: "Комментарий успешно удален"})
 }

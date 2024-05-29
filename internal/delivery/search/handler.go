@@ -33,12 +33,12 @@ func (h *Delivery) Search(w http.ResponseWriter, r *http.Request) {
 		rests, err = h.ucSearch.Search(r.Context(), str)
 		if err != nil {
 			h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			w = functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
 	} else {
 		return
 	}
 	restaurantAndFoodArray := &dto.RestaurantAndFoodArray{Payload: rests}
-	w = functions.JsonResponse(w, restaurantAndFoodArray)
+	functions.JsonResponse(w, restaurantAndFoodArray)
 }
