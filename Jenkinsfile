@@ -46,7 +46,7 @@ pipeline {
                     service = "${microservices[i]}-grpc"
                   }
 
-                  sh "sudo docker-compose -f /home/kayros/backend/integration/prod-compose/docker-compose.yaml up -d --no-deps --build ${service}"
+                  sh "sudo docker-compose -f ./integration/prod-compose/docker-compose.yaml up -d --no-deps --build ${service}"
                 }
               }
           }
