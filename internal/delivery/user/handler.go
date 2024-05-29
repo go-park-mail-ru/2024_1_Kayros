@@ -74,6 +74,7 @@ func (d *Delivery) UpdateUnauthAddress(w http.ResponseWriter, r *http.Request) {
 		w = functions.ErrorResponse(w, myerrors.UnauthorizedRu, http.StatusUnauthorized)
 		return
 	}
+
 	if unauthId == "" {
 		w = functions.ErrorResponse(w, myerrors.BadRequestUpdateUnauthAddress, http.StatusBadRequest)
 		return
