@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	"2024_1_kayros/internal/utils/myerrors"
 	"2024_1_kayros/internal/utils/sanitizer"
 
+	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 )
 
@@ -55,7 +55,7 @@ func (d *Delivery) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var signupDTO dto.UserSignUp
-	err = json.Unmarshal(body, &signupDTO)
+	err = easyjson.Unmarshal(body, &signupDTO)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
@@ -108,7 +108,7 @@ func (d *Delivery) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var bodyDTO dto.UserSignIn
-	err = json.Unmarshal(body, &bodyDTO)
+	err = easyjson.Unmarshal(body, &bodyDTO)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)

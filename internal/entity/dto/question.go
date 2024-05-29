@@ -15,6 +15,10 @@ func (d *QuestionInput) Validate() (bool, error) {
 	return govalidator.ValidateStruct(d)
 }
 
+type QuestionInputArray struct {
+	Payload []*QuestionInput `json:"payload" valid:"-"`
+}
+
 type Question struct {
 	Id        uint64 `json:"id"`
 	Name      string `json:"name"`

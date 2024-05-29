@@ -1,13 +1,13 @@
 package comment
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
@@ -32,16 +32,6 @@ func NewDelivery(ucc comment.Usecase, loggerProps *zap.Logger) *Delivery {
 	}
 }
 
-type InputId struct {
-	Id uint64 `json:"id"`
-}
-
-type InputComment struct {
-	OrderId uint64 `json:"order_id"`
-	Text    string `json:"text"`
-	Rating  uint32 `json:"rating"`
-}
-
 func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)
@@ -59,7 +49,7 @@ func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var inputComment *InputComment
+	var inputComment dto.InputComment
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -72,7 +62,7 @@ func (h *Delivery) CreateComment(w http.ResponseWriter, r *http.Request) {
 		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	err = json.Unmarshal(body, &inputComment)
+	err = easyjson.Unmarshal(body, &inputComment)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)

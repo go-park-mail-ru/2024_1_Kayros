@@ -4,6 +4,7 @@ import (
 	"github.com/asaskevich/govalidator"
 
 	"2024_1_kayros/internal/entity"
+	"2024_1_kayros/internal/utils/alias"
 )
 
 
@@ -95,4 +96,15 @@ func NewFoodArrayFromDTO(orderFood []*FoodInOrder) []*entity.FoodInOrder {
 		foodList[i].RestaurantId = food.RestaurantId
 	}
 	return foodList
+}
+
+
+
+type FoodCount struct {
+	FoodId alias.FoodId `json:"food_id" valid:"positive"`
+	Count  uint32       `json:"count" valid:"positive"`
+}
+
+func (d *FoodCount) Validate() (bool, error) {
+	return govalidator.ValidateStruct(d)
 }

@@ -119,6 +119,7 @@ func (d *Payment) OrderGetPayUrl(w http.ResponseWriter, r *http.Request) {
 		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
+	// намеренно не используем easyjson, поскольку проще немного во времени проиграть
 	var data map[string]interface{}
 	if err = json.Unmarshal(body, &data); err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))

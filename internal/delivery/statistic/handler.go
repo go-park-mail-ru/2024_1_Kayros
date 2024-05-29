@@ -1,7 +1,6 @@
 package statistic
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"2024_1_kayros/internal/usecase/session"
 	cnst "2024_1_kayros/internal/utils/constants"
 
+	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
@@ -95,7 +95,8 @@ func (d *Delivery) AddAnswer(w http.ResponseWriter, r *http.Request) {
 		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	err = json.Unmarshal(body, &qi)
+	qArray := dto.QuestionInputArray{Payload: qi}
+	err = easyjson.Unmarshal(body, &qArray)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)

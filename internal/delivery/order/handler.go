@@ -2,15 +2,14 @@ package delivery
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
@@ -34,11 +33,6 @@ func NewOrderHandler(u ucOrder.Usecase, loggerProps *zap.Logger) *OrderHandler {
 	}
 }
 
-type FoodCount struct {
-	FoodId alias.FoodId `json:"food_id" valid:"positive"`
-	Count  uint32       `json:"count" valid:"positive"`
-}
-
 func ChangingStatus(ctx context.Context, h *OrderHandler, id uint64, arr []string) {
 	requestId := ctx.Value(cnst.RequestId)
 	for _, s := range arr {
@@ -51,9 +45,6 @@ func ChangingStatus(ctx context.Context, h *OrderHandler, id uint64, arr []strin
 	}
 }
 
-func (d *FoodCount) Validate() (bool, error) {
-	return govalidator.ValidateStruct(d)
-}
 
 func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
@@ -235,7 +226,7 @@ func (h *OrderHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	err = json.Unmarshal(body, &fullAddress)
+	err = easyjson.Unmarshal(body, &fullAddress)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
@@ -327,8 +318,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 
 	statuses := []string{cnst.Created, cnst.Cooking, cnst.OnTheWay, cnst.Delivered}
 
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, cnst.RequestId, requestId)
+	ctx := context.WithValue(context.Background(), cnst.RequestId, requestId)
 	go ChangingStatus(ctx, h, payedOrder.Id, statuses)
 	response := &dto.PayedOrderInfo{Id: alias.OrderId(payedOrder.Id), Status: payedOrder.Status}
 	functions.JsonResponse(w, response)
@@ -357,8 +347,8 @@ func (h *OrderHandler) AddFood(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var item FoodCount
-	err = json.Unmarshal(body, &item)
+	var item dto.FoodCount
+	err = easyjson.Unmarshal(body, &item)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
@@ -533,8 +523,8 @@ func (h *OrderHandler) UpdateFoodCount(w http.ResponseWriter, r *http.Request) {
 		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 		return
 	}
-	var item FoodCount
-	err = json.Unmarshal(body, &item)
+	var item dto.FoodCount
+	err = easyjson.Unmarshal(body, &item)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
@@ -710,7 +700,7 @@ func (h *OrderHandler) SetPromocode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := dto.Promo{}
-	err = json.Unmarshal(body, &c)
+	err = easyjson.Unmarshal(body, &c)
 	if err != nil {
 		h.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)

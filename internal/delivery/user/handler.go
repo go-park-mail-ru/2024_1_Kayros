@@ -1,7 +1,6 @@
 package user
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"mime/multipart"
@@ -267,7 +266,7 @@ func (d *Delivery) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var pwds dto.Passwords
-	err = json.Unmarshal(body, &pwds)
+	err = easyjson.Unmarshal(body, &pwds)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)

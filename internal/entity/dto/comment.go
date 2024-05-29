@@ -47,3 +47,14 @@ func NewCommentArray(commentArray []*entity.Comment) []*Comment {
 	}
 	return commentArrayDTO
 }
+
+
+type InputId struct {
+	Id uint64 `json:"id"`
+}
+
+type InputComment struct {
+	OrderId uint64 `json:"order_id"`
+	Text    string `json:"text"`
+	Rating  uint32 `json:"rating"`
+}
