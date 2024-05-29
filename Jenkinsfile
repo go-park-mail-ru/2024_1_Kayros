@@ -11,6 +11,7 @@ pipeline {
     stage('Initialize') {
     steps {
       script {
+      sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
       for (int i = 0; i < microservices.length; i++) {
                 def flag
                 def externalChange
