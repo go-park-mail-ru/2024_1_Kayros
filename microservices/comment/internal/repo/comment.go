@@ -20,13 +20,13 @@ type Comment interface {
 }
 
 type CommentLayer struct {
-	db *sql.DB
+	db      *sql.DB
 	metrics *metrics.MicroserviceMetrics
 }
 
 func NewCommentLayer(dbProps *sql.DB, metrics *metrics.MicroserviceMetrics) Comment {
 	return &CommentLayer{
-		db: dbProps,
+		db:      dbProps,
 		metrics: metrics,
 	}
 }
@@ -114,24 +114,7 @@ func (repo *CommentLayer) Create(ctx context.Context, com *comment.Comment) (*co
 }
 
 func (repo *CommentLayer) GetCommentsByRest(ctx context.Context, restId *comment.RestId) (*comment.CommentList, error) {
-	timeNow := time.Now()
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT c.id, u.name, u.img_url, c.text, c.rating FROM "comment" AS c JOIN "user" AS u ON c.user_id = u.id WHERE restaurant_id=$1 AND c.text IS NOT NULL AND c.text !=''`, restId.Id)
-	timeEnd := time.Since(timeNow)
-	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
-	if err != nil {
-		return nil, err
-	}
-	comments := comment.CommentList{}
-	for rows.Next() {
-		com := comment.Comment{}
-		err = rows.Scan(&com.Id, &com.UserName, &com.Image, &com.Text, &com.Rating)
-		if err != nil {
-			return nil, err
-		}
-		comments.Comment = append(comments.Comment, &com)
-	}
-	return &comments, nil
+	return nil, nil
 }
 
 func (repo *CommentLayer) Delete(ctx context.Context, id *comment.CommentId) error {
