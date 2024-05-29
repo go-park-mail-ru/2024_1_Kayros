@@ -26,13 +26,13 @@ type Repo interface {
 
 type Layer struct {
 	database *sql.DB
-	metrics *metrics.MicroserviceMetrics
+	metrics  *metrics.MicroserviceMetrics
 }
 
 func NewLayer(db *sql.DB, metrics *metrics.MicroserviceMetrics) Repo {
 	return &Layer{
 		database: db,
-		metrics: metrics,
+		metrics:  metrics,
 	}
 }
 
@@ -50,6 +50,7 @@ func (repo *Layer) GetByEmail(ctx context.Context, email *user.Email) (*user.Use
 		}
 		return &user.User{}, err
 	}
+
 	return entity.ConvertEntityUserIntoProtoUser(&u), nil
 }
 
@@ -101,7 +102,7 @@ func (repo *Layer) Update(ctx context.Context, data *user.UpdateUserData) error 
                   address = $7, updated_at = $8 WHERE email = $9`,
 		userData.GetName(), userData.GetEmail(), functions.MaybeNullString(userData.GetPhone()), userData.GetImgUrl(),
 		userData.GetPassword(), functions.MaybeNullString(userData.GetCardNumber()), functions.MaybeNullString(userData.GetAddress()), timeNow, data.GetEmail())
-		
+
 	timeEnd := time.Since(timeNowMetric)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.UPDATE).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {
