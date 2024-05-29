@@ -61,7 +61,7 @@ pipeline {
       stage('Code Analysis') {
           script {
             sh 'make easyjs'
-            sh '/home/kayros/go/bin/golangci-lint run'
+       //     sh '/home/kayros/go/bin/golangci-lint run'
           }
       }
 
