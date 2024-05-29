@@ -41,8 +41,12 @@ pipeline {
                 script {
                  // sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
                  // sh "sudo docker build -t resto-${microservices[i]}-service:latest -f ./integration/microservices/${microservices[i]}/Dockerfile ."
-  
-                  sh "sudo docker-compose -f /home/kayros/backend/integration/prod-compose/docker-compose.yaml up -d --no-deps --build ${microservices[i]}-grpc"
+                  def service = microservices[i]
+                  if (microservices[i] != 'gateway') {
+                    service = "${microservices[i]}-grpc"
+                  }
+
+                  sh "sudo docker-compose -f /home/kayros/backend/integration/prod-compose/docker-compose.yaml up -d --no-deps --build ${service}"
                 }
               }
           }
