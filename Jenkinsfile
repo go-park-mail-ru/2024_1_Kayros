@@ -10,7 +10,6 @@ pipeline {
       stage('Initialize') {
           steps {
               script {
-                if (!params.FULL_BUILD || params.FULL_BUILD == false) {
                  sh "sudo cp /home/kayros/backend/config/config.yaml ./config/"
                  for (int i = 0; i < microservices.length; i++) {
                      def currentChange
@@ -53,15 +52,14 @@ pipeline {
                           }
                        }
                  }
-                }
 
-                if (params.FULL_BUILD && params.FULL_BUILD == true) {
-                   stage("Full Project Build") {        
-                        script {
-                            sh "sudo docker-compose -f ./integration/prod-compose/docker-compose.yaml up -d --no-deps --build"  
-                        }
-                   }
-                }
+                // if (params.FULL_BUILD && params.FULL_BUILD == true) {
+                //    stage("Full Project Build") {        
+                //         script {
+                //             sh "sudo docker-compose -f ./integration/prod-compose/docker-compose.yaml up -d --no-deps --build"  
+                //         }
+                //    }
+                // }
       
                  stage('Test') {
                     script {
