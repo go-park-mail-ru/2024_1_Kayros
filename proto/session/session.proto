@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option go_package = "./session";
+package session;
+
+import "google/protobuf/empty.proto";
+
+service SessionManager {
+  rpc SetSession (SetSessionData) returns (google.protobuf.Empty);
+  rpc GetSession (GetSessionData) returns (SessionValue);
+  rpc DeleteSession (DeleteSessionData) returns (google.protobuf.Empty);
+}
+
+message SetSessionData {
+  string key = 1;
+  string value = 2;
+  int32 database = 3;
+}
+
+message GetSessionData {
+  string key = 1;
+  int32 database = 2;
+}
+
+message DeleteSessionData {
+  string key = 1;
+  int32 database = 2;
+}
+
+message SessionValue {
+  string Data = 1;
+}

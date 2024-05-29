@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+option go_package = "./rest";
+package rest;
+
+message RestId {
+  uint64 id = 1;
+}
+
+message Category {
+  uint64 id = 1;
+  string name = 2;
+}
+
+message Id {
+  uint64 id= 1;
+}
+
+message Limit {
+  uint64 value= 1;
+}
+
+message Empty {}
+
+message Rest {
+  uint64 id = 1;
+  string name = 2;
+  string short_description = 3;
+  string long_description = 4;
+  string address = 5;
+  string imgUrl = 6;
+  float rating = 7;
+  uint32 comment_count = 8;
+}
+
+message RestList {
+  repeated Rest rest= 1;
+}
+
+message CategoryList {
+  repeated Category c= 1;
+}
+
+message UserAndLimit {
+  uint64 user_id= 1;
+  uint64 limit= 2;
+}
+
+message RestIdList {
+  repeated Id i=1;
+}
+
+service RestWorker {
+  rpc GetAll(Empty) returns (RestList) {};
+  rpc GetById(RestId) returns (Rest) {};
+  rpc GetByFilter(Id) returns (RestList) {};
+  rpc GetCategoryList(Empty) returns (CategoryList) {};
+  rpc GetRecomendation(UserAndLimit) returns (RestList) {};
+}

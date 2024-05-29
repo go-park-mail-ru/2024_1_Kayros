@@ -10,6 +10,10 @@ const (
 )
 
 const (
+	PromocodeIsDeleted = "Промокод больше не применяется к корзине"
+)
+
+const (
 	Timestamptz         = "2006-01-02 15:04:05-07:00"
 	UploadedFileMaxSize = 10 << 20
 )
@@ -50,3 +54,23 @@ var ValidMimeTypes = map[string]bool{
 	"image/svg+xml": true,
 	"image/tiff":    true,
 }
+
+// microservices
+const (
+	UserMicroservice    = "user"
+	SessionMicroservice = "session"
+	AuthMicroservice    = "auth"
+	RestMicroservice    = "rest"
+	CommentMicroservice = "comment"
+)
+
+const (
+	SELECT = "SELECT"
+	UPDATE = "UPDATE"
+	DELETE = "DELETE"
+	INSERT = "INSERT"
+)
+
+const (
+	StatusCode = "status_code"
+)

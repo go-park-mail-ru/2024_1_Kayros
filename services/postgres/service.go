@@ -20,7 +20,7 @@ func Init(cfg *config.Project, logger *zap.Logger) *sql.DB {
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to connect to PostgreSQL %s at address %s:%d\n",
 			cfg.Postgres.Database, cfg.Postgres.Host, cfg.Postgres.Port)
-		logger.Fatal(errorMsg, zap.Error(err))
+		logger.Fatal(errorMsg, zap.String("error", err.Error()))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -30,7 +30,7 @@ func Init(cfg *config.Project, logger *zap.Logger) *sql.DB {
 	for i := 0; i < 3; i++ {
 		err = db.PingContext(ctx)
 		if err != nil {
-			logger.Error("Test queries to PostgreSQL failed", zap.Error(err))
+			logger.Error("Test queries to PostgreSQL failed", zap.String("error", err.Error()))
 		} else {
 			wasConnected = true
 			break
@@ -38,7 +38,7 @@ func Init(cfg *config.Project, logger *zap.Logger) *sql.DB {
 		time.Sleep(3 * time.Second)
 	}
 	if !wasConnected {
-		logger.Fatal("Unable to connect to PostgreSQL", zap.Error(err))
+		logger.Fatal("Unable to connect to PostgreSQL", zap.String("error", err.Error()))
 	}
 
 	// maximum number of open connections

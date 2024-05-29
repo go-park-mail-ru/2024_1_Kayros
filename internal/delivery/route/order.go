@@ -5,30 +5,43 @@ import (
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
-	"2024_1_kayros/internal/delivery/order"
+	restproto "2024_1_kayros/gen/go/rest"
+	userproto "2024_1_kayros/gen/go/user"
+	"2024_1_kayros/internal/delivery/metrics"
+	delivery "2024_1_kayros/internal/delivery/order"
 	rFood "2024_1_kayros/internal/repository/food"
 	rOrder "2024_1_kayros/internal/repository/order"
-	rRest "2024_1_kayros/internal/repository/restaurants"
-	rUser "2024_1_kayros/internal/repository/user"
 	ucOrder "2024_1_kayros/internal/usecase/order"
 )
 
-func AddOrderRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger) {
-	repoOrder := rOrder.NewRepoLayer(db)
-	repoFood := rFood.NewRepoLayer(db)
-	repoUser := rUser.NewRepoLayer(db)
-	repoRest := rRest.NewRepoLayer(db)
-	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, repoUser, repoRest)
+func AddOrderRouter(db *sql.DB, mux *mux.Router, userConn, restConn *grpc.ClientConn, logger *zap.Logger, metrics *metrics.Metrics) {
+	repoOrder := rOrder.NewRepoLayer(db, metrics)
+	repoFood := rFood.NewRepoLayer(db, metrics)
+	//init user grpc client
+	grpcUserClient := userproto.NewUserManagerClient(userConn)
+	//init rest grpc client
+	grpcRestClient := restproto.NewRestWorkerClient(restConn)
+
+	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, grpcUserClient, grpcRestClient, metrics)
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)
 
-	mux.HandleFunc("/order", handler.GetBasket).Methods("GET")
-	mux.HandleFunc("/order/{id}", handler.GetOrderById).Methods("GET")
-	mux.HandleFunc("/orders/current", handler.GetCurrentOrders).Methods("GET")
-	mux.HandleFunc("/order/update_address", handler.UpdateAddress).Methods("PUT")
-	mux.HandleFunc("/order/pay", handler.Pay).Methods("PUT")
-	mux.HandleFunc("/order/clean", handler.Clean).Methods("DELETE")
-	mux.HandleFunc("/order/food/add", handler.AddFood).Methods("POST")
-	mux.HandleFunc("/order/food/update_count", handler.UpdateFoodCount).Methods("PUT")
-	mux.HandleFunc("/order/food/delete/{food_id}", handler.DeleteFoodFromOrder).Methods("DELETE")
+	mux.HandleFunc("/api/v1/order", handler.GetBasket).Methods("GET")
+
+	mux.HandleFunc("/api/v1/order/{id}", handler.GetOrderById).Methods("GET")
+
+	mux.HandleFunc("/api/v1/promocode", handler.SetPromocode).Methods("POST")
+	mux.HandleFunc("/api/v1/promocode", handler.GetAllPromocode).Methods("GET")
+
+	mux.HandleFunc("/api/v1/orders/current", handler.GetCurrentOrders).Methods("GET")
+	mux.HandleFunc("/api/v1/orders/archive", handler.GetArchiveOrders).Methods("GET")
+
+	mux.HandleFunc("/api/v1/order/update_address", handler.UpdateAddress).Methods("PUT")
+	mux.HandleFunc("/api/v1/order/pay", handler.Pay).Methods("PUT")
+	mux.HandleFunc("/api/v1/order/clean", handler.Clean).Methods("DELETE")
+
+	mux.HandleFunc("/api/v1/order/food/add", handler.AddFood).Methods("POST")
+	mux.HandleFunc("/api/v1/order/food/update_count", handler.UpdateFoodCount).Methods("PUT")
+	mux.HandleFunc("/api/v1/order/food/delete/{food_id}", handler.DeleteFoodFromOrder).Methods("DELETE")
 }

@@ -1,0 +1,31 @@
+syntax = "proto3";
+option go_package = "./auth";
+
+package auth;
+
+service AuthManager {
+  rpc SignIn (SignInCredentials) returns (User);
+  rpc SignUp (SignUpCredentials) returns (User);
+}
+
+message SignInCredentials {
+  string email = 1;
+  string password = 3;
+}
+
+message SignUpCredentials {
+  string email = 1;
+  string name = 3;
+  string password =4;
+}
+
+message User {
+  uint64 id = 1;
+  string name = 2;
+  string phone = 3;
+  string email = 4;
+  string address = 5;
+  string img_url = 6;
+  string card_number = 7;
+  string password = 8;
+}

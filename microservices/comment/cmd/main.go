@@ -2,40 +2,66 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
+	"net/http"
+	"os"
+	"os/signal"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"2024_1_kayros/config"
-	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/gen/go/comment"
+	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
 	"2024_1_kayros/microservices/comment/internal/repo"
 	"2024_1_kayros/microservices/comment/internal/usecase"
-	rest "2024_1_kayros/microservices/comment/proto"
+	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/services/postgres"
 )
 
 func main() {
 	logger := zap.Must(zap.NewProduction())
-	functions.InitDtoValidator(logger)
 	cfg := config.NewConfig(logger)
 
 	port := fmt.Sprintf(":%d", cfg.CommentGrpcServer.Port)
-	lis, err := net.Listen("tcp", port)
+	conn, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Printf("The server cannot be started.\n%v", err)
-	} else {
-		log.Printf("The server listen port %d", cfg.CommentGrpcServer.Port)
+		logger.Fatal("The microservice comment doesn't respond", zap.String("error", err.Error()))
 	}
+	logger.Info(fmt.Sprintf("The microservice comment responds on port %d", cfg.CommentGrpcServer.Port))
+	reg := prometheus.NewRegistry()
+	metrics := metrics.NewMetrics(reg, "comment")
+	middleware := grpcServerMiddleware.NewMiddlewareChain(logger, metrics)
+	
+	// Start metrics server
+	go func() {
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		address := fmt.Sprintf("%s:%d", cfg.CommentGrpcServerExporter.Host, cfg.CommentGrpcServerExporter.Port)
+		logger.Info(fmt.Sprintf("Serving metrics responds on port %d", cfg.CommentGrpcServerExporter.Port))
+		if err := http.ListenAndServe(address, nil); err != nil {
+			logger.Fatal("Error starting metrics server", zap.String("error", err.Error()))
+		}
+	}()
 
-	server := grpc.NewServer()
 
+	//init grpc server
+	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
+	//init services for server work
 	postgreDB := postgres.Init(cfg, logger)
-	repoComment := repo.NewCommentLayer(postgreDB)
-	rest.RegisterCommentWorkerServer(server, usecase.NewCommentLayer(repoComment))
-	err = server.Serve(lis)
+	repoComment := repo.NewCommentLayer(postgreDB, metrics)
+	comment.RegisterCommentWorkerServer(server, usecase.NewCommentLayer(repoComment, logger))
+	err = server.Serve(conn)
 	if err != nil {
-		log.Fatalf("error in serving server on port %d -  %s", cfg.CommentGrpcServer.Port, err)
+		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port), zap.String("error", err.Error()))
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+
+	server.GracefulStop()
+	logger.Info("The microservice comment has shut down")
+	os.Exit(0)
 }

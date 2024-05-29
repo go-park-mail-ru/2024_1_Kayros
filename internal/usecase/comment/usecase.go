@@ -2,11 +2,19 @@ package comment
 
 import (
 	"context"
+	"time"
 
+	"2024_1_kayros/gen/go/comment"
+	"2024_1_kayros/gen/go/user"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/entity"
-	"2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/utils/alias"
-	comment "2024_1_kayros/microservices/comment/proto"
+	cnst "2024_1_kayros/internal/utils/constants"
+	"2024_1_kayros/internal/utils/myerrors"
+	"2024_1_kayros/internal/utils/myerrors/grpcerr"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Usecase interface {
@@ -16,21 +24,33 @@ type Usecase interface {
 }
 
 type UsecaseLayer struct {
-	grpcClient comment.CommentWorkerClient
-	repoUser   user.Repo
+	grpcCommentClient comment.CommentWorkerClient
+	grpcUserClient    user.UserManagerClient
+	metrics 		  *metrics.Metrics
 }
 
-func NewUseCaseLayer(commentClient comment.CommentWorkerClient, repoUserProps user.Repo) Usecase {
+func NewUseCaseLayer(commentClient comment.CommentWorkerClient, userClient user.UserManagerClient, m *metrics.Metrics) Usecase {
 	return &UsecaseLayer{
-		grpcClient: commentClient,
-		repoUser:   repoUserProps,
+		grpcCommentClient: commentClient,
+		grpcUserClient:    userClient,
+		metrics: m,
 	}
 }
 
 func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, email string, orderId uint64) (*entity.Comment, error) {
-	u, err := uc.repoUser.GetByEmail(ctx, email)
+	timeNow := time.Now()
+	u, err := uc.grpcUserClient.GetData(ctx, &user.Email{Email: email})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.UserMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
-		return nil, err
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.CommentMicroservice, grpcStatus.String()).Inc()
+		}
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsUserRelation) {
+			return &entity.Comment{}, myerrors.SqlNoRowsUserRelation
+		}
+		return &entity.Comment{}, err
 	}
 	c := comment.Comment{
 		UserId:  u.Id,
@@ -39,18 +59,41 @@ func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, e
 		Rating:  com.Rating,
 		OrderId: orderId,
 	}
-	res, err := uc.grpcClient.CreateComment(ctx, &c)
+	timeNow = time.Now()
+	res, err := uc.grpcCommentClient.CreateComment(ctx, &c)
+	msRequestTimeout = time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.CommentMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
-		return nil, err
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.CommentMicroservice, grpcStatus.String()).Inc()
+		}
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsCommentRelation) {
+			return &entity.Comment{}, myerrors.SqlNoRowsCommentRelation
+		}
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsRestaurantRelation) {
+			return &entity.Comment{}, myerrors.SqlNoRowsRestaurantRelation
+		}
+		if grpcerr.Is(err, codes.NotFound, myerrors.SqlNoRowsOrderRelation) {
+			return &entity.Comment{}, myerrors.SqlNoRowsOrderRelation
+		}
 	}
 	res.UserName = u.Name
 	res.Image = u.ImgUrl
 	return FromGrpcStructToComment(res), nil
 }
 
+/// !!!!!!!
 func (uc *UsecaseLayer) GetCommentsByRest(ctx context.Context, restId alias.RestId) ([]*entity.Comment, error) {
-	comments, err := uc.grpcClient.GetCommentsByRest(ctx, &comment.RestId{Id: uint64(restId)})
+	timeNow := time.Now()
+	comments, err := uc.grpcCommentClient.GetCommentsByRest(ctx, &comment.RestId{Id: uint64(restId)})
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.CommentMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.CommentMicroservice, grpcStatus.String()).Inc()
+		}
 		return nil, err
 	}
 	if comments == nil {
@@ -59,7 +102,17 @@ func (uc *UsecaseLayer) GetCommentsByRest(ctx context.Context, restId alias.Rest
 	return FromGrpcStructToCommentArray(comments), nil
 }
 
+/// !!!!!!!!
 func (uc *UsecaseLayer) DeleteComment(ctx context.Context, id uint64) error {
-	_, err := uc.grpcClient.DeleteComment(ctx, &comment.CommentId{Id: id})
+	timeNow := time.Now()
+	_, err := uc.grpcCommentClient.DeleteComment(ctx, &comment.CommentId{Id: id})
+	if err != nil {
+		grpcStatus, ok := status.FromError(err)
+		if !ok {
+			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.CommentMicroservice, grpcStatus.String()).Inc()
+		}
+	}
+	msRequestTimeout := time.Since(timeNow)
+	uc.metrics.MicroserviceTimeout.WithLabelValues(cnst.CommentMicroservice).Observe(float64(msRequestTimeout.Milliseconds()))
 	return err
 }

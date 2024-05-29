@@ -11,12 +11,25 @@ type (
 		Postgres          `yaml:"postgresql"`
 		Minio             `yaml:"minio"`
 		Redis             `yaml:"redis"`
-		RestGrpcServer    `yaml:"rest-grpc-server"`
-		AuthGrpcServer    `yaml:"auth-grpc-server"`
-		CommentGrpcServer `yaml:"comment-grpc-server"`
-		UserGrpcServer    `yaml:"user-grpc-server"`
-		OrderGrpcServer   `yaml:"order-grpc-server"`
-		SessionGrpcServer `yaml:"session-grpc-server"`
+
+		RestGrpcServer    		  `yaml:"rest-grpc-server"`
+		RestGrpcServerExporter    `yaml:"rest-grpc-server-exporter"`
+
+		AuthGrpcServer    		  `yaml:"auth-grpc-server"`
+		AuthGrpcServerExporter    `yaml:"auth-grpc-server-exporter"`
+
+		CommentGrpcServer 			 `yaml:"comment-grpc-server"`
+		CommentGrpcServerExporter    `yaml:"comment-grpc-server-exporter"`
+
+		UserGrpcServer    		  `yaml:"user-grpc-server"`
+		UserGrpcServerExporter    `yaml:"user-grpc-server-exporter"`
+
+		OrderGrpcServer   		   `yaml:"order-grpc-server"`
+		OrderGrpcServerExporter    `yaml:"order-grpc-server-exporter"`
+
+		SessionGrpcServer 			 `yaml:"session-grpc-server"`
+		SessionGrpcServerExporter    `yaml:"session-grpc-server-exporter"`
+
 		Payment           `yaml:"payment"`
 	}
 
@@ -24,30 +37,54 @@ type (
 		Host string `yaml:"host" env:"REST_GRPC_HOST"`
 		Port uint16 `yaml:"port" env:"REST_GRPC_PORT"`
 	}
+	RestGrpcServerExporter struct {
+		Host string `yaml:"host" env:"REST_GRPC_EXPORTER_HOST"`
+		Port uint16 `yaml:"port" env:"REST_GRPC_EXPORTER_PORT"`
+	}
 
 	AuthGrpcServer struct {
 		Host string `yaml:"host" env:"AUTH_GRPC_HOST"`
 		Port uint16 `yaml:"port" env:"AUTH_GRPC_PORT"`
+	}
+	AuthGrpcServerExporter struct {
+		Host string `yaml:"host" env:"AUTH_GRPC_EXPORTER_HOST"`
+		Port uint16 `yaml:"port" env:"AUTH_GRPC_EXPORTER_PORT"`
 	}
 
 	CommentGrpcServer struct {
 		Host string `yaml:"host" env:"CMNT_GRPC_HOST"`
 		Port uint16 `yaml:"port" env:"CMNT_GRPC_PORT"`
 	}
+	CommentGrpcServerExporter struct {
+		Host string `yaml:"host" env:"COMMENT_GRPC_EXPORTER_HOST"`
+		Port uint16 `yaml:"port" env:"COMMENT_GRPC_EXPORTER_PORT"`
+	}
 
 	UserGrpcServer struct {
 		Host string `yaml:"host" env:"USER_GRPC_HOST"`
 		Port uint16 `yaml:"port" env:"USER_GRPC_PORT"`
+	}
+	UserGrpcServerExporter struct {
+		Host string `yaml:"host" env:"USER_GRPC_EXPORTER_HOST"`
+		Port uint16 `yaml:"port" env:"USER_GRPC_EXPORTER_PORT"`
 	}
 
 	OrderGrpcServer struct {
 		Host string `yaml:"host" env:"ORDER_GRPC_HOST"`
 		Port uint16 `yaml:"port" env:"ORDER_GRPC_PORT"`
 	}
+	OrderGrpcServerExporter struct {
+		Host string `yaml:"host" env:"ORDER_GRPC_EXPORTER_HOST"`
+		Port uint16 `yaml:"port" env:"ORDER_GRPC_EXPORTER_PORT"`
+	}
 
 	SessionGrpcServer struct {
 		Host string `yaml:"host" env:"SESSION_GRPC_HOST"`
 		Port uint16 `yaml:"port" env:"SESSION_GRPC_PORT"`
+	}
+	SessionGrpcServerExporter struct {
+		Host string `yaml:"host" env:"SESSION_GRPC_EXPORTER_HOST"`
+		Port uint16 `yaml:"port" env:"SESSION_GRPC_EXPORTER_PORT"`
 	}
 
 	Server struct {
@@ -83,12 +120,12 @@ type (
 	}
 
 	Redis struct {
-		Host                 string `yaml:"host"    env:"R_HOST"`
-		Port                 uint16 `yaml:"port" env:"R_PORT"`
-		DatabaseSession      int    `yaml:"database-session" env:"R_DB_SESSION"`
-		DatabaseCsrf         int    `yaml:"database-csrf" env:"R_DB_CSRF"`
-		User                 string `yaml:"user" env:"R_USER"`
-		Password             string `yaml:"password" env:"R_PASSWORD"`
+		Host            string `yaml:"host"    env:"R_HOST"`
+		Port            uint16 `yaml:"port" env:"R_PORT"`
+		DatabaseSession int    `yaml:"database-session" env:"R_DB_SESSION"`
+		DatabaseCsrf    int    `yaml:"database-csrf" env:"R_DB_CSRF"`
+		User            string `yaml:"user" env:"R_USER"`
+		Password        string `yaml:"password" env:"R_PASSWORD"`
 	}
 
 	Payment struct {
@@ -102,12 +139,12 @@ func NewConfig(logger *zap.Logger) *Project {
 
 	err := cleanenv.ReadConfig("config/config.yaml", cfg)
 	if err != nil {
-		logger.Fatal("Error reading application configuration", zap.Error(err))
+		logger.Fatal("Error reading application configuration", zap.String("error", err.Error()))
 	}
 
 	err = cleanenv.ReadEnv(cfg)
 	if err != nil {
-		logger.Fatal("Error creating configuration object", zap.Error(err))
+		logger.Fatal("Error creating configuration object", zap.String("error", err.Error()))
 	}
 
 	logger.Info("Reading configuration successful")

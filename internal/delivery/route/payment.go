@@ -4,32 +4,36 @@ import (
 	"database/sql"
 
 	"2024_1_kayros/config"
+	restproto "2024_1_kayros/gen/go/rest"
+	sessionproto "2024_1_kayros/gen/go/session"
+	userproto "2024_1_kayros/gen/go/user"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/delivery/payment"
 	rFood "2024_1_kayros/internal/repository/food"
 	rOrder "2024_1_kayros/internal/repository/order"
-	rRest "2024_1_kayros/internal/repository/restaurants"
-	rSession "2024_1_kayros/internal/repository/session"
-	rUser "2024_1_kayros/internal/repository/user"
 	"2024_1_kayros/internal/usecase/order"
 	ucSession "2024_1_kayros/internal/usecase/session"
+
 	"github.com/gorilla/mux"
-	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
 
 	"go.uber.org/zap"
 )
 
-func AddPaymentRouter(db *sql.DB, clientRedisSession *redis.Client, clientRedisCsrf *redis.Client, mux *mux.Router, logger *zap.Logger, cfg *config.Payment) {
-	repoFood := rFood.NewRepoLayer(db)
-	repoUser := rUser.NewRepoLayer(db)
-	repoSession := rSession.NewRepoLayer(clientRedisSession)
-	repoCsrf := rSession.NewRepoLayer(clientRedisCsrf)
-	repoOrder := rOrder.NewRepoLayer(db)
-	repoRest := rRest.NewRepoLayer(db)
+func AddPaymentRouter(db *sql.DB, sessionConn, userConn, restConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, cfg *config.Project, metrics *metrics.Metrics) {
+	repoFood := rFood.NewRepoLayer(db, metrics)
+	repoOrder := rOrder.NewRepoLayer(db, metrics)
 
-	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrf, logger)
-	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
-	usecaseOrder := order.NewUsecaseLayer(repoOrder, repoFood, repoUser, repoRest)
-	deliveryPayment := payment.NewPaymentDelivery(logger, usecaseOrder, usecaseCsrf, usecaseSession, cfg)
+	// init session grpc client
+	grpcSessionClient := sessionproto.NewSessionManagerClient(sessionConn)
+	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient, metrics)
+	// init user grpc client
+	grpcUserClient := userproto.NewUserManagerClient(userConn)
+	// init rest grpc client
+	grpcRestClient := restproto.NewRestWorkerClient(restConn)
 
-	mux.HandleFunc("/order/pay/url", deliveryPayment.OrderGetPayUrl).Methods("GET").Name("get-pay-url")
+	usecaseOrder := order.NewUsecaseLayer(repoOrder, repoFood, grpcUserClient, grpcRestClient, metrics)
+	deliveryPayment := payment.NewPaymentDelivery(logger, usecaseOrder, usecaseSession, cfg, metrics)
+
+	mux.HandleFunc("/api/v1/order/pay/url", deliveryPayment.OrderGetPayUrl).Methods("GET").Name("get-pay-url")
 }

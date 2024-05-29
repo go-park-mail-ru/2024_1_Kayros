@@ -1,0 +1,48 @@
+syntax="proto3";
+
+option go_package = "./food";
+package food;
+
+service FoodManager {
+    rpc GetByRestId(RestId) returns (RestCategories);
+    rpc GetById(FoodId) returns (Food);
+}
+
+message RestId {
+    uint64 Id = 1;
+}
+
+message FoodId {
+    uint64 Id = 1;
+}
+
+message Food {
+    uint64 id = 1;
+    string name = 2;
+    string description = 3;
+	uint64 restaurant_id = 4;
+	string category = 5;
+	uint64 weight = 6;       
+	uint64 price = 7;        
+	string img_url = 8;       
+}
+
+message FoodInOrder {
+    uint64 id = 1;
+    string name = 2;
+	uint64 restaurant_id = 4;
+	string category = 5;
+	uint64 weight = 6;       
+	uint64 price = 7;        
+	string img_url = 8;    
+}
+
+message Category {
+    uint64 id = 1;
+	string name = 2;
+	repeated Food food = 3;
+}
+
+message RestCategories {
+	repeated Category category = 1;
+}

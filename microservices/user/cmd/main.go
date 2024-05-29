@@ -2,46 +2,71 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
+	"net/http"
+	"os"
+	"os/signal"
 
+	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/microservices/user/internal/repo"
 	"2024_1_kayros/microservices/user/internal/usecase"
-	userv1 "2024_1_kayros/microservices/user/proto"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"2024_1_kayros/config"
+	"2024_1_kayros/gen/go/user"
+	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
 	"2024_1_kayros/internal/repository/minios3"
-	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/minio"
 	"2024_1_kayros/services/postgres"
 )
 
 func main() {
 	logger := zap.Must(zap.NewProduction())
-	functions.InitDtoValidator(logger)
 	cfg := config.NewConfig(logger)
 
 	port := fmt.Sprintf(":%d", cfg.UserGrpcServer.Port)
 	conn, err := net.Listen("tcp", port)
 	if err != nil {
-		errMsg := fmt.Sprintf("The server cannot be started.\n%v", err)
-		logger.Fatal(errMsg)
+		logger.Fatal("The microservice user doesn't respond", zap.String("error", err.Error()))
 	}
-	infoMsg := fmt.Sprintf("The user server listens port %d", cfg.UserGrpcServer.Port)
-	logger.Info(infoMsg)
+	logger.Info(fmt.Sprintf("The microservice user responds on port %d", cfg.UserGrpcServer.Port))
+	reg := prometheus.NewRegistry()
+	metrics := metrics.NewMetrics(reg, "user")
+	middleware := grpcServerMiddleware.NewMiddlewareChain(logger, metrics)
 
-	server := grpc.NewServer()
+	// Start metrics server
+	go func() {
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		address := fmt.Sprintf("%s:%d", cfg.UserGrpcServerExporter.Host, cfg.UserGrpcServerExporter.Port)
+		logger.Info(fmt.Sprintf("Serving metrics responds on port %d", cfg.UserGrpcServerExporter.Port))
+		if err := http.ListenAndServe(address, nil); err != nil {
+			logger.Fatal("Error starting metrics server", zap.String("error", err.Error()))
+		}
+	}()
+
+	// init grpc server
+	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
+	// init services for server work
 	postgreDB := postgres.Init(cfg, logger)
 	minioClient := minio.Init(cfg, logger)
 
-	repoUser := repo.NewLayer(postgreDB)
+	repoUser := repo.NewLayer(postgreDB, metrics)
 	repoMinio := minios3.NewRepoLayer(minioClient)
-	userv1.RegisterUserManagerServer(server, usecase.NewLayer(repoUser, repoMinio))
+	user.RegisterUserManagerServer(server, usecase.NewLayer(repoUser, repoMinio, logger))
 	err = server.Serve(conn)
 	if err != nil {
-		log.Fatalf("error in serving server on port %d -  %s", cfg.UserGrpcServer.Port, err)
+		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), zap.String("error", err.Error()))
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+
+	server.GracefulStop()
+	logger.Info("The microservice user has shut down")
+	os.Exit(0)
 }

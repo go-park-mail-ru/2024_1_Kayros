@@ -4,11 +4,14 @@ import "errors"
 
 // Response errors (external) RUSSIA
 var (
-	InternalServerRu     = errors.New("Ошибка сервера")
-	BadAuthCredentialsRu = errors.New("Неверный логин или пароль")
-	BadCredentialsRu     = errors.New("Предоставлены некорректные данные")
-	UserAlreadyExistRu   = errors.New("Пользователь с таким логином уже зарегистрирован")
-	NotFoundRu           = errors.New("Данные не найдены")
+	InternalServerRu              = errors.New("Ошибка сервера")
+	BadAuthCredentialsRu          = errors.New("Неверный логин или пароль")
+	BadCredentialsRu              = errors.New("Предоставлены некорректные данные")
+	UserAlreadyExistRu            = errors.New("Пользователь с таким логином уже зарегистрирован")
+	NotFoundRu                    = errors.New("Данные не найдены")
+	BadRequestGetEmail            = errors.New("Необходимо авторизоваться для получения почты")
+	BadRequestUpdateEmail         = errors.New("Необходимо авторизоваться для изменения почты")
+	BadRequestUpdateUnauthAddress = errors.New("Невозможно изменить адрес")
 
 	UnauthorizedRu   = errors.New("Вы не авторизованы")
 	RegisteredRu     = errors.New("Вы уже зарегистрированы")
@@ -22,9 +25,7 @@ var (
 
 	QuizAddRu = errors.New("Произошла ошибка. Пожалуйста, еще раз проголосуйте")
 
-	NoCommentsRu = errors.New(
-		"У ресторана пока нет отзывов",
-	)
+	NoCommentsRu        = errors.New("У ресторана пока нет отзывов")
 	SuccessCleanRu      = errors.New("Корзина очищена")
 	NoOrdersRu          = errors.New("Нет заказов")
 	NoBasketRu          = errors.New("У Вас нет корзины")
@@ -33,6 +34,10 @@ var (
 	FailCleanBasketRu   = errors.New("Не удалось очистить корзину")
 	FailCreateCommentRu = errors.New("Не удалось добавить отзыв")
 	NoDeleteFoodRu      = errors.New("Не удалось убрать блюдо из заказа, попробуйте еще раз")
+	OverDatePromocodeRu = errors.New("Срок действия промокода истек")
+	OncePromocodeRu     = errors.New("Данный промокод нельзя использовать повторно")
+	SumPromocodeRu      = errors.New("Чтобы применить промокод, сумма должна быть больше")
+	NoSetPromocodeRu    = errors.New("Не удалось применить промокод")
 )
 
 // Response errors (external) ENGLISH
@@ -66,16 +71,20 @@ var (
 	IncorrectCurrentPassword = errors.New("the current password is incorrect")
 	BadAuthPassword          = errors.New("invalid password")
 
-	BasketCreate     = errors.New("can't create basket")
 	OrderAddFood     = errors.New("food was not added to the order")
 	OrderSum         = errors.New("sum of the order is null")
 	FailCleanBasket  = errors.New("can't clean basket")
+	BasketCreate     = errors.New("can't create basket")
 	InvalidAddressEn = errors.New("invalid length of address")
 
-	NoComments   = errors.New("restaurant doesn't have comments")
-	QuizAdd      = errors.New("answer was not added to the quiz")
-	NoBasket     = errors.New("basket doesn't exist")
-	AlreadyPayed = errors.New("order has already been paid")
+	NoComments        = errors.New("restaurant doesn't have comments")
+	QuizAdd           = errors.New("answer was not added to the quiz")
+	NoBasket          = errors.New("basket doesn't exist")
+	AlreadyPayed      = errors.New("order has already been paid")
+	OverDatePromocode = errors.New("time of promocode end")
+	OncePromocode     = errors.New("this promocode cannot be reused")
+	SumPromocode      = errors.New("order sum less than promocode limit")
+	NoSetPromocode    = errors.New("promocode could not be applied")
 
 	// Database
 	SqlNoRowsUserRelation          = errors.New("no such record exists for \"user\"")
@@ -86,6 +95,7 @@ var (
 	SqlNoRowsCommentRelation       = errors.New("no such record exists for \"comment\"")
 	SqlNoRowsFoodOrderRelation     = errors.New("no such record exists for food_order")
 	SqlNoRowsQuizRelation          = errors.New("no such record exists for quiz")
+	SqlNoRowsPromocodeRelation     = errors.New("no such record exists for promocode")
 	RedisNoData                    = errors.New("no such record exists in Redis")
 	NullData                       = errors.New("selected null data from table")
 )

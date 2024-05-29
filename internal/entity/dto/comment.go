@@ -12,6 +12,10 @@ type Comment struct {
 	Rating    uint32 `json:"rating"`
 }
 
+type CommentArray struct {
+	Payload  []*Comment `json:"payload" valid:"-"`
+}
+
 func NewComment(com *entity.Comment) *Comment {
 	return &Comment{
 		Id:        com.Id,
@@ -42,4 +46,15 @@ func NewCommentArray(commentArray []*entity.Comment) []*Comment {
 		commentArrayDTO[i] = NewComment(com)
 	}
 	return commentArrayDTO
+}
+
+
+type InputId struct {
+	Id uint64 `json:"id"`
+}
+
+type InputComment struct {
+	OrderId uint64 `json:"order_id"`
+	Text    string `json:"text"`
+	Rating  uint32 `json:"rating"`
 }

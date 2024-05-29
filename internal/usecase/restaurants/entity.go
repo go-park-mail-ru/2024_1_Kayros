@@ -1,9 +1,9 @@
 package rest
 
 import (
+	"2024_1_kayros/gen/go/rest"
 	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/utils/alias"
-	rest "2024_1_kayros/microservices/restaurants/proto"
 )
 
 func FromGrpcStructToRestaurant(grpcRest *rest.Rest) *entity.Restaurant {
@@ -20,7 +20,7 @@ func FromGrpcStructToRestaurant(grpcRest *rest.Rest) *entity.Restaurant {
 
 func FromGrpcStructToRestaurantArray(grpcRest *rest.RestList) []*entity.Restaurant {
 	if len(grpcRest.GetRest()) == 0 {
-		return nil
+		return []*entity.Restaurant{}
 	}
 	restArray := make([]*entity.Restaurant, len(grpcRest.GetRest()))
 	for i, r := range grpcRest.GetRest() {

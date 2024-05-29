@@ -2,41 +2,65 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
+	"net/http"
+	"os"
+	"os/signal"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"2024_1_kayros/config"
-	"2024_1_kayros/internal/utils/functions"
+	"2024_1_kayros/gen/go/rest"
+	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
+	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/microservices/restaurants/internal/repo"
 	"2024_1_kayros/microservices/restaurants/internal/usecase"
-	rest "2024_1_kayros/microservices/restaurants/proto"
 	"2024_1_kayros/services/postgres"
 )
 
 func main() {
 	logger := zap.Must(zap.NewProduction())
-	functions.InitDtoValidator(logger)
 	cfg := config.NewConfig(logger)
 
 	port := fmt.Sprintf(":%d", cfg.RestGrpcServer.Port)
-	lis, err := net.Listen("tcp", port)
+	conn, err := net.Listen("tcp", port)
 	if err != nil {
-		errMsg := fmt.Sprintf("The restaurant server cannot be started. %v", err)
-		logger.Error(errMsg)
-	} else {
-		infoMsg := fmt.Sprintf("The restaurant server listens port %d", cfg.RestGrpcServer.Port)
-		logger.Info(infoMsg)
+		logger.Fatal("The microservice restaurant doesn't respond", zap.String("error", err.Error()))
+	}
+	logger.Info(fmt.Sprintf("The microservice restaurant responds on port %d", cfg.RestGrpcServer.Port))
+	reg := prometheus.NewRegistry()
+	metrics := metrics.NewMetrics(reg, "restaurants")
+	middleware := grpcServerMiddleware.NewMiddlewareChain(logger, metrics)
+
+	// Start metrics server
+	go func() {
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		address := fmt.Sprintf("%s:%d", cfg.RestGrpcServerExporter.Host, cfg.RestGrpcServerExporter.Port)
+		logger.Info(fmt.Sprintf("Serving metrics responds on port %d", cfg.RestGrpcServerExporter.Port))
+		if err := http.ListenAndServe(address, nil); err != nil {
+			logger.Fatal("Error starting metrics server", zap.String("error", err.Error()))
+		}
+	}()
+
+	// init grpc server
+	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
+	// init services for server work
+	postgreDB := postgres.Init(cfg, logger)
+	repoRest := repo.NewRestLayer(postgreDB, metrics)
+	rest.RegisterRestWorkerServer(server, usecase.NewRestLayer(repoRest, logger))
+	err = server.Serve(conn)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port), zap.String("error", err.Error()))
 	}
 
-	server := grpc.NewServer()
-	postgreDB := postgres.Init(cfg, logger)
-	repoRest := repo.NewRestLayer(postgreDB)
-	rest.RegisterRestWorkerServer(server, usecase.NewRestLayer(repoRest))
-	err = server.Serve(lis)
-	if err != nil {
-		log.Fatalf("error in serving server on port %d -  %s", cfg.RestGrpcServer.Port, err)
-	}
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+
+	server.GracefulStop()
+	logger.Info("The microservice restaurant has shut down")
+	os.Exit(0)
 }

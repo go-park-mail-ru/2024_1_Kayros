@@ -5,30 +5,31 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
-	metrics "2024_1_kayros"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/config"
-	"2024_1_kayros/internal/middleware"
-	rSession "2024_1_kayros/internal/repository/session"
-	rUser "2024_1_kayros/internal/repository/user"
+	protosession "2024_1_kayros/gen/go/session"
+	protouser "2024_1_kayros/gen/go/user"
+	http_middleware "2024_1_kayros/internal/middleware/http"
 	ucSession "2024_1_kayros/internal/usecase/session"
+	"2024_1_kayros/internal/usecase/user"
 )
 
-func AddMiddleware(cfg *config.Project, db *sql.DB, redisClientSession *redis.Client, redisClientCsrf *redis.Client, mux *mux.Router, logger *zap.Logger, m *metrics.Metrics) http.Handler {
-	repoUser := rUser.NewRepoLayer(db)
-	repoSession := rSession.NewRepoLayer(redisClientSession)
-	repoCsrfTokens := rSession.NewRepoLayer(redisClientCsrf)
+func AddMiddleware(cfg *config.Project, db *sql.DB, sessionConn, userConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, m *metrics.Metrics) http.Handler {
+	// init user microservice client
+	grpcUserClient := protouser.NewUserManagerClient(userConn)
+	usecaseUser := user.NewUsecaseLayer(grpcUserClient, m)
+	// init session microservice client
+	grpcSessionClient := protosession.NewSessionManagerClient(sessionConn)
+	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient, m)
 
-	usecaseSession := ucSession.NewUsecaseLayer(repoSession, logger)
-	usecaseCsrf := ucSession.NewUsecaseLayer(repoCsrfTokens, logger)
-
-	handler := middleware.SessionAuthentication(mux, repoUser, usecaseSession, logger)
-	handler = middleware.Csrf(handler, usecaseCsrf, usecaseSession, cfg, logger)
-	handler = middleware.Cors(handler, logger)
-	handler = middleware.Access(handler, logger)
-	handler = middleware.Metrics(handler, m)
+	handler := http_middleware.SessionAuthentication(mux, usecaseUser, usecaseSession, logger, &cfg.Redis)
+	handler = http_middleware.Csrf(handler, usecaseSession, cfg, logger, m)
+	handler = http_middleware.Cors(handler, logger)
+	handler = http_middleware.Access(handler, logger)
+	handler = http_middleware.Metrics(handler, m)
 
 	return handler
 }

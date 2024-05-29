@@ -24,6 +24,7 @@ func NewUsecaseLayer(repoFoodProps food.Repo) Usecase {
 }
 
 func (uc *UsecaseLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Category, error) {
+
 	dishes, err := uc.repoFood.GetByRestId(ctx, restId)
 	if err != nil {
 		return nil, err

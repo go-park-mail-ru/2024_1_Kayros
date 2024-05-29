@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
+	"2024_1_kayros/internal/delivery/metrics"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/myerrors"
-	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/entity"
 )
@@ -22,20 +22,23 @@ type Repo interface {
 }
 
 type RepoLayer struct {
-	db     *sql.DB
-	logger *zap.Logger
+	db *sql.DB
+	metrics *metrics.Metrics
 }
 
-func NewRepoLayer(dbProps *sql.DB, loggerProps *zap.Logger) Repo {
+func NewRepoLayer(dbProps *sql.DB, metrics *metrics.Metrics) Repo {
 	return &RepoLayer{
-		db:     dbProps,
-		logger: loggerProps,
+		db: dbProps,
+		metrics: metrics,
 	}
 }
 
 func (repo *RepoLayer) Create(ctx context.Context, questionId uint64, rating uint8, user string) error {
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
+	timeNowMetrics := time.Now()
 	res, err := repo.db.ExecContext(ctx, `INSERT INTO quiz(question_id, user_id, rating, created_at) VALUES($1, $2, $3, $4)`, questionId, user, rating, timeNow)
+	msRequestTimeout := time.Since(timeNowMetrics)
+	repo.metrics.DatabaseDuration.WithLabelValues(cnst.INSERT).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
 		return err
 	}
@@ -50,7 +53,10 @@ func (repo *RepoLayer) Create(ctx context.Context, questionId uint64, rating uin
 }
 
 func (repo *RepoLayer) GetQuestionsOnFocus(ctx context.Context, url string) ([]*entity.Question, error) {
+	timeNow := time.Now()
 	rows, err := repo.db.QueryContext(ctx, `SELECT id, name, url, focus_id, param_type FROM question WHERE url=$1`, url)
+	msRequestTimeout := time.Since(timeNow)
+	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +74,10 @@ func (repo *RepoLayer) GetQuestionsOnFocus(ctx context.Context, url string) ([]*
 }
 
 func (repo *RepoLayer) GetQuestions(ctx context.Context) ([]*entity.Question, error) {
+	timeNow := time.Now()
 	rows, err := repo.db.QueryContext(ctx, `SELECT id, name, param_type FROM question`)
+	msRequestTimeout := time.Since(timeNow)
+	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +98,10 @@ func (repo *RepoLayer) NPS(ctx context.Context, id uint64) (int8, error) {
 	var critics uint64   // rating 0-6
 	var respondents uint64
 
+	timeNow := time.Now()
 	row := repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE rating>8 AND question_id=$1`, id)
+	msRequestTimeout := time.Since(timeNow)
+	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err := row.Scan(&promoters)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -98,7 +110,10 @@ func (repo *RepoLayer) NPS(ctx context.Context, id uint64) (int8, error) {
 		promoters = 0
 	}
 
+	timeNow = time.Now()
 	row = repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE rating<7 AND question_id=$1`, id)
+	msRequestTimeout = time.Since(timeNow)
+	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err = row.Scan(&critics)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -107,7 +122,10 @@ func (repo *RepoLayer) NPS(ctx context.Context, id uint64) (int8, error) {
 		critics = 0
 	}
 
+	timeNow = time.Now()
 	row = repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE question_id=$1`, id)
+	msRequestTimeout = time.Since(timeNow)
+	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err = row.Scan(&respondents)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -126,7 +144,10 @@ func (repo *RepoLayer) CSAT(ctx context.Context, id uint64) (int8, error) {
 	var promoters uint64 // rating 9-10
 	var respondents uint64
 
+	timeNow := time.Now()
 	row := repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE rating>8 AND question_id=$1`, id)
+	msRequestTimeout := time.Since(timeNow)
+	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err := row.Scan(&promoters)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -135,7 +156,10 @@ func (repo *RepoLayer) CSAT(ctx context.Context, id uint64) (int8, error) {
 		promoters = 0
 	}
 
+	timeNow = time.Now()
 	row = repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE question_id=$1`, id)
+	msRequestTimeout = time.Since(timeNow)
+	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err = row.Scan(&respondents)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {

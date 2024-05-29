@@ -1,22 +1,19 @@
 package functions
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"github.com/mailru/easyjson"
+	"go.uber.org/zap"
 )
 
-func JsonResponse(w http.ResponseWriter, data interface{}) http.ResponseWriter {
-	w.Header().Set("Content-Type", "application/json")
-	body, err := json.Marshal(data)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return w
-	}
 
-	_, err = w.Write(body)
+func JsonResponse(w http.ResponseWriter, data interface{}) {
+	logger := zap.Logger{}
+	var err error
+	_, _, err = easyjson.MarshalToHTTPResponseWriter(data.(easyjson.Marshaler), w)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return w
+		logger.Error(err.Error())
+		return
 	}
-	return w
 }

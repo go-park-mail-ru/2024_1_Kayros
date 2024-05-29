@@ -1,0 +1,43 @@
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  goconst:
+    min-len: 2
+    min-occurrences: 3
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  govet:
+    check-shadowing: true
+    enable:
+      - fieldalignment
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - dogsled
+    - exportloopref
+    - exhaustive
+    - goconst
+    - gocyclo
+    - gosimple
+    - nolintlint
+    - nilerr
+    - nakedret
+    - prealloc
+    - predeclared
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+
+run:
+  issues-exit-code: 1

@@ -1,24 +1,30 @@
 version: '3.9'
 
 services:
+  # services (sqldb, s3, in-memory)
   postgres:
+    restart: always
     build: ../postgres
     container_name: postgres
     environment:
-      - POSTGRES_USER=kayrosteam
-      - POSTGRES_PASSWORD=resto123
-      - POSTGRES_DB=main_db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - ../postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - ../postgres/data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    tty: true
   redis:
+    restart: always    
     image: redis:latest
     container_name: redis
     ports:
       - "6379:6379"
+    tty: true
   minio:
+    restart: always
     image: quay.io/minio/minio
     container_name: minio
     ports:
@@ -27,39 +33,112 @@ services:
     volumes:
       - ../minio/data:/data
     environment:
-      - MINIO_ROOT_USER=kayrosteam
-      - MINIO_ROOT_PASSWORD=resto123
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_SERVER_URL=http://localhost:9000
+      - MINIO_BROWSER_REDIRECT_URL=https://localhost/minio-admin
     command: server --console-address :9001 /data
-  backend:
+    tty: true
+  # metrics
+  node-exporter:
     restart: always
-    build: ../../
-    container_name: backend
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    tty: true
+  prometheus:
+    restart: always
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - node-exporter
+    tty: true
+  grafana:
+    restart: always
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../grafana/data:/var/lib/grafana
+      - ../grafana/config:/etc/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    tty: true
+  # gateway and microservices
+  rest-grpc:
+    restart: always
+    build:
+      context: ../../
+      dockerfile: integration/microservices/rest/Dockerfile
+    container_name: rest-grpc
+    ports:
+      - "8001:8001"
+    tty: true
+  comment-grpc:
+    restart: always
+    build:
+      context: ../../
+      dockerfile: integration/microservices/comment/Dockerfile
+    container_name: comment-grpc
+    ports:
+      - "8003:8003"
+    tty: true
+  user-grpc:
+    restart: always
+    build:
+      context: ../../
+      dockerfile: integration/microservices/user/Dockerfile
+    container_name: user-grpc
+    ports:
+      - "8004:8004"
+    tty: true
+  session-grpc:
+    restart: always
+    build:
+      context: ../../
+      dockerfile: integration/microservices/session/Dockerfile
+    container_name: session-grpc
+    ports:
+      - "8005:8005"
+    tty: true
+  auth-grpc:
+    restart: always
+    build:
+      context: ../../
+      dockerfile: integration/microservices/auth/Dockerfile
+    container_name: auth-grpc
+    ports:
+      - "8002:8002"
+    tty: true
+    depends_on:
+      - user-grpc
+      - session-grpc
+  gateway:
+    restart: always
+    build: 
+      context: ../../
+      dockerfile: integration/microservices/gateway/Dockerfile
+    container_name: gateway
     ports:
       - "8000:8000"
-    tty: true
     depends_on:
       - redis
       - postgres
       - minio
-  # rest-grpc:
-  #   restart: always
-  #   build: ../../
-  #   container_name: rest-grpc
-  #   ports:
-  #     - "8001:8001"
-  # auth-grpc:
-  #   restart: always
-  #   build: ../../
-  #   container_name: auth-grpc
-  #   ports:
-  #     - "8002:8002"
-  # comment-grpc:
-  #   restart: always
-  #   build: ../../
-  #   container_name: comment-grpc
-  #   ports:
-  #     - "8003:8003"
+      - rest-grpc
+      - user-grpc
+      - session-grpc
+      - auth-grpc
+    tty: true
   nginx:
+    restart: always
     image: nginx:latest
     container_name: nginx
     volumes:
@@ -70,23 +149,5 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    depends_on:
-      - node-exporter
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    ports:
-      - "9100:9100"
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    ports:
-      - "3000:3000"
+      - gateway
+    tty: true

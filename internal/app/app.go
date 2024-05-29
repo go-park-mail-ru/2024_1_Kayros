@@ -9,13 +9,14 @@ import (
 	"os/signal"
 	"time"
 
-	metrics "2024_1_kayros"
 	"2024_1_kayros/config"
+	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/delivery/route"
+	grpcClientMiddleware "2024_1_kayros/internal/middleware/grpc/client"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/minio"
 	"2024_1_kayros/services/postgres"
-	"2024_1_kayros/services/redis"
+
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
@@ -29,16 +30,17 @@ func Run(cfg *config.Project) {
 	functions.InitDtoValidator(logger)
 
 	postgreDB := postgres.Init(cfg, logger)
-	redisSessionDB := redis.Init(cfg, logger, cfg.Redis.DatabaseSession)
-	redisCsrfDB := redis.Init(cfg, logger, cfg.Redis.DatabaseCsrf)
 	minioDB := minio.Init(cfg, logger)
 	reg := prometheus.NewRegistry()
-	m := metrics.NewMetrics(reg)
+	m := metrics.NewMetrics(reg, "gateway")
+
+	middleware := grpcClientMiddleware.NewGrpcClientUnaryMiddlewares(m)
 
 	//restaurant microservice
-	restConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.RestGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	restConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port),
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
 	if err != nil {
-		errMsg := fmt.Sprintf("The restaurant microservice is not available.\n%v", err)
+		errMsg := fmt.Sprintf("The microservice restaurant is not available.\n%v", err)
 		logger.Error(errMsg)
 	}
 	defer func(restConn *grpc.ClientConn) {
@@ -49,9 +51,10 @@ func Run(cfg *config.Project) {
 	}(restConn)
 
 	//comment microservice
-	commentConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.CommentGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	commentConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port), 
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
 	if err != nil {
-		errMsg := fmt.Sprintf("The comment microservice is not available.\n%v", err)
+		errMsg := fmt.Sprintf("The microservice comment is not available.\n%v", err)
 		logger.Error(errMsg)
 	}
 	defer func(restConn *grpc.ClientConn) {
@@ -62,7 +65,8 @@ func Run(cfg *config.Project) {
 	}(commentConn)
 
 	//auth microservice
-	authConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.AuthGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	authConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.AuthGrpcServer.Host, cfg.AuthGrpcServer.Port), 
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
 	if err != nil {
 		errMsg := fmt.Sprintf("The auth microservice is not available.\n%v", err)
 		logger.Error(errMsg)
@@ -74,21 +78,36 @@ func Run(cfg *config.Project) {
 		}
 	}(authConn)
 
-	//user microservice
-	// userConn, err := grpc.Dial(fmt.Sprintf(":%d", cfg.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	// if err != nil {
-	// 	errMsg := fmt.Sprintf("The user microservice is not available.\n%v", err)
-	// 	logger.Error(errMsg)
-	// }
-	// defer func(userConn *grpc.ClientConn) {
-	// 	err := userConn.Close()
-	// 	if err != nil {
-	// 		logger.Error(err.Error())
-	// 	}
-	// }(userConn)
+	// user microservice
+	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), 
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
+	if err != nil {
+		errMsg := fmt.Sprintf("The microservice user is not available.\n%v", err)
+		logger.Error(errMsg)
+	}
+	defer func(userConn *grpc.ClientConn) {
+		err := userConn.Close()
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}(userConn)
+
+	// session microservice
+	sessionConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.SessionGrpcServer.Host, cfg.SessionGrpcServer.Port), 
+	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
+	if err != nil {
+		errMsg := fmt.Sprintf("The microservice session is not available.\n%v", err)
+		logger.Error(errMsg)
+	}
+	defer func(sessionConn *grpc.ClientConn) {
+		err := userConn.Close()
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}(sessionConn)
 
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, redisSessionDB, redisCsrfDB, minioDB, r, logger, restConn, commentConn, authConn, m)
+	handler := route.Setup(cfg, postgreDB, minioDB, r, logger, restConn, commentConn, authConn, userConn, sessionConn, m, reg)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)

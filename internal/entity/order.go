@@ -11,6 +11,7 @@ type ShortOrder struct {
 	Time           string
 	RestaurantId   uint64
 	RestaurantName string
+	Sum            uint32
 }
 
 type Order struct {
@@ -25,9 +26,13 @@ type Order struct {
 	Address        string
 	ExtraAddress   string
 	Sum            uint64
+	NewSum         uint64
+	Promocode      string
 	RestaurantId   uint64
 	RestaurantName string
 	Commented      bool
+	PromocodeId    uint64
+	Error          string
 	Food           []*FoodInOrder
 }
 
@@ -44,6 +49,7 @@ type OrderDB struct {
 	ExtraAddress   sql.NullString
 	Sum            sql.NullInt64
 	Commented      bool
+	PromocodeId    sql.NullInt64
 	Food           []*FoodInOrder
 }
 
@@ -62,6 +68,7 @@ func ToOrder(oDB *OrderDB) *Order {
 		Sum:            Int(oDB.Sum),
 		Food:           oDB.Food,
 		Commented:      oDB.Commented,
+		PromocodeId:    Int(oDB.PromocodeId),
 	}
 }
 

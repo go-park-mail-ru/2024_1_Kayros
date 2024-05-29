@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option go_package = "./comment";
+package comment;
+
+message CommentId {
+  uint64 id = 1;
+}
+
+message RestId {
+  uint64 id = 1;
+}
+
+message Empty {}
+
+message Comment {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  string user_name = 3;
+  string image = 4;
+  uint64 rest_id = 5;
+  string text = 6;
+  uint32 rating = 7;
+  uint64 order_id = 8;
+}
+
+message CommentList {
+  repeated Comment comment= 1;
+}
+
+service CommentWorker {
+  rpc CreateComment(Comment) returns (Comment) {};
+  rpc DeleteComment(CommentId) returns (Empty) {};
+  rpc GetCommentsByRest(RestId) returns (CommentList) {};
+}

@@ -7,11 +7,11 @@ import (
 )
 
 // GetFileMimeType - method returns mime-type of file
-func GetFileMimeType(buffer []byte) (string, error) {
+func GetFileMimeType(buffer []byte) string {
 	bufferCopy := make([]byte, 512)
 	copy(bufferCopy, buffer[0:512])
 	// content-type is "application/octet-stream" if no others seemed to match.
-	return http.DetectContentType(bufferCopy), nil
+	return http.DetectContentType(bufferCopy)
 }
 
 // GetFileExtension - method returns file extension from mime-type

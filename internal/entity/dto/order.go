@@ -18,9 +18,12 @@ type Order struct {
 	Address        string         `json:"address" valid:"-"`
 	ExtraAddress   string         `json:"extra_address" valid:"-"`
 	Sum            uint64         `json:"sum" valid:"-"`
+	NewSum         uint64         `json:"new_sum,omitempty"`
+	Promocode      string         `json:"promocode,omitempty"`
 	RestaurantId   uint64         `json:"restaurant_id"`
 	RestaurantName string         `json:"restaurant_name"`
 	Commented      bool           `json:"commented"`
+	Error          string         `json:"error,omitempty"`
 	Food           []*FoodInOrder `json:"food" valid:"-"`
 }
 
@@ -31,6 +34,11 @@ type ShortOrder struct {
 	Time           string `json:"time" valid:"-"`
 	RestaurantId   uint64 `json:"restaurant_id,omitempty" valid:"-"`
 	RestaurantName string `json:"restaurant_name" valid:"-"`
+	Sum            uint32 `json:"sum,omitempty" valid:"-"`
+}
+
+type ShortOrderArray struct {
+	Payload []*ShortOrder `json:"payload" valid:"-"`
 }
 
 type FullAddress struct {
@@ -64,9 +72,12 @@ func NewOrder(order *entity.Order) *Order {
 		Address:        order.Address,
 		ExtraAddress:   order.ExtraAddress,
 		Sum:            order.Sum,
+		NewSum:         order.NewSum,
+		Promocode:      order.Promocode,
 		RestaurantId:   order.RestaurantId,
 		RestaurantName: order.RestaurantName,
 		Commented:      order.Commented,
+		Error:          order.Error,
 		Food:           foodInOrder,
 	}
 }
@@ -124,6 +135,7 @@ func NewShortOrder(order *entity.ShortOrder) *ShortOrder {
 		Time:           order.Time,
 		RestaurantId:   order.RestaurantId,
 		RestaurantName: order.RestaurantName,
+		Sum:            order.Sum,
 	}
 }
 

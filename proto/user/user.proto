@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+option go_package = "./user";
+package user;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+service UserManager {
+  rpc GetData(Email) returns (User);
+  rpc UpdateData(UpdateUserData) returns (User);
+  rpc UpdateAddress(AddressData) returns (google.protobuf.Empty);
+  rpc SetNewPassword(PasswordsChange) returns (google.protobuf.Empty);
+  rpc Create(User) returns (User);
+  rpc IsPassswordEquals(PasswordCheck) returns (google.protobuf.BoolValue);
+  rpc UpdateAddressByUnauthId(AddressDataUnauth) returns (google.protobuf.Empty);
+  rpc GetAddressByUnauthId(UnauthId) returns (Address);
+}
+
+message PasswordCheck {
+  string email = 1;
+  string password = 2;
+}
+
+message Email {
+  string email = 1;
+}
+
+message User {
+  uint64 id = 1;
+  string name = 2;
+  string phone = 3;
+  string email = 4;
+  string address = 5;
+  string img_url = 6;
+  string card_number = 7;
+  string password = 8;
+}
+
+message UnauthId {
+  string unauth_id = 1;
+}
+
+message Address {
+  string address = 1;
+}
+
+message AddressDataUnauth {
+  string unauth_id = 1;
+  string address = 2;
+}
+
+message AddressData {
+  string email = 1;
+  string address = 2;
+}
+
+message UpdateUserData {
+  User update_info = 1;
+  string email = 2;
+  bytes file_data = 3;
+  string file_name = 4;
+  int64 file_size = 5;
+}
+
+message PasswordsChange {
+  string password = 1;
+  string new_password = 2;
+  string email = 3;
+}
