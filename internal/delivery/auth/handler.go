@@ -169,7 +169,7 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 
 
-	rBody, err := io.ReadAll(r.Body)
+	requestBody, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
@@ -178,45 +178,27 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var data map[string]interface{}
-	err = json.Unmarshal(rBody, &data)
+	err = json.Unmarshal(requestBody, &data)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, errors.New("Invalid JSON in payload") , http.StatusBadRequest)
 		return
 	}
 
-	user, ok := data["user"].(map[string]interface{})
+	payload, ok := data["payload"].(map[string]interface{})
 	if !ok {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		functions.ErrorResponse(w, errors.New("User data not found") , http.StatusBadRequest)
+		functions.ErrorResponse(w, errors.New("Payload data not found") , http.StatusBadRequest)
 		return
 	}
 
-	firstName, ok := user["first_name"].(string)
-	if !ok {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		functions.ErrorResponse(w, errors.New("First name not found") , http.StatusBadRequest)
-		return
-	}
-   
-	lastName, ok := user["last_name"].(string)
-	if !ok {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		functions.ErrorResponse(w, errors.New("Last name not found") , http.StatusBadRequest)
-		return
-	}
-
-	avatar := user["avatar"].(string)
-
-	uuid, ok1 := data["uuid"].(string)
-	silentToken, ok2 := data["token"].(string)
+	uuid, ok1 := payload["uuid"].(string)
+	silentToken, ok2 := payload["token"].(string)
 	if !ok1 || !ok2 {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, errors.New("Missing uuid or token in payload") , http.StatusBadRequest)
 		return
 	}
-
-	d.logger.Info("DATA", zap.String("avatar", avatar), zap.String("uuid", uuid))
 
     vkURL := fmt.Sprintf("https://api.vk.com/method/auth.exchangeSilentAuthToken?v=5.131&token=%s&access_token=%s&uuid=%s", silentToken, d.cfg.Oauth.AccessToken, uuid)
 
@@ -228,7 +210,7 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
     }
     defer resp.Body.Close()
 
-    body, err := io.ReadAll(resp.Body)
+    responseBody, err := io.ReadAll(resp.Body)
     if err != nil {
         d.logger.Error("Failed to read VK API response", zap.Error(err))
         functions.ErrorResponse(w, errors.New("Failed to read VK API response"), http.StatusBadRequest)
@@ -236,56 +218,61 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
     }
 
     var vkResponse map[string]interface{}
-    err = json.Unmarshal(body, &vkResponse)
+    err = json.Unmarshal(responseBody, &vkResponse)
     if err != nil {
         d.logger.Error("Failed to parse VK API response", zap.Error(err))
         functions.ErrorResponse(w, errors.New("Failed to parse VK API response"), http.StatusBadRequest)
         return
     }
 
+	fmt.Println()
+	fmt.Println()
+	fmt.Println()
 	d.logger.Info(fmt.Sprintf("vkResponse %v", vkResponse))
 
-	var email string
-	if response, ok := vkResponse["response"].(map[string]interface{}); ok {
-        if email, ok = response["email"].(string); !ok {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			functions.ErrorResponse(w, errors.New("User email not found") , http.StatusBadRequest)
-			return
-        }
-    }
+	// var email string
+	// if response, ok := vkResponse["response"].(map[string]interface{}); ok {
+    //     if email, ok = response["email"].(string); !ok {
+	// 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	// 		functions.ErrorResponse(w, errors.New("User email not found") , http.StatusBadRequest)
+	// 		return
+    //     }
+    // }
 
-	userDB, err := d.ucUser.GetData(r.Context(), email)
-	if err != nil {
-		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
-			return
-		}
-		userDB, err = d.ucAuth.SignUp(r.Context(), &entity.User{
-			Email: email,
-			Name: lastName + firstName,
-			Password: "",
-			ImgUrl: avatar,
-		})
-		if err != nil {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-			return
-		}
-	} else {
-		userDB, err = d.ucAuth.SignIn(r.Context(), email, "")
-		if err != nil {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-			return
-		}
-	}
 
-	w, err = functions.SetCookie(w, r, d.ucSession, email, d.cfg)
-	if err != nil {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-	}
 
-	userDto := dto.NewUserData(userDB)
-	functions.JsonResponse(w, userDto)
+	// // userDB, err := d.ucUser.GetData(r.Context(), email)
+	// // if err != nil {
+	// // 	if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+	// // 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	// // 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+	// // 		return
+	// // 	}
+	// // 	userDB, err = d.ucAuth.SignUp(r.Context(), &entity.User{
+	// // 		Email: email,
+	// // 		Name: lastName + firstName,
+	// // 		Password: "",
+	// // 		ImgUrl: avatar,
+	// // 	})
+	// // 	if err != nil {
+	// // 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	// // 		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+	// // 		return
+	// // 	}
+	// // } else {
+	// // 	userDB, err = d.ucAuth.SignIn(r.Context(), email, "")
+	// // 	if err != nil {
+	// // 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	// // 		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+	// // 		return
+	// // 	}
+	// // }
+
+	// // w, err = functions.SetCookie(w, r, d.ucSession, email, d.cfg)
+	// // if err != nil {
+	// // 	d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	// // }
+
+	// userDto := dto.NewUserData(userDB)
+	// functions.JsonResponse(w, userDto)
 }
