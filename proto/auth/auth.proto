@@ -15,8 +15,9 @@ message SignInCredentials {
 
 message SignUpCredentials {
   string email = 1;
-  string name = 3;
-  string password =4;
+  string name = 2;
+  string password = 3;
+  string img_url = 4;
 }
 
 message User {

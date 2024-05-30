@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS "user"
     phone       TEXT
         CONSTRAINT user_phone_domain CHECK (LENGTH(phone) = 18 OR phone IS NULL)                       NULL, -- формат |+7 (989) 232 12 12|
     password    BYTEA
-        CONSTRAINT user_password_length CHECK (LENGTH(password) = 64)                                  NOT NULL,
+        CONSTRAINT user_password_length CHECK (LENGTH(password) = 64),
     address     TEXT
         CONSTRAINT user_address_length CHECK ((LENGTH(address) BETWEEN 14 AND 100) OR address IS NULL) NULL, -- |ул. Мира, д. 4| (самое короткое название улицы в Москве 4 символа)
     img_url     TEXT

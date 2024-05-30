@@ -37,6 +37,7 @@ func (uc *UsecaseLayer) SignUp(ctx context.Context, u *entity.User) (*entity.Use
 		Email:    u.Email,
 		Password: u.Password,
 		Name:     u.Name,
+		ImgUrl:   u.ImgUrl,
 	}
 	timeNow := time.Now()
 	uSignedUp, err := uc.grpcClient.SignUp(ctx, data)

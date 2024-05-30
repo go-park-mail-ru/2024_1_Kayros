@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/metrics"
@@ -168,54 +167,58 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 
 func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
-	payload := r.URL.Query().Get("payload")
 
-	payloadURL, err := url.QueryUnescape(payload)
+
+	rBody, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
 	if err != nil {
-		http.Error(w, "Invalid payload", http.StatusBadRequest)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, errors.New("Invalid payload"), http.StatusBadRequest)
 		return
 	}
 
-    // Используем стандартную библиотеку для работы с JSON, например, encoding/json
 	var data map[string]interface{}
-	err = json.Unmarshal([]byte(payloadURL), &data)
+	err = json.Unmarshal(rBody, &data)
 	if err != nil {
-		http.Error(w, "Invalid JSON in payload", http.StatusBadRequest)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, errors.New("Invalid JSON in payload") , http.StatusBadRequest)
 		return
 	}
 
-	 // Извлекаем данные пользователя
 	user, ok := data["user"].(map[string]interface{})
 	if !ok {
-		fmt.Println("User data not found")
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, errors.New("User data not found") , http.StatusBadRequest)
 		return
 	}
 
-	// Извлекаем имя и фамилию
 	firstName, ok := user["first_name"].(string)
 	if !ok {
-		fmt.Println("First name not found")
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, errors.New("First name not found") , http.StatusBadRequest)
 		return
 	}
    
 	lastName, ok := user["last_name"].(string)
 	if !ok {
-		fmt.Println("Last name not found")
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, errors.New("Last name not found") , http.StatusBadRequest)
 		return
 	}
- 
 
-	// Извлекаем uuid и token из распарсенного JSON
+	avatar := user["avatar"].(string)
+
 	uuid, ok1 := data["uuid"].(string)
 	silentToken, ok2 := data["token"].(string)
 	if !ok1 || !ok2 {
-		http.Error(w, "Missing uuid or token in payload", http.StatusBadRequest)
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, errors.New("Missing uuid or token in payload") , http.StatusBadRequest)
 		return
 	}
 
-    // VK API request
-    accessToken := "43ab9f8b43ab9f8b43ab9f8bd340b3b4e4443ab43ab9f8b259a8b25328287013ece3d21"
-    vkURL := fmt.Sprintf("https://api.vk.com/method/auth.exchangeSilentAuthToken?v=5.131&token=%s&access_token=%s&uuid=%s", silentToken, accessToken, uuid)
+	d.logger.Info("DATA", zap.String("avatar", avatar), zap.String("uuid", uuid))
+
+    vkURL := fmt.Sprintf("https://api.vk.com/method/auth.exchangeSilentAuthToken?v=5.131&token=%s&access_token=%s&uuid=%s", silentToken, d.cfg.Oauth.AccessToken, uuid)
 
     resp, err := http.Get(vkURL)
     if err != nil {
@@ -225,11 +228,10 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
     }
     defer resp.Body.Close()
 
-    // Read VK API response
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         d.logger.Error("Failed to read VK API response", zap.Error(err))
-        functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+        functions.ErrorResponse(w, errors.New("Failed to read VK API response"), http.StatusBadRequest)
         return
     }
 
@@ -237,27 +239,46 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
     err = json.Unmarshal(body, &vkResponse)
     if err != nil {
         d.logger.Error("Failed to parse VK API response", zap.Error(err))
-        functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+        functions.ErrorResponse(w, errors.New("Failed to parse VK API response"), http.StatusBadRequest)
         return
     }
 
-    // Log the VK API response
-    d.logger.Info("VK API Response", zap.Any("vkResponse", vkResponse))
+	d.logger.Info(fmt.Sprintf("vkResponse %v", vkResponse))
 
 	var email string
 	if response, ok := vkResponse["response"].(map[string]interface{}); ok {
-        if email, ok = response["email"].(string); ok {
-            fmt.Println("Email:", email)
+        if email, ok = response["email"].(string); !ok {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			functions.ErrorResponse(w, errors.New("User email not found") , http.StatusBadRequest)
+			return
         }
     }
 
 	userDB, err := d.ucUser.GetData(r.Context(), email)
 	if err != nil {
-		d.ucAuth.SignUp(r.Context(), &entity.User{
+		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
+			return
+		}
+		userDB, err = d.ucAuth.SignUp(r.Context(), &entity.User{
 			Email: email,
 			Name: lastName + firstName,
-			Password: "qwerty12345",
+			Password: "",
+			ImgUrl: avatar,
 		})
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+	} else {
+		userDB, err = d.ucAuth.SignIn(r.Context(), email, "")
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w, err = functions.SetCookie(w, r, d.ucSession, email, d.cfg)

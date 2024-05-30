@@ -99,7 +99,8 @@ func convAuthUserIntoUser(u *auth.SignUpCredentials) *user.User {
 	return &user.User{
 		Name:     u.GetName(),
 		Email:    u.GetEmail(),
-		Password: u.Password,
+		Password: u.GetPassword(),
+		ImgUrl:   u.GetImgUrl(),
 	}
 }
 

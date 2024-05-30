@@ -31,6 +31,7 @@ type (
 		SessionGrpcServerExporter    `yaml:"session-grpc-server-exporter"`
 
 		Payment           `yaml:"payment"`
+		Oauth 			  `yaml:"access-token"`
 	}
 
 	RestGrpcServer struct {
@@ -131,6 +132,10 @@ type (
 	Payment struct {
 		SecretKey string `yaml:"secret-key" env:"P_SECRET_KEY"`
 		StoreId   string `yaml:"store-id" env:"P_STORE_ID"`
+	}
+
+	Oauth struct {
+		AccessToken string `yaml:"access-token" env:"OAUTH_ACCESS_TOKEN"`
 	}
 )
 
