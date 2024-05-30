@@ -47,9 +47,9 @@ func (repo *Layer) GetByEmail(ctx context.Context, email *user.Email) (*user.Use
 	err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Phone, &u.Password, &u.Address, &u.ImgUrl, &u.CardNumber)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, myerrors.SqlNoRowsUserRelation
+			return &user.User{}, myerrors.SqlNoRowsUserRelation
 		}
-		return nil, err
+		return &user.User{}, err
 	}
 
 	return entity.ConvertEntityUserIntoProtoUser(&u), nil
@@ -65,7 +65,7 @@ func (repo *Layer) DeleteByEmail(ctx context.Context, email *user.Email) error {
 	}
 	numRows, err := row.RowsAffected()
 	if err != nil {
-		return myerrors.SqlNoRowsUserRelationAffected
+		return err
 	}
 	if numRows == 0 {
 		return myerrors.SqlNoRowsUserRelation
@@ -77,7 +77,7 @@ func (repo *Layer) Create(ctx context.Context, u *user.User) error {
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	timeNowMetric := time.Now()
 	row, err := repo.database.ExecContext(ctx,
-		`INSERT INTO "user" (name, email, password, address, img_url, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		`INSERT INTO "user" (name, email, password, address, img_url, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
 		u.GetName(), u.GetEmail(), u.GetPassword(), functions.MaybeNullString(u.GetAddress()), functions.MaybeNullString(u.GetImgUrl()), timeNow, timeNow)
 	timeEnd := time.Since(timeNowMetric)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.INSERT).Observe(float64(timeEnd.Milliseconds()))
@@ -86,7 +86,7 @@ func (repo *Layer) Create(ctx context.Context, u *user.User) error {
 	}
 	numRows, err := row.RowsAffected()
 	if err != nil {
-		return myerrors.SqlNoRowsUserRelationAffected
+		return err
 	}
 	if numRows == 0 {
 		return myerrors.SqlNoRowsUserRelation
@@ -129,12 +129,12 @@ func (repo *Layer) GetAddressByUnauthId(ctx context.Context, id *user.UnauthId) 
 	err := row.Scan(&address)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, myerrors.SqlNoRowsUnauthAddressRelation
+			return &user.Address{}, myerrors.SqlNoRowsUnauthAddressRelation
 		}
-		return nil, err
+		return &user.Address{}, err
 	}
 	if !address.Valid {
-		return nil, nil
+		return &user.Address{}, nil
 	}
 	return &user.Address{Address: address.String}, nil
 }

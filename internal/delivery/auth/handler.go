@@ -217,10 +217,6 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-	fmt.Println()
-	fmt.Println()
-	fmt.Println()
-	d.logger.Info(fmt.Sprintf("%v", vkResponse))
 	re, ok := vkResponse["response"].(map[string]interface{})
 	if !ok {
 		d.logger.Error("Failed to parse VK API response", zap.Error(err))
@@ -242,12 +238,10 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
 			return
 		}
-		fmt.Println(email)
-		fmt.Println(data.Payload.User.FirstName + data.Payload.User.LastName)
-		fmt.Println(data.Payload.User.Avatar)
+
 		userDB, err := d.ucAuth.SignUp(r.Context(), &entity.User{
 			Email: email,
-			Name: data.Payload.User.FirstName + data.Payload.User.LastName,
+			Name: data.Payload.User.FirstName,
 			Password: "",
 			ImgUrl: data.Payload.User.Avatar,
 		})
