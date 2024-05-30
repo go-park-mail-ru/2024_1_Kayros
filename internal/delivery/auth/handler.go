@@ -217,10 +217,14 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+	fmt.Println()
+	fmt.Println()
+	fmt.Println()
+	d.logger.Info(fmt.Sprintf("%v", vkResponse))
 	re, ok := vkResponse["response"].(map[string]interface{})
 	if !ok {
 		d.logger.Error("Failed to parse VK API response", zap.Error(err))
-        functions.ErrorResponse(w, errors.New("Failed to manipulate VK API response data"), http.StatusBadRequest)
+        functions.ErrorResponse(w, errors.New("Failed to 1 VK API response data"), http.StatusBadRequest)
         return
 	}
 	email, ok := re["email"].(string)
