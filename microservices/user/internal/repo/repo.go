@@ -47,7 +47,7 @@ func (repo *Layer) GetByEmail(ctx context.Context, email *user.Email) (*user.Use
 	err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Phone, &u.Password, &u.Address, &u.ImgUrl, &u.CardNumber)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return &user.User{}, myerrors.SqlNoRowsUserRelation
+			return nil, myerrors.SqlNoRowsUserRelation
 		}
 		return &user.User{}, err
 	}
