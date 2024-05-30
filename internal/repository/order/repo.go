@@ -107,7 +107,7 @@ func (repo *RepoLayer) GetOrders(ctx context.Context, userId alias.UserId, statu
 			str = str + ", $" + strconv.Itoa(i+3)
 		}
 		query := `SELECT id, user_id, order_created_at, status, address, 
-       			extra_address, sum FROM "order" WHERE user_id= $1 AND status IN (` + str + `)`
+       			extra_address, sum FROM "order" WHERE user_id= $1 AND status IN (` + str + `) ORDER BY order_created_at DESC`
 		args := make([]interface{}, len(status)+1)
 		args[0] = uint64(userId)
 		for i, a := range status {
