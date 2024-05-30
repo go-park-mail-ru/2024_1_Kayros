@@ -24,4 +24,4 @@ pb:
 	protoc -I proto proto/**/*.proto --go_out=gen/go --go-grpc_out=gen/go
 
 easyjs:
-	easyjson -no_std_marshalers -all internal/entity/dto
+	easyjson -all -no_std_marshalers ./internal/entity/dto

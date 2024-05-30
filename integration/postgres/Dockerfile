@@ -1,4 +1,4 @@
-FROM postgres:12.4
+FROM mirror.gcr.io/library/postgres:12.4
 
 ENV DEBIAN_FRONTEND=noninteractive
 

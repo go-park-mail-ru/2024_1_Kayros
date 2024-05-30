@@ -7,9 +7,9 @@ services:
     build: ../postgres
     container_name: postgres
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=kayrosteam
+      - POSTGRES_PASSWORD=resto123
+      - POSTGRES_DB=main_db
     volumes:
       - ../postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - ../postgres/data:/var/lib/postgresql/data
@@ -73,6 +73,8 @@ services:
     restart: always
     image: grafana/grafana
     container_name: grafana
+    environment:
+      - GF_SERVER_ROOT_URL=https://resto-go.online/grafana
     ports:
       - "3000:3000"
     volumes:
@@ -154,7 +156,7 @@ services:
       - ../nginx/logs:/var/log/nginx/
       - ../nginx/prod/nginx.conf:/etc/nginx/nginx.conf
       # here you need to place the path of frontend static folder
-      - /root/frontend/dist:/var/www/dist
+      - /home/kayros/frontend/dist:/var/www/dist
     ports:
       - "80:80"
       - "443:443"
