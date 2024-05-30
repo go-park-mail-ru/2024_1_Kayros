@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS "user"
     address     TEXT
         CONSTRAINT user_address_length CHECK ((LENGTH(address) BETWEEN 14 AND 100) OR address IS NULL) NULL, -- |ул. Мира, д. 4| (самое короткое название улицы в Москве 4 символа)
     img_url     TEXT
-        CONSTRAINT user_img_url CHECK (LENGTH(img_url) <= 60) DEFAULT '/minio-api/users/default.jpg'   NOT NULL,
+        CONSTRAINT user_img_url CHECK (LENGTH(img_url) <= 150) DEFAULT '/minio-api/users/default.jpg'   NOT NULL,
     card_number BYTEA
         CONSTRAINT user_card_number CHECK (LENGTH(password) = 64)                                      NULL,
     created_at  TIMESTAMPTZ

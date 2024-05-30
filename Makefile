@@ -25,3 +25,8 @@ pb:
 
 easyjs:
 	easyjson -all -no_std_marshalers ./internal/entity/dto
+
+
+# go test -coverprofile=cover.out
+# go tool cover -html=cover.out -o cover.html
+# //go:generate mockgen -source ./service.go -destination=./mocks/service.go -package=mock_service

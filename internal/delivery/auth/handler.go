@@ -9,6 +9,7 @@ import (
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/metrics"
+	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/auth"
 	"2024_1_kayros/internal/usecase/session"
@@ -167,7 +168,6 @@ func (d *Delivery) SignOut(w http.ResponseWriter, r *http.Request) {
 func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 
-
 	requestBody, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -176,24 +176,19 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data map[string]interface{}
-	err = json.Unmarshal(requestBody, &data)
+	var data dto.VkBodyRequest
+	err = easyjson.Unmarshal(requestBody, &data)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, errors.New("Invalid JSON in payload") , http.StatusBadRequest)
 		return
 	}
 
-	payload, ok := data["payload"].(map[string]interface{})
-	if !ok {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		functions.ErrorResponse(w, errors.New("Payload data not found") , http.StatusBadRequest)
-		return
-	}
+	d.logger.Info(fmt.Sprintf("%v", data))
 
-	uuid, ok1 := payload["uuid"].(string)
-	silentToken, ok2 := payload["token"].(string)
-	if !ok1 || !ok2 {
+	uuid := data.Payload.UUID
+	silentToken := data.Payload.Token
+	if uuid == "" || silentToken == "" {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, errors.New("Missing uuid or token in payload") , http.StatusBadRequest)
 		return
@@ -224,54 +219,55 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-	fmt.Println()
-	fmt.Println()
-	fmt.Println()
-	d.logger.Info(fmt.Sprintf("vkResponse %v", vkResponse))
+	re, ok := vkResponse["response"].(map[string]interface{})
+	if !ok {
+		d.logger.Error("Failed to parse VK API response", zap.Error(err))
+        functions.ErrorResponse(w, errors.New("Failed to manipulate VK API response data"), http.StatusBadRequest)
+        return
+	}
+	email, ok := re["email"].(string)
+	if !ok {
+		d.logger.Error("Failed to parse VK API response", zap.Error(err))
+        functions.ErrorResponse(w, errors.New("Failed to retrieve email from VK API response"), http.StatusBadRequest)
+        return
+	}
 
-	// var email string
-	// if response, ok := vkResponse["response"].(map[string]interface{}); ok {
-    //     if email, ok = response["email"].(string); !ok {
-	// 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-	// 		functions.ErrorResponse(w, errors.New("User email not found") , http.StatusBadRequest)
-	// 		return
-    //     }
-    // }
+	var userDto *dto.UserGet
+	_, err = d.ucUser.GetData(r.Context(), email) 
+	if err != nil {
+		if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		fmt.Println(email)
+		fmt.Println(data.Payload.User.FirstName + data.Payload.User.LastName)
+		fmt.Println(data.Payload.User.Avatar)
+		userDB, err := d.ucAuth.SignUp(r.Context(), &entity.User{
+			Email: email,
+			Name: data.Payload.User.FirstName + data.Payload.User.LastName,
+			Password: "",
+			ImgUrl: data.Payload.User.Avatar,
+		})
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		userDto = dto.NewUserData(userDB)
+	} else {
+		userDB, err := d.ucAuth.SignIn(r.Context(), email, "")
+		if err != nil {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+			return
+		}
+		userDto = dto.NewUserData(userDB)
+	}
 
-
-
-	// // userDB, err := d.ucUser.GetData(r.Context(), email)
-	// // if err != nil {
-	// // 	if !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
-	// // 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-	// // 		functions.ErrorResponse(w, myerrors.BadCredentialsRu, http.StatusBadRequest)
-	// // 		return
-	// // 	}
-	// // 	userDB, err = d.ucAuth.SignUp(r.Context(), &entity.User{
-	// // 		Email: email,
-	// // 		Name: lastName + firstName,
-	// // 		Password: "",
-	// // 		ImgUrl: avatar,
-	// // 	})
-	// // 	if err != nil {
-	// // 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-	// // 		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-	// // 		return
-	// // 	}
-	// // } else {
-	// // 	userDB, err = d.ucAuth.SignIn(r.Context(), email, "")
-	// // 	if err != nil {
-	// // 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-	// // 		functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
-	// // 		return
-	// // 	}
-	// // }
-
-	// // w, err = functions.SetCookie(w, r, d.ucSession, email, d.cfg)
-	// // if err != nil {
-	// // 	d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-	// // }
-
-	// userDto := dto.NewUserData(userDB)
-	// functions.JsonResponse(w, userDto)
+	w, err = functions.SetCookie(w, r, d.ucSession, email, d.cfg)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+	}
+	functions.JsonResponse(w, userDto)
 }

@@ -32,9 +32,9 @@ func AddAuthRouter(cfg *config.Project, db *sql.DB, authConn *grpc.ClientConn, u
 
 	deliveryAuth := dAuth.NewDeliveryLayer(cfg, usecaseSession, usecaseAuth, usecaseUser, logger, metrics)
 
+	mux.HandleFunc("/api/v1/vk", deliveryAuth.AuthVk).Methods("POST").Name("vk-auth")
 	mux.HandleFunc("/api/v1/signin", deliveryAuth.SignIn).Methods("POST").Name("signin")
 	mux.HandleFunc("/api/v1/signup", deliveryAuth.SignUp).Methods("POST").Name("signup")
 	mux.HandleFunc("/api/v1/signout", deliveryAuth.SignOut).Methods("POST").Name("signout")
-	mux.HandleFunc("/api/v1/vk", deliveryAuth.AuthVk).Methods("POST").Name("vk-auth")
 }
 

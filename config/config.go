@@ -31,7 +31,7 @@ type (
 		SessionGrpcServerExporter    `yaml:"session-grpc-server-exporter"`
 
 		Payment           `yaml:"payment"`
-		Oauth 			  `yaml:"access-token"`
+		Oauth 			  `yaml:"oauth"`
 	}
 
 	RestGrpcServer struct {

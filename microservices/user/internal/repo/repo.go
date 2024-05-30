@@ -86,7 +86,7 @@ func (repo *Layer) Create(ctx context.Context, u *user.User) error {
 	}
 	numRows, err := row.RowsAffected()
 	if err != nil {
-		return err
+		return myerrors.SqlNoRowsUserRelationAffected
 	}
 	if numRows == 0 {
 		return myerrors.SqlNoRowsUserRelation
@@ -129,12 +129,12 @@ func (repo *Layer) GetAddressByUnauthId(ctx context.Context, id *user.UnauthId) 
 	err := row.Scan(&address)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return &user.Address{}, myerrors.SqlNoRowsUnauthAddressRelation
+			return nil, myerrors.SqlNoRowsUnauthAddressRelation
 		}
-		return &user.Address{}, err
+		return nil, err
 	}
 	if !address.Valid {
-		return &user.Address{}, nil
+		return nil, nil
 	}
 	return &user.Address{Address: address.String}, nil
 }
