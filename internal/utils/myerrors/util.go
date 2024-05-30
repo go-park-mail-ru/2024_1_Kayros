@@ -88,6 +88,8 @@ var (
 
 	// Database
 	SqlNoRowsUserRelation          = errors.New("no such record exists for \"user\"")
+	SqlNoRowsUserRelationAffected          = errors.New("no rowы affected for \"user\"")
+
 	SqlNoRowsUnauthAddressRelation = errors.New("no such record exists for unauth_address")
 	SqlNoRowsRestaurantRelation    = errors.New("no such record exists for restaurant")
 	SqlNoRowsFoodRelation          = errors.New("no such record exists for food")

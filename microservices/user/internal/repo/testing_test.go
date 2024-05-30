@@ -17,13 +17,13 @@ type testFixtures struct {
 	mock sqlmock.Sqlmock
 }
 
-func setUp(t *testing.T) testFixtures {
+func setUp(t *testing.T, namespace string) testFixtures {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	repo := NewLayer(db, &metrics.MicroserviceMetrics{
 		RequestTime: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Namespace: "setUpTest",
+				Namespace: namespace,
 				Name:    "time_of_request",
 				Help:    "HTTP request duration in milliseconds",
 				Buckets: []float64{10, 25, 50, 100, 250, 500, 1000},
@@ -32,7 +32,7 @@ func setUp(t *testing.T) testFixtures {
 		),
 		DatabaseDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Namespace: "setUpTest",
+				Namespace: namespace,
 				Name:    "database_duration_ms",
 				Help:    "Database request duration in milliseconds",
 				Buckets: []float64{10, 25, 50, 100, 250, 500, 1000},

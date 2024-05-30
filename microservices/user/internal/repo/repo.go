@@ -49,7 +49,7 @@ func (repo *Layer) GetByEmail(ctx context.Context, email *user.Email) (*user.Use
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsUserRelation
 		}
-		return &user.User{}, err
+		return nil, err
 	}
 
 	return entity.ConvertEntityUserIntoProtoUser(&u), nil
@@ -65,7 +65,7 @@ func (repo *Layer) DeleteByEmail(ctx context.Context, email *user.Email) error {
 	}
 	numRows, err := row.RowsAffected()
 	if err != nil {
-		return err
+		return myerrors.SqlNoRowsUserRelationAffected
 	}
 	if numRows == 0 {
 		return myerrors.SqlNoRowsUserRelation

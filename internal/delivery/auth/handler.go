@@ -9,7 +9,6 @@ import (
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/metrics"
-	"2024_1_kayros/internal/entity"
 	"2024_1_kayros/internal/entity/dto"
 	"2024_1_kayros/internal/usecase/auth"
 	"2024_1_kayros/internal/usecase/session"
