@@ -77,7 +77,7 @@ func (repo *Layer) Create(ctx context.Context, u *user.User) error {
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	timeNowMetric := time.Now()
 	row, err := repo.database.ExecContext(ctx,
-		`INSERT INTO "user" (name, email, password, address, img_url, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+		`INSERT INTO "user" (name, email, password, address, img_url, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		u.GetName(), u.GetEmail(), u.GetPassword(), functions.MaybeNullString(u.GetAddress()), functions.MaybeNullString(u.GetImgUrl()), timeNow, timeNow)
 	timeEnd := time.Since(timeNowMetric)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.INSERT).Observe(float64(timeEnd.Milliseconds()))

@@ -235,7 +235,14 @@ func (uc *Layer) Create(ctx context.Context, data *user.User) (*user.User, error
 		uc.logger.Error(myerrors.UserAlreadyExist.Error())
 		return &user.User{}, grpcerr.NewError(codes.AlreadyExists, myerrors.UserAlreadyExist.Error())
 	}
+	if uCopy.ImgUrl == "" {
+		uCopy.ImgUrl = "/minio-api/users/default.jpg"
+	}	
 
+	fmt.Println()
+	fmt.Println()
+	fmt.Println()
+	uc.logger.Info(fmt.Sprintf("%v", uCopy))
 	err = uc.repoUser.Create(ctx, uCopy)
 	if err != nil {
 		uc.logger.Error(err.Error())
