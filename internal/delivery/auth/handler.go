@@ -184,8 +184,6 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d.logger.Info(fmt.Sprintf("%v", data))
-
 	uuid := data.Payload.UUID
 	silentToken := data.Payload.Token
 	if uuid == "" || silentToken == "" {
