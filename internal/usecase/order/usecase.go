@@ -176,7 +176,7 @@ func (uc *UsecaseLayer) GetCurrentOrders(ctx context.Context, email string) ([]*
 		}
 		return nil, err
 	}
-	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Payed, constants.Created, constants.Cooking, constants.OnTheWay)
+	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Created, constants.Cooking, constants.OnTheWay)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (uc *UsecaseLayer) GetArchiveOrders(ctx context.Context, email string) ([]*
 		}
 		return nil, err
 	}
-	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Payed, constants.Cooking, constants.OnTheWay, constants.Delivered)
+	orders, err := uc.repoOrder.GetOrders(ctx, alias.UserId(u.Id), constants.Created, constants.Cooking, constants.OnTheWay, constants.Delivered)
 	if errors.Is(err, myerrors.SqlNoRowsOrderRelation) {
 		return []*entity.ShortOrder{}, nil
 	}
@@ -309,7 +309,7 @@ func (uc *UsecaseLayer) Pay(ctx context.Context, orderId alias.OrderId, currentS
 			return nil, err
 		}
 	}
-	id, err := uc.repoOrder.UpdateStatus(ctx, orderId, constants.Payed)
+	id, err := uc.repoOrder.UpdateStatus(ctx, orderId, constants.Created)
 	if err != nil {
 		return nil, err
 	}

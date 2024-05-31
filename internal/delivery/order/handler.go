@@ -316,7 +316,7 @@ func (h *OrderHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statuses := []string{cnst.Created, cnst.Cooking, cnst.OnTheWay, cnst.Delivered}
+	statuses := []string{cnst.Cooking, cnst.OnTheWay, cnst.Delivered}
 
 	ctx := context.WithValue(context.Background(), cnst.RequestId, requestId)
 	go ChangingStatus(ctx, h, payedOrder.Id, statuses)
