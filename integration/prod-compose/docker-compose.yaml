@@ -18,14 +18,14 @@ services:
     tty: true
   redis:
     restart: always
-    image: redis:latest
+    image: mirror.gcr.io/library/redis:latest
     container_name: redis
     ports:
       - "6379:6379"
     tty: true
   minio:
     restart: always
-    image: quay.io/minio/minio
+    image: mirror.gcr.io/minio/minio
     container_name: minio
     ports:
       - "9000:9000"
@@ -45,7 +45,7 @@ services:
   # metrics
   node-exporter:
     restart: always
-    image: prom/node-exporter:latest
+    image: mirror.gcr.io/prom/node-exporter:latest
     container_name: node-exporter
     volumes:
       - /proc:/host/proc:ro
@@ -60,7 +60,7 @@ services:
     tty: true
   prometheus:
     restart: always
-    image: prom/prometheus:latest
+    image: mirror.gcr.io/prom/prometheus:latest
     container_name: prometheus
     ports:
       - "9090:9090"
@@ -71,7 +71,7 @@ services:
     tty: true
   grafana:
     restart: always
-    image: grafana/grafana
+    image: mirror.gcr.io/grafana/grafana
     container_name: grafana
     environment:
       - GF_SERVER_ROOT_URL=https://resto-go.online/grafana
@@ -148,7 +148,7 @@ services:
     tty: true
   nginx:
     restart: always
-    image: nginx:latest
+    image: mirror.gcr.io/library/nginx:latest
     container_name: nginx
     volumes:
       - /etc/letsencrypt/live/resto-go.online/privkey.pem:/root/ssl/key.pem
