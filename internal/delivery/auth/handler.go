@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"unicode"
 
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/metrics"
@@ -176,20 +178,31 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data dto.VkBodyRequest
-	err = easyjson.Unmarshal(requestBody, &data)
+	var data map[string]interface{}
+	err = json.Unmarshal(requestBody, &data)
 	if err != nil {
 		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
 		functions.ErrorResponse(w, errors.New("Invalid JSON in payload") , http.StatusBadRequest)
 		return
 	}
 
-	uuid := data.Payload.UUID
-	silentToken := data.Payload.Token
-	if uuid == "" || silentToken == "" {
-		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-		functions.ErrorResponse(w, errors.New("Missing uuid or token in payload") , http.StatusBadRequest)
-		return
+	payload, ok := data["payload"].(map[string]interface{})
+	if ok {
+		uuid := payload["uuid"].(string)
+		silentToken := payload["token"].(string)
+		if uuid == "" || silentToken == "" {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			functions.ErrorResponse(w, errors.New("Missing uuid or token in payload") , http.StatusBadRequest)
+			return
+		}
+	} else {
+		uuid := data["uuid"].(string)
+		silentToken := data["token"].(string)
+		if uuid == "" || silentToken == "" {
+			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+			functions.ErrorResponse(w, errors.New("Missing uuid or token in payload") , http.StatusBadRequest)
+			return
+		}
 	}
 
     vkURL := fmt.Sprintf("https://api.vk.com/method/auth.exchangeSilentAuthToken?v=5.131&token=%s&access_token=%s&uuid=%s", silentToken, d.cfg.Oauth.AccessToken, uuid)
@@ -203,6 +216,7 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
     defer resp.Body.Close()
 
     responseBody, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
     if err != nil {
         d.logger.Error("Failed to read VK API response", zap.Error(err))
         functions.ErrorResponse(w, errors.New("Failed to read VK API response"), http.StatusBadRequest)
@@ -217,18 +231,51 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-	re, ok := vkResponse["response"].(map[string]interface{})
+	response, ok := vkResponse["response"].(map[string]interface{})
 	if !ok {
 		d.logger.Error("Failed to parse VK API response", zap.Error(err))
         functions.ErrorResponse(w, errors.New("Failed to get VK API response data"), http.StatusBadRequest)
         return
 	}
-	email, ok := re["email"].(string)
+	email, ok := response["email"].(string)
 	if !ok {
 		d.logger.Error("Failed to parse VK API response", zap.Error(err))
         functions.ErrorResponse(w, errors.New("Failed to retrieve email from VK API response"), http.StatusBadRequest)
         return
 	}
+	userId := response["user_id"].(float64)
+	userAccessToken := response["access_token"].(string)
+	userIdInt := int(userId)
+	queryUrl := fmt.Sprintf("https://api.vk.com/method/users.get?access_token=%s&v=5.131&user_ids=%d&fields=contacts,photo_200", userAccessToken, userIdInt)
+
+	respUserData, err := http.Get(queryUrl)
+    if err != nil {
+        d.logger.Error("VK API request failed. Can't get user data", zap.Error(err))
+        functions.ErrorResponse(w, myerrors.InternalServerRu, http.StatusInternalServerError)
+        return
+    }
+
+	dataResponseUser, err := io.ReadAll(respUserData.Body)
+	defer respUserData.Body.Close()
+	if err != nil {
+        d.logger.Error("Failed to read VK API response user data ", zap.Error(err))
+        functions.ErrorResponse(w, errors.New("Failed to read VK API response user data"), http.StatusBadRequest)
+        return
+	}
+
+	var userData map[string]interface{}
+	err = json.Unmarshal(dataResponseUser, &userData)
+	if err != nil {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, errors.New("Invalid JSON in payload") , http.StatusBadRequest)
+		return
+	}
+	
+	userDataPayload := userData["response"].([]interface{})
+	user := userDataPayload[0].(map[string]interface{})
+	phone := TransformPhoneNumber(user["mobile_phone"].(string))
+	first_name := user["first_name"].(string)
+	imgUrl := user["photo_200"].(string)
 
 	var userDto *dto.UserGet
 	_, err = d.ucUser.GetData(r.Context(), email) 
@@ -241,10 +288,11 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 
 		userDB, err := d.ucAuth.SignUp(r.Context(), &entity.User{
 			Email: email,
-			Name: data.Payload.User.FirstName,
+			Name: first_name,
 			Password: "",
-			ImgUrl: data.Payload.User.Avatar,
+			ImgUrl: imgUrl,
 			IsVkUser: true,
+			Phone: phone,
 		})
 		if err != nil {
 			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
@@ -268,3 +316,24 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 	}
 	functions.JsonResponse(w, userDto)
 }
+
+
+func TransformPhoneNumber (phone string) string {
+	var nums []int
+	for _, numStr := range phone {
+		isNum := unicode.IsDigit(numStr) 
+		if isNum {
+			num, _ := strconv.Atoi(string(numStr))
+			nums = append(nums, num)
+		}
+	}
+	ruPhoneLength := 11
+	if len(nums) != ruPhoneLength {
+		return ""
+	}
+	return formatPhoneNumber(nums)
+}
+
+func formatPhoneNumber(nums []int) string {
+	return fmt.Sprintf("+%d (%d%d%d) %d%d%d %d%d %d%d", nums[0], nums[1], nums[2], nums[3], nums[4], nums[5], nums[6], nums[7], nums[8], nums[9], nums[10])
+   }

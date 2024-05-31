@@ -102,6 +102,7 @@ func convAuthUserIntoUser(u *auth.SignUpCredentials) *user.User {
 		Password: u.GetPassword(),
 		ImgUrl:   u.GetImgUrl(),
 		IsVkUser: u.GetIsVkUser(),
+		Phone:    u.GetPhone(),
 	}
 }
 

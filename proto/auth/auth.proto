@@ -19,6 +19,7 @@ message SignUpCredentials {
   string password = 3;
   string img_url = 4;
   bool   is_vk_user = 5;
+  string phone = 6;
 }
 
 message User {
