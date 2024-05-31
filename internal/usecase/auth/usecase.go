@@ -38,7 +38,8 @@ func (uc *UsecaseLayer) SignUp(ctx context.Context, u *entity.User) (*entity.Use
 		Password: u.Password,
 		Name:     u.Name,
 		ImgUrl:   u.ImgUrl,
-	}
+		IsVkUser: u.IsVkUser,
+ 	}
 	timeNow := time.Now()
 	uSignedUp, err := uc.grpcClient.SignUp(ctx, data)
 	msRequestTimeout := time.Since(timeNow)

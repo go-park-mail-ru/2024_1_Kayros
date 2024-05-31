@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS "user"
     created_at  TIMESTAMPTZ
         CONSTRAINT user_time_create NOT NULL,
     updated_at  TIMESTAMPTZ
-        CONSTRAINT user_time_last_updated NOT NULL
+        CONSTRAINT user_time_last_updated NOT NULL,
+    is_vk_user  BOOLEAN DEFAULT FALSE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS unauth_address

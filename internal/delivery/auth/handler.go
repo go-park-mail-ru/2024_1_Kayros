@@ -220,7 +220,7 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 	re, ok := vkResponse["response"].(map[string]interface{})
 	if !ok {
 		d.logger.Error("Failed to parse VK API response", zap.Error(err))
-        functions.ErrorResponse(w, errors.New("Failed to 1 VK API response data"), http.StatusBadRequest)
+        functions.ErrorResponse(w, errors.New("Failed to get VK API response data"), http.StatusBadRequest)
         return
 	}
 	email, ok := re["email"].(string)
@@ -244,6 +244,7 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 			Name: data.Payload.User.FirstName,
 			Password: "",
 			ImgUrl: data.Payload.User.Avatar,
+			IsVkUser: true,
 		})
 		if err != nil {
 			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
