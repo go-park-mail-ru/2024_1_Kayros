@@ -76,6 +76,7 @@ func (repo *Layer) DeleteByEmail(ctx context.Context, email *user.Email) error {
 func (repo *Layer) Create(ctx context.Context, u *user.User) error {
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	timeNowMetric := time.Now()
+
 	row, err := repo.database.ExecContext(ctx,
 		`INSERT INTO "user" (name, email, phone, password, address, img_url, is_vk_user, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 		u.GetName(), u.GetEmail(), functions.MaybeNullString(u.GetPhone()), u.GetPassword(), functions.MaybeNullString(u.GetAddress()), functions.MaybeNullString(u.GetImgUrl()), u.GetIsVkUser(), timeNow, timeNow)

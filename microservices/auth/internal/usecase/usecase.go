@@ -115,5 +115,6 @@ func convUserIntoAuthUser(u *user.User) *auth.User {
 		Address:    u.GetAddress(),
 		ImgUrl:     u.GetImgUrl(),
 		CardNumber: u.GetCardNumber(),
+		IsVkUser:   u.GetIsVkUser(),
 	}
 }

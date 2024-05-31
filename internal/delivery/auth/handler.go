@@ -186,23 +186,20 @@ func (d *Delivery) AuthVk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var uuid string
+	var silentToken string
 	payload, ok := data["payload"].(map[string]interface{})
 	if ok {
-		uuid := payload["uuid"].(string)
-		silentToken := payload["token"].(string)
-		if uuid == "" || silentToken == "" {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			functions.ErrorResponse(w, errors.New("Missing uuid or token in payload") , http.StatusBadRequest)
-			return
-		}
+		uuid = payload["uuid"].(string)
+		silentToken = payload["token"].(string)
 	} else {
-		uuid := data["uuid"].(string)
-		silentToken := data["token"].(string)
-		if uuid == "" || silentToken == "" {
-			d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
-			functions.ErrorResponse(w, errors.New("Missing uuid or token in payload") , http.StatusBadRequest)
-			return
-		}
+		uuid = data["uuid"].(string)
+		silentToken = data["token"].(string)
+	}
+	if uuid == "" || silentToken == "" {
+		d.logger.Error(err.Error(), zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, errors.New("Missing uuid or token in payload") , http.StatusBadRequest)
+		return
 	}
 
     vkURL := fmt.Sprintf("https://api.vk.com/method/auth.exchangeSilentAuthToken?v=5.131&token=%s&access_token=%s&uuid=%s", silentToken, d.cfg.Oauth.AccessToken, uuid)

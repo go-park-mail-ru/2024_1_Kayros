@@ -253,12 +253,13 @@ func (uc *Layer) Create(ctx context.Context, data *user.User) (*user.User, error
 		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
-
+	
 	u, err := uc.repoUser.GetByEmail(ctx, &user.Email{Email: uCopy.GetEmail()})
 	if err != nil {
 		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
+
 	return deleteCredentials(u), nil
 }
 
