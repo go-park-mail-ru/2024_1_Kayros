@@ -89,9 +89,6 @@ func (uc *UsecaseLayer) UpdateUnauthAddress(ctx context.Context, address string,
 		if !ok {
 			uc.metrics.MicroserviceErrors.WithLabelValues(cnst.UserMicroservice, grpcStatus.String()).Inc()
 		}
-		if grpcerr.Is(err, codes.Internal, myerrors.SqlNoRowsUnauthAddressRelation) {
-			return myerrors.SqlNoRowsUnauthAddressRelation
-		}
 		return err
 	}
 	return nil

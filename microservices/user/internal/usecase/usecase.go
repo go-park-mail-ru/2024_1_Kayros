@@ -213,7 +213,13 @@ func (uc *Layer) UpdateAddressByUnauthId(ctx context.Context, unauth *user.Addre
 	err := uc.repoUser.UpdateAddressByUnauthId(ctx, unauth)
 	if err != nil {
 		uc.logger.Error(err.Error())
-		return nil, grpcerr.NewError(codes.Internal, err.Error())
+		if !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
+			return nil, grpcerr.NewError(codes.Internal, err.Error())
+		}
+		err = uc.repoUser.CreateAddressByUnauthId(ctx, unauth)
+		if err != nil {
+			return nil, grpcerr.NewError(codes.Internal, err.Error())
+		}
 	}
 	return nil, nil
 }

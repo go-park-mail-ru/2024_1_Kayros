@@ -9,8 +9,8 @@ var (
 	BadCredentialsRu              = errors.New("Предоставлены некорректные данные")
 	UserAlreadyExistRu            = errors.New("Пользователь с таким логином уже зарегистрирован")
 	NotFoundRu                    = errors.New("Данные не найдены")
-	BadRequestGetEmail            = errors.New("Необходимо авторизоваться для получения почты")
-	BadRequestUpdateEmail         = errors.New("Необходимо авторизоваться для изменения почты")
+	BadRequestGetAddress            = errors.New("Необходимо авторизоваться для получения адреса")
+	BadRequestUpdateAddress         = errors.New("Необходимо авторизоваться для изменения адреса")
 	BadRequestUpdateUnauthAddress = errors.New("Невозможно изменить адрес")
 
 	UnauthorizedRu   = errors.New("Вы не авторизованы")
