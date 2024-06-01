@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS food
 (
     id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name          TEXT
-        CONSTRAINT food_name_length CHECK (LENGTH(name) BETWEEN 2 AND 60)                                  NOT NULL,
+        CONSTRAINT food_name_length CHECK (LENGTH(name) BETWEEN 2 AND 150)                                  NOT NULL,
     description   TEXT
         CONSTRAINT food_description_length CHECK (LENGTH(description) BETWEEN 10 AND 100)                  NULL,
     restaurant_id INTEGER
