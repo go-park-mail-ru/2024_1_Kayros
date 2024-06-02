@@ -20,9 +20,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func AddPaymentRouter(db *sql.DB, sessionConn, userConn, restConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, cfg *config.Project, metrics *metrics.Metrics) {
-	repoFood := rFood.NewRepoLayer(db, metrics)
-	repoOrder := rOrder.NewRepoLayer(db, metrics)
+func AddPaymentRouter(db *sql.DB, statements map[string]map[string]*sql.Stmt, sessionConn, userConn, restConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, cfg *config.Project, metrics *metrics.Metrics) {
+	repoFood := rFood.NewLayer(db, statements["food"])
+	repoOrder := rOrder.NewRepoLayer(db, metrics, statements["order"])
 
 	// init session grpc client
 	grpcSessionClient := sessionproto.NewSessionManagerClient(sessionConn)

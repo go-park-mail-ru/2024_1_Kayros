@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
 	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/microservices/restaurants/internal/repo"
+	"2024_1_kayros/microservices/restaurants/internal/repo/stmts"
 	"2024_1_kayros/microservices/restaurants/internal/usecase"
 	"2024_1_kayros/services/postgres"
 )
@@ -49,7 +51,18 @@ func main() {
 	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
 	// init services for server work
 	postgreDB := postgres.Init(cfg, logger)
-	repoRest := repo.NewRestLayer(postgreDB, metrics)
+	// init prepared statements
+	
+	statements, err := stmts.InitPrepareStatements(postgreDB)
+	if err != nil {
+		logger.Fatal("Can't define prepared statements for user database")
+	}
+	defer func (stmts map[string]*sql.Stmt) {
+		for _, stmt := range statements {
+			stmt.Close()
+		}
+	}(statements)
+	repoRest := repo.NewRestLayer(postgreDB, metrics, statements)
 	rest.RegisterRestWorkerServer(server, usecase.NewRestLayer(repoRest, logger))
 	err = server.Serve(conn)
 	if err != nil {

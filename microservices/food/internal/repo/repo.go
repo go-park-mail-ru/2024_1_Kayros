@@ -21,20 +21,20 @@ type Repo interface {
 type Layer struct {
 	db     *sql.DB
 	metrics *metrics.MicroserviceMetrics
+	stmt    map[string]*sql.Stmt
 }
 
-func NewLayer(dbProps *sql.DB, metrics *metrics.MicroserviceMetrics) Repo {
+func NewLayer(dbProps *sql.DB, metrics *metrics.MicroserviceMetrics, statements map[string]*sql.Stmt) Repo {
 	return &Layer{
 		db: dbProps,
 		metrics: metrics,
+		stmt: statements,
 	}
 }
 
 func (repo *Layer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
 	timeNow := time.Now()
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT c.name, f.id, f.name, restaurant_id, weight, price, img_url FROM food as f
-   JOIN category as c ON f.category_id=c.id WHERE restaurant_id = $1 ORDER BY category_id`, uint64(restId))
+	rows, err := repo.stmt["getByRestId"].QueryContext(ctx, uint64(restId))
    timeEnd := time.Since(timeNow)
    repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {
@@ -55,9 +55,7 @@ func (repo *Layer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*ent
 
 func (repo *Layer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {
 	timeNow := time.Now()
-	row := repo.db.QueryRowContext(ctx,
-		`SELECT id, name, restaurant_id, category_id, weight, price, img_url
-				FROM food WHERE id=$1`, uint64(foodId))
+	row := repo.stmt["getById"].QueryRowContext(ctx, uint64(foodId))
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	var item entity.Food

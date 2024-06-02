@@ -19,8 +19,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-func AddQuizRouter(db *sql.DB, sessionConn, userConn *grpc.ClientConn, mc *minio.Client, mux *mux.Router, logger *zap.Logger, cfg *config.Project, metrics *metrics.Metrics) {
-	repoQuiz := rQuiz.NewRepoLayer(db, metrics)
+func AddQuizRouter(db *sql.DB, statements map[string]*sql.Stmt, sessionConn, userConn *grpc.ClientConn, mc *minio.Client, mux *mux.Router, logger *zap.Logger, cfg *config.Project, metrics *metrics.Metrics) {
+	repoQuiz := rQuiz.NewRepoLayer(db, metrics, statements)
 	// init grpc client interface
 	grpcSessionClient := sessionproto.NewSessionManagerClient(sessionConn)
 	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient, metrics)

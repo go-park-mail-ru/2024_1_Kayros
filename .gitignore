@@ -14,3 +14,4 @@ bd.md
 integration/grafana
 internal/entity/dto/dto_easyjson.go
 integration/prod-compose/.env
+sqlmap-dev

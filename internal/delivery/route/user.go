@@ -1,8 +1,6 @@
 package route
 
 import (
-	"database/sql"
-
 	"2024_1_kayros/config"
 	"2024_1_kayros/gen/go/session"
 	"2024_1_kayros/gen/go/user"
@@ -16,7 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func AddUserRouter(db *sql.DB, cfg *config.Project, userConn, sessionConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, metrics *metrics.Metrics) {
+func AddUserRouter(cfg *config.Project, userConn, sessionConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, metrics *metrics.Metrics) {
 	// init user grpc client
 	grpcUserClient := user.NewUserManagerClient(userConn)
 	usecaseUser := ucUser.NewUsecaseLayer(grpcUserClient, metrics)

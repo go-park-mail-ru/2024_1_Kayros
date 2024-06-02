@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/delivery/route"
 	grpcClientMiddleware "2024_1_kayros/internal/middleware/grpc/client"
+	"2024_1_kayros/internal/repository/prepstmts"
 	"2024_1_kayros/internal/utils/functions"
 	"2024_1_kayros/services/minio"
 	"2024_1_kayros/services/postgres"
@@ -106,8 +108,19 @@ func Run(cfg *config.Project) {
 		}
 	}(sessionConn)
 
+	//init prepared statements for databse
+
+	statements := prepstmts.InitMonolithPreparedStatements(postgreDB, logger)
+	defer func(stmts map[string]map[string]*sql.Stmt) {	
+		for _, mapStmt := range stmts {
+			for _, stmt := range mapStmt {
+				stmt.Close()
+			}
+		}
+	}(statements)
+
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, minioDB, r, logger, restConn, commentConn, authConn, userConn, sessionConn, m, reg)
+	handler := route.Setup(cfg, postgreDB, minioDB, statements, r, logger, restConn, commentConn, authConn, userConn, sessionConn, m, reg)
 
 	serverConfig := cfg.Server
 	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)

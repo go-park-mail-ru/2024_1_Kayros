@@ -24,19 +24,21 @@ type Repo interface {
 type RepoLayer struct {
 	db *sql.DB
 	metrics *metrics.Metrics
+	stmt   map[string]*sql.Stmt
 }
 
-func NewRepoLayer(dbProps *sql.DB, metrics *metrics.Metrics) Repo {
+func NewRepoLayer(dbProps *sql.DB, metrics *metrics.Metrics, statements map[string]*sql.Stmt) Repo {
 	return &RepoLayer{
 		db: dbProps,
 		metrics: metrics,
+		stmt: statements,
 	}
 }
 
 func (repo *RepoLayer) Create(ctx context.Context, questionId uint64, rating uint8, user string) error {
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	timeNowMetrics := time.Now()
-	res, err := repo.db.ExecContext(ctx, `INSERT INTO quiz(question_id, user_id, rating, created_at) VALUES($1, $2, $3, $4)`, questionId, user, rating, timeNow)
+	res, err := repo.stmt["addAnswer"].ExecContext(ctx, questionId, user, rating, timeNow)
 	msRequestTimeout := time.Since(timeNowMetrics)
 	repo.metrics.DatabaseDuration.WithLabelValues(cnst.INSERT).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
@@ -54,7 +56,7 @@ func (repo *RepoLayer) Create(ctx context.Context, questionId uint64, rating uin
 
 func (repo *RepoLayer) GetQuestionsOnFocus(ctx context.Context, url string) ([]*entity.Question, error) {
 	timeNow := time.Now()
-	rows, err := repo.db.QueryContext(ctx, `SELECT id, name, url, focus_id, param_type FROM question WHERE url=$1`, url)
+	rows, err := repo.stmt["getQuestionsOnFocus"].QueryContext(ctx, url)
 	msRequestTimeout := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
@@ -75,7 +77,7 @@ func (repo *RepoLayer) GetQuestionsOnFocus(ctx context.Context, url string) ([]*
 
 func (repo *RepoLayer) GetQuestions(ctx context.Context) ([]*entity.Question, error) {
 	timeNow := time.Now()
-	rows, err := repo.db.QueryContext(ctx, `SELECT id, name, param_type FROM question`)
+	rows, err := repo.stmt["getQuestions"].QueryContext(ctx)
 	msRequestTimeout := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
@@ -99,7 +101,7 @@ func (repo *RepoLayer) NPS(ctx context.Context, id uint64) (int8, error) {
 	var respondents uint64
 
 	timeNow := time.Now()
-	row := repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE rating>8 AND question_id=$1`, id)
+	row := repo.stmt["selectAnswerRatingMore8"].QueryRowContext(ctx, id)
 	msRequestTimeout := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err := row.Scan(&promoters)
@@ -111,7 +113,7 @@ func (repo *RepoLayer) NPS(ctx context.Context, id uint64) (int8, error) {
 	}
 
 	timeNow = time.Now()
-	row = repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE rating<7 AND question_id=$1`, id)
+	row = repo.stmt["selectAnswerRatingLess8"].QueryRowContext(ctx, id)
 	msRequestTimeout = time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err = row.Scan(&critics)
@@ -123,7 +125,7 @@ func (repo *RepoLayer) NPS(ctx context.Context, id uint64) (int8, error) {
 	}
 
 	timeNow = time.Now()
-	row = repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE question_id=$1`, id)
+	row = repo.stmt["getCountOfAnswers"].QueryRowContext(ctx, id)
 	msRequestTimeout = time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err = row.Scan(&respondents)
@@ -145,7 +147,7 @@ func (repo *RepoLayer) CSAT(ctx context.Context, id uint64) (int8, error) {
 	var respondents uint64
 
 	timeNow := time.Now()
-	row := repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE rating>8 AND question_id=$1`, id)
+	row := repo.stmt["getAnswerCountRatingMore8"].QueryRowContext(ctx, id)
 	msRequestTimeout := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err := row.Scan(&promoters)
@@ -157,7 +159,7 @@ func (repo *RepoLayer) CSAT(ctx context.Context, id uint64) (int8, error) {
 	}
 
 	timeNow = time.Now()
-	row = repo.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quiz WHERE question_id=$1`, id)
+	row = repo.stmt["getAnswerCount"].QueryRowContext(ctx, id)
 	msRequestTimeout = time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	err = row.Scan(&respondents)

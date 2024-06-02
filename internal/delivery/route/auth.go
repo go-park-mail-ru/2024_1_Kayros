@@ -1,8 +1,6 @@
 package route
 
 import (
-	"database/sql"
-
 	"2024_1_kayros/config"
 	"2024_1_kayros/gen/go/auth"
 	"2024_1_kayros/gen/go/session"
@@ -18,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func AddAuthRouter(cfg *config.Project, db *sql.DB, authConn *grpc.ClientConn, userConn *grpc.ClientConn, sessionConn *grpc.ClientConn,
+func AddAuthRouter(cfg *config.Project, authConn *grpc.ClientConn, userConn *grpc.ClientConn, sessionConn *grpc.ClientConn,
 	mux *mux.Router, logger *zap.Logger, metrics *metrics.Metrics) {
 	// microservice authorization
 	grpcClientAuth := auth.NewAuthManagerClient(authConn)

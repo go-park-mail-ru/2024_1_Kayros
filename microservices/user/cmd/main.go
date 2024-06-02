@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/microservices/user/internal/repo"
+	"2024_1_kayros/microservices/user/internal/repo/stmts"
 	"2024_1_kayros/microservices/user/internal/usecase"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -53,8 +55,18 @@ func main() {
 	// init services for server work
 	postgreDB := postgres.Init(cfg, logger)
 	minioClient := minio.Init(cfg, logger)
-
-	repoUser := repo.NewLayer(postgreDB, metrics)
+	// init prepared statements
+	statements, err := stmts.InitPrepareStatements(postgreDB)
+	defer func (stmts map[string]*sql.Stmt) {
+		for _, stmt := range statements {
+			stmt.Close()
+		}
+	}(statements)
+	if err != nil {
+		logger.Fatal("Can't define prepared statements for user database")
+	}
+    // init repo layers
+	repoUser := repo.NewLayer(postgreDB, metrics, statements)
 	repoMinio := minios3.NewRepoLayer(minioClient)
 	user.RegisterUserManagerServer(server, usecase.NewLayer(repoUser, repoMinio, logger))
 	err = server.Serve(conn)

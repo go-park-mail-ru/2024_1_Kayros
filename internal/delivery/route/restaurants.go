@@ -24,9 +24,9 @@ import (
 	ucUser "2024_1_kayros/internal/usecase/user"
 )
 
-func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn, userConn, commentConn *grpc.ClientConn, metrics *metrics.Metrics) {
-	repoSearch := rSearch.NewRepoLayer(db, metrics)
-	repoFood := rFood.NewRepoLayer(db, metrics)
+func AddRestRouter(db *sql.DB, stmtMap map[string]map[string]*sql.Stmt, mux *mux.Router, logger *zap.Logger, restConn, userConn, commentConn *grpc.ClientConn, metrics *metrics.Metrics) {
+	repoSearch := rSearch.NewRepoLayer(db, metrics, stmtMap["search"])
+	repoFood := rFood.NewLayer(db, stmtMap["food"])
 	usecaseFood := ucFood.NewUsecaseLayer(repoFood)
 	usecaseSearch := ucSearch.NewUsecaseLayer(repoSearch)
 	// init user grpc client

@@ -4,10 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
-	"2024_1_kayros/internal/delivery/metrics"
-	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/myerrors"
 
 	"2024_1_kayros/internal/entity"
@@ -19,25 +16,20 @@ type Repo interface {
 	GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error)
 }
 
-type RepoLayer struct {
-	db *sql.DB
-	metrics *metrics.Metrics
+type Layer struct {
+	db     *sql.DB
+	stmt    map[string]*sql.Stmt
 }
 
-func NewRepoLayer(dbProps *sql.DB, metrics *metrics.Metrics) Repo {
-	return &RepoLayer{
+func NewLayer(dbProps *sql.DB, statements map[string]*sql.Stmt) Repo {
+	return &Layer{
 		db: dbProps,
-		metrics: metrics,
+		stmt: statements,
 	}
 }
 
-func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
-	timeNow := time.Now()
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT c.name, f.id, f.name, restaurant_id, weight, price, img_url FROM food as f
-    JOIN category as c ON f.category_id=c.id WHERE restaurant_id = $1 ORDER BY category_id`, uint64(restId))
-    msRequestTimeout := time.Since(timeNow)
-    repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
+func (repo *Layer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*entity.Food, error) {
+	rows, err := repo.stmt["getByRestId"].QueryContext(ctx, uint64(restId))
 	if err != nil {
 		return nil, err
 	}
@@ -54,13 +46,8 @@ func (repo *RepoLayer) GetByRestId(ctx context.Context, restId alias.RestId) ([]
 	return food, nil
 }
 
-func (repo *RepoLayer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {
-	timeNow := time.Now()
-	row := repo.db.QueryRowContext(ctx,
-		`SELECT id, name, restaurant_id, category_id, weight, price, img_url
-        FROM food WHERE id=$1`, uint64(foodId))
-	msRequestTimeout := time.Since(timeNow)
-	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
+func (repo *Layer) GetById(ctx context.Context, foodId alias.FoodId) (*entity.Food, error) {
+	row := repo.stmt["getById"].QueryRowContext(ctx, uint64(foodId))
 	var item entity.Food
 	err := row.Scan(&item.Id, &item.Name, &item.RestaurantId,
 		&item.Category, &item.Weight, &item.Price, &item.ImgUrl)

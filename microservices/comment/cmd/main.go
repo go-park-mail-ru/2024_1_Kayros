@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"2024_1_kayros/gen/go/comment"
 	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
 	"2024_1_kayros/microservices/comment/internal/repo"
+	"2024_1_kayros/microservices/comment/internal/repo/stmts"
 	"2024_1_kayros/microservices/comment/internal/usecase"
 	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/services/postgres"
@@ -50,7 +52,17 @@ func main() {
 	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
 	//init services for server work
 	postgreDB := postgres.Init(cfg, logger)
-	repoComment := repo.NewCommentLayer(postgreDB, metrics)
+	// init prepared statements
+	statements, err := stmts.InitPrepareStatements(postgreDB)
+	if err != nil {
+		logger.Fatal("Can't define prepared statements for user database")
+	}
+	defer func (stmts map[string]*sql.Stmt) {
+		for _, stmt := range statements {
+			stmt.Close()
+		}
+	}(statements)
+	repoComment := repo.NewCommentLayer(postgreDB, metrics, statements)
 	comment.RegisterCommentWorkerServer(server, usecase.NewCommentLayer(repoComment, logger))
 	err = server.Serve(conn)
 	if err != nil {

@@ -4,9 +4,11 @@ import (
 	"2024_1_kayros/gen/go/food"
 	grpcServerMiddleware "2024_1_kayros/internal/middleware/grpc/server"
 	"2024_1_kayros/microservices/food/internal/repo"
+	"2024_1_kayros/microservices/food/internal/repo/stmts"
 	"2024_1_kayros/microservices/food/internal/usecase"
 	metrics "2024_1_kayros/microservices/metrics"
 	"2024_1_kayros/services/postgres"
+	"database/sql"
 	"fmt"
 	"net"
 	"os"
@@ -37,8 +39,18 @@ func main() {
 	server := grpc.NewServer(grpc.ChainUnaryInterceptor(middleware.MetricsMiddleware, middleware.AccessMiddleware))
 	// init services for server work
 	postgreDB := postgres.Init(cfg, logger)
+	// init prepared statements
+	statements, err := stmts.InitPrepareStatements(postgreDB)
+	if err != nil {
+		logger.Fatal("Can't define prepared statements for user database")
+	}
+	defer func (stmts map[string]*sql.Stmt) {
+		for _, stmt := range statements {
+			stmt.Close()
+		}
+	}(statements)
 	// register contract
-	repoUser := repo.NewLayer(postgreDB, metrics)
+	repoUser := repo.NewLayer(postgreDB, metrics, statements)
 	food.RegisterFoodManagerServer(server, usecase.NewLayer(repoUser, logger))
 	err = server.Serve(conn)
 	if err != nil {

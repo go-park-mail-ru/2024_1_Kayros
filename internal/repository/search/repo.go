@@ -19,20 +19,20 @@ type Repo interface {
 type RepoLayer struct {
 	db *sql.DB
 	metrics *metrics.Metrics
+	stmt map[string]*sql.Stmt
 }
 
-func NewRepoLayer(db *sql.DB, metrics *metrics.Metrics) Repo {
+func NewRepoLayer(db *sql.DB, metrics *metrics.Metrics, statements map[string]*sql.Stmt) Repo {
 	return &RepoLayer{
 		db: db,
 		metrics: metrics,
+		stmt: statements,
 	}
 }
 
 func (repo *RepoLayer) Search(ctx context.Context, search string) ([]*dto.RestaurantAndFood, error) {
 	timeNow := time.Now()
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, name, img_url FROM restaurant 
-			WHERE LOWER(name) LIKE LOWER('%' || $1 || '%')`, search)
+	rows, err := repo.stmt["selectRestBySearch"].QueryContext(ctx, search)
 	msRequestTimeout := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 	if err != nil {
@@ -45,10 +45,7 @@ func (repo *RepoLayer) Search(ctx context.Context, search string) ([]*dto.Restau
 	}
 	if len(rests) == 0 {
 		timeNow = time.Now()
-		rows, err = repo.db.QueryContext(ctx,
-			`SELECT DISTINCT r.id, r.name, r.img_url FROM restaurant AS r
-			JOIN rest_categories AS rc ON r.id=rc.restaurant_id JOIN category AS c
-            ON rc.category_id=c.id WHERE LOWER(c.name) LIKE LOWER('%' || $1 || '%')`, search)
+		rows, err = repo.stmt["getRestsByCategory"].QueryContext(ctx, search)
 		msRequestTimeout = time.Since(timeNow)
 		repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {
@@ -74,8 +71,7 @@ func (repo *RepoLayer) SelectRests(ctx context.Context, rows *sql.Rows, rests []
 			return nil, err
 		}
 		timeNow := time.Now()
-		rs, err := repo.db.QueryContext(ctx, `SELECT id, name FROM category AS c
-			JOIN rest_categories AS rc ON c.id=rc.category_id WHERE rc.restaurant_id=$1`, rest.Id)
+		rs, err := repo.stmt["selectRests"].QueryContext(ctx, rest.Id)
 		msRequestTimeout := time.Since(timeNow)
 		repo.metrics.DatabaseDuration.WithLabelValues(cnst.SELECT).Observe(float64(msRequestTimeout.Milliseconds()))
 		if err != nil {

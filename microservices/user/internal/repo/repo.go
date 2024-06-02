@@ -28,19 +28,20 @@ type Repo interface {
 type Layer struct {
 	database *sql.DB
 	metrics  *metrics.MicroserviceMetrics
+	stmt     map[string]*sql.Stmt  // key - name of sql method, value - prepared statement 
 }
 
-func NewLayer(db *sql.DB, metrics *metrics.MicroserviceMetrics) Repo {
+func NewLayer(db *sql.DB, metrics *metrics.MicroserviceMetrics, statements map[string]*sql.Stmt) Repo {
 	return &Layer{
 		database: db,
 		metrics:  metrics,
+		stmt: statements,
 	}
 }
 
 func (repo *Layer) GetByEmail(ctx context.Context, email *user.Email) (*user.User, error) {
 	timeNow := time.Now()
-	row := repo.database.QueryRowContext(ctx,
-		`SELECT id, name, email, COALESCE(phone, ''), password, COALESCE(address, ''), img_url, COALESCE(card_number, ''), is_vk_user FROM "user" WHERE email = $1`, email.GetEmail())
+	row := repo.stmt["getUser"].QueryRowContext(ctx, email.GetEmail())
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	u := entity.User{}
@@ -57,7 +58,7 @@ func (repo *Layer) GetByEmail(ctx context.Context, email *user.Email) (*user.Use
 
 func (repo *Layer) DeleteByEmail(ctx context.Context, email *user.Email) error {
 	timeNow := time.Now()
-	row, err := repo.database.ExecContext(ctx, `DELETE FROM "user" WHERE email = $1`, email.GetEmail())
+	row, err := repo.stmt["deleteUser"].ExecContext(ctx, email.GetEmail())
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.DELETE).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {
@@ -77,9 +78,8 @@ func (repo *Layer) Create(ctx context.Context, u *user.User) error {
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	timeNowMetric := time.Now()
 
-	row, err := repo.database.ExecContext(ctx,
-		`INSERT INTO "user" (name, email, phone, password, address, img_url, is_vk_user, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		u.GetName(), u.GetEmail(), functions.MaybeNullString(u.GetPhone()), u.GetPassword(), functions.MaybeNullString(u.GetAddress()), functions.MaybeNullString(u.GetImgUrl()), u.GetIsVkUser(), timeNow, timeNow)
+	row, err := repo.stmt["createUser"].ExecContext(ctx, u.GetName(), u.GetEmail(), functions.MaybeNullString(u.GetPhone()), 
+	u.GetPassword(), functions.MaybeNullString(u.GetAddress()), functions.MaybeNullString(u.GetImgUrl()), u.GetIsVkUser(), timeNow, timeNow)
 	timeEnd := time.Since(timeNowMetric)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.INSERT).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {
@@ -99,9 +99,7 @@ func (repo *Layer) Update(ctx context.Context, data *user.UpdateUserData) error 
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	userData := data.GetUpdateInfo()
 	timeNowMetric := time.Now()
-	row, err := repo.database.ExecContext(ctx,
-		`UPDATE "user" SET name = $1, email = $2, phone = $3, img_url = $4, password = $5, card_number = $6, 
-                  address = $7, updated_at = $8 WHERE email = $9`,
+	row, err := repo.stmt["updateUser"].ExecContext(ctx,
 		userData.GetName(), userData.GetEmail(), functions.MaybeNullString(userData.GetPhone()), userData.GetImgUrl(),
 		userData.GetPassword(), functions.MaybeNullString(userData.GetCardNumber()), functions.MaybeNullString(userData.GetAddress()), timeNow, data.GetEmail())
 
@@ -122,8 +120,7 @@ func (repo *Layer) Update(ctx context.Context, data *user.UpdateUserData) error 
 
 func (repo *Layer) GetAddressByUnauthId(ctx context.Context, id *user.UnauthId) (*user.Address, error) {
 	timeNow := time.Now()
-	row := repo.database.QueryRowContext(ctx,
-		`SELECT address FROM unauth_address WHERE unauth_id = $1`, id.GetUnauthId())
+	row := repo.stmt["getUnauthAddress"].QueryRowContext(ctx, id.GetUnauthId())
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	var address sql.NullString
@@ -142,7 +139,7 @@ func (repo *Layer) GetAddressByUnauthId(ctx context.Context, id *user.UnauthId) 
 
 func (repo *Layer) UpdateAddressByUnauthId(ctx context.Context, data *user.AddressDataUnauth) error {
 	timeNow := time.Now()
-	row, err := repo.database.ExecContext(ctx, `UPDATE unauth_address SET address = $1 WHERE unauth_id= $2`, functions.MaybeNullString(data.GetAddress()), data.GetUnauthId())
+	row, err := repo.stmt["updateUnauthAddress"].ExecContext(ctx, functions.MaybeNullString(data.GetAddress()), data.GetUnauthId())
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.UPDATE).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {
@@ -160,7 +157,7 @@ func (repo *Layer) UpdateAddressByUnauthId(ctx context.Context, data *user.Addre
 
 func (repo *Layer) CreateAddressByUnauthId(ctx context.Context, data *user.AddressDataUnauth) error {
 	timeNow := time.Now()
-	row, err := repo.database.ExecContext(ctx, `INSERT INTO unauth_address (unauth_id, address) VALUES ($1, $2)`, data.GetUnauthId(), data.GetAddress())
+	row, err := repo.stmt["createUnauthAddress"].ExecContext(ctx, data.GetUnauthId(), data.GetAddress())
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.INSERT).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {

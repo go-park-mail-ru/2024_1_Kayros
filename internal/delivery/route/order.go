@@ -16,9 +16,9 @@ import (
 	ucOrder "2024_1_kayros/internal/usecase/order"
 )
 
-func AddOrderRouter(db *sql.DB, mux *mux.Router, userConn, restConn *grpc.ClientConn, logger *zap.Logger, metrics *metrics.Metrics) {
-	repoOrder := rOrder.NewRepoLayer(db, metrics)
-	repoFood := rFood.NewRepoLayer(db, metrics)
+func AddOrderRouter(db *sql.DB, statements map[string]map[string]*sql.Stmt, mux *mux.Router, userConn, restConn *grpc.ClientConn, logger *zap.Logger, metrics *metrics.Metrics) {
+	repoOrder := rOrder.NewRepoLayer(db, metrics, statements["order"])
+	repoFood := rFood.NewLayer(db, statements["food"])
 	//init user grpc client
 	grpcUserClient := userproto.NewUserManagerClient(userConn)
 	//init rest grpc client

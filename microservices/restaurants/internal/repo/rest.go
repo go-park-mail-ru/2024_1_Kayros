@@ -24,19 +24,20 @@ type Rest interface {
 type RestLayer struct {
 	db      *sql.DB
 	metrics *metrics.MicroserviceMetrics
+	stmt    map[string]*sql.Stmt
 }
 
-func NewRestLayer(dbProps *sql.DB, metrics *metrics.MicroserviceMetrics) Rest {
+func NewRestLayer(dbProps *sql.DB, metrics *metrics.MicroserviceMetrics, statements map[string]*sql.Stmt) Rest {
 	return &RestLayer{
 		db:      dbProps,
 		metrics: metrics,
+		stmt: statements,
 	}
 }
 
 func (repo *RestLayer) GetAll(ctx context.Context) (*rest.RestList, error) {
 	timeNow := time.Now()
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, name, short_description, address, img_url FROM restaurant ORDER BY rating DESC`)
+	rows, err := repo.stmt["getAll"].QueryContext(ctx)
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {
@@ -56,8 +57,7 @@ func (repo *RestLayer) GetAll(ctx context.Context) (*rest.RestList, error) {
 
 func (repo *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest, error) {
 	timeNow := time.Now()
-	row := repo.db.QueryRowContext(ctx,
-		`SELECT id, name, long_description, address, img_url, rating, comment_count FROM restaurant WHERE id=$1`, id.Id)
+	row := repo.stmt["getRestById"].QueryRowContext(ctx, id.Id)
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	r := rest.Rest{}
@@ -73,9 +73,7 @@ func (repo *RestLayer) GetById(ctx context.Context, id *rest.RestId) (*rest.Rest
 
 func (repo *RestLayer) GetByFilter(ctx context.Context, id *rest.Id) (*rest.RestList, error) {
 	timeNow := time.Now()
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT r.id, r.name, r.short_description, r.img_url FROM restaurant as r 
-				JOIN rest_categories AS rc ON r.id=rc.restaurant_id WHERE rc.category_id=$1`, id.Id)
+	rows, err := repo.stmt["getRestListUsingFilter"].QueryContext(ctx, id.Id)
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {
@@ -98,8 +96,7 @@ func (repo *RestLayer) GetByFilter(ctx context.Context, id *rest.Id) (*rest.Rest
 
 func (repo *RestLayer) GetCategoryList(ctx context.Context) (*rest.CategoryList, error) {
 	timeNow := time.Now()
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, name FROM category WHERE type='rest'`)
+	rows, err := repo.stmt["getRestsByCategory"].QueryContext(ctx)
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {
@@ -118,8 +115,7 @@ func (repo *RestLayer) GetCategoryList(ctx context.Context) (*rest.CategoryList,
 }
 
 func (repo *RestLayer) GetTop(ctx context.Context, limit uint64) (*rest.RestList, error) {
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT id, name, short_description, img_url FROM restaurant ORDER BY rating DESC LIMIT $1`, limit)
+	rows, err := repo.stmt["getTopRests"].QueryContext(ctx, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -136,10 +132,7 @@ func (repo *RestLayer) GetTop(ctx context.Context, limit uint64) (*rest.RestList
 }
 
 func (repo *RestLayer) GetLastRests(ctx context.Context, userId uint64, limit uint64) (*rest.RestList, error) {
-	rows, err := repo.db.QueryContext(ctx,
-		`SELECT f.restaurant_id  FROM food AS f JOIN food_order AS fo ON f.id=fo.food_id 
-	   JOIN "order" AS o ON o.id=fo.order_id WHERE o.user_id=$1  GROUP BY f.restaurant_id
-	   ORDER BY MAX(o.delivered_at) DESC LIMIT $2`, userId, limit)
+	rows, err := repo.stmt["getLastRests"].QueryContext(ctx, userId, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -153,8 +146,7 @@ func (repo *RestLayer) GetLastRests(ctx context.Context, userId uint64, limit ui
 		}
 		rest := rest.Rest{}
 		//для каждого получили инфу
-		err = repo.db.QueryRowContext(ctx,
-			`SELECT id, name, short_description, img_url FROM restaurant WHERE id=$1`, r.Id).Scan(&rest.Id, &rest.Name, &rest.ShortDescription, &rest.ImgUrl)
+		err = repo.stmt["getShortRestById"].QueryRowContext(ctx, r.Id).Scan(&rest.Id, &rest.Name, &rest.ShortDescription, &rest.ImgUrl)
 		if err != nil {
 			return nil, err
 		}
