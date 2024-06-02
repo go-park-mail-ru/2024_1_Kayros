@@ -25,5 +25,3 @@ func InitPrepareStatements(db *sql.DB) (map[string]*sql.Stmt, error) {
 	return preparedStatements, nil
 }
 
-`SELECT id, name, img_url FROM restaurant 
-WHERE LOWER(name) LIKE LOWER('%' || $1 || '%')`,

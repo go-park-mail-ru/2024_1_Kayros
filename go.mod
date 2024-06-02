@@ -23,6 +23,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/wg/wrk v0.0.0-20210207071305-a211dd5a7050 // indirect
 )
 
 require (
