@@ -30,3 +30,10 @@ easyjs:
 # go test -coverprofile=cover.out
 # go tool cover -html=cover.out -o cover.html
 # //go:generate mockgen -source ./service.go -destination=./mocks/service.go -package=mock_service
+
+
+# для проверки инъекций
+
+# поиск ресторанов
+# python sqlmap.py -u "https://resto-go.online/api/v1/search?search=%D0%B3%D0%BE%D1%80" --risk=3
+# python sqlmap.py -u "https://resto-go.online/api/v1/quiz/questions?url=map" --risk=3
