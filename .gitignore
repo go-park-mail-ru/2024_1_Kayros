@@ -10,7 +10,7 @@ integration/dev-compose/.env
 api.md
 bd.md
 .DS_Store
-.vscode/
+.vscode
 integration/grafana
 internal/entity/dto/dto_easyjson.go
 integration/prod-compose/.env
