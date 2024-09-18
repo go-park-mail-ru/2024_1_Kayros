@@ -25,3 +25,6 @@ pb:
 
 easyjs:
 	easyjson -no_std_marshalers -all internal/entity/dto
+
+cap:
+	find . -name "*.go" -exec wc -l {} + | awk '{total += $1} END {print total}'

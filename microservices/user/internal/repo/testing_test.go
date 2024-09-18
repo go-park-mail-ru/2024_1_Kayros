@@ -17,7 +17,7 @@ type testFixtures struct {
 func setUp(t *testing.T) testFixtures {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	repo := NewLayer(db)
+	repo := NewLayer(db, nil)
 	return testFixtures{
 		repo: repo,
 		db:   db,

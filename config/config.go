@@ -1,36 +1,38 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/ilyakaznacheev/cleanenv"
 	"go.uber.org/zap"
 )
 
 type (
 	Project struct {
-		Server            `yaml:"server"`
-		Postgres          `yaml:"postgresql"`
-		Minio             `yaml:"minio"`
-		Redis             `yaml:"redis"`
+		Server   `yaml:"server"`
+		Postgres `yaml:"postgres"`
+		Minio    `yaml:"minio"`
+		Redis    `yaml:"redis"`
 
-		RestGrpcServer    		  `yaml:"rest-grpc-server"`
-		RestGrpcServerExporter    `yaml:"rest-grpc-server-exporter"`
+		RestGrpcServer         `yaml:"rest-grpc-server"`
+		RestGrpcServerExporter `yaml:"rest-grpc-server-exporter"`
 
-		AuthGrpcServer    		  `yaml:"auth-grpc-server"`
-		AuthGrpcServerExporter    `yaml:"auth-grpc-server-exporter"`
+		AuthGrpcServer         `yaml:"auth-grpc-server"`
+		AuthGrpcServerExporter `yaml:"auth-grpc-server-exporter"`
 
-		CommentGrpcServer 			 `yaml:"comment-grpc-server"`
-		CommentGrpcServerExporter    `yaml:"comment-grpc-server-exporter"`
+		CommentGrpcServer         `yaml:"comment-grpc-server"`
+		CommentGrpcServerExporter `yaml:"comment-grpc-server-exporter"`
 
-		UserGrpcServer    		  `yaml:"user-grpc-server"`
-		UserGrpcServerExporter    `yaml:"user-grpc-server-exporter"`
+		UserGrpcServer         `yaml:"user-grpc-server"`
+		UserGrpcServerExporter `yaml:"user-grpc-server-exporter"`
 
-		OrderGrpcServer   		   `yaml:"order-grpc-server"`
-		OrderGrpcServerExporter    `yaml:"order-grpc-server-exporter"`
+		OrderGrpcServer         `yaml:"order-grpc-server"`
+		OrderGrpcServerExporter `yaml:"order-grpc-server-exporter"`
 
-		SessionGrpcServer 			 `yaml:"session-grpc-server"`
-		SessionGrpcServerExporter    `yaml:"session-grpc-server-exporter"`
+		SessionGrpcServer         `yaml:"session-grpc-server"`
+		SessionGrpcServerExporter `yaml:"session-grpc-server-exporter"`
 
-		Payment           `yaml:"payment"`
+		Payment `yaml:"payment"`
 	}
 
 	RestGrpcServer struct {
@@ -135,18 +137,15 @@ type (
 )
 
 func NewConfig(logger *zap.Logger) *Project {
-	cfg := &Project{}
-
-	err := cleanenv.ReadConfig("config/config.yaml", cfg)
-	if err != nil {
-		logger.Fatal("Error reading application configuration", zap.String("error", err.Error()))
+	cfg := new(Project)
+	if err := cleanenv.ReadConfig("config/config.yaml", cfg); err != nil {
+		logger.Fatal(fmt.Sprintf("error while reading application configuration: %v", err))
 	}
 
-	err = cleanenv.ReadEnv(cfg)
-	if err != nil {
-		logger.Fatal("Error creating configuration object", zap.String("error", err.Error()))
+	if err := cleanenv.ReadEnv(cfg); err != nil {
+		logger.Fatal(fmt.Sprintf("error creating configuration object: %v", err))
 	}
 
-	logger.Info("Reading configuration successful")
+	logger.Info("reading configuration is successful")
 	return cfg
 }
