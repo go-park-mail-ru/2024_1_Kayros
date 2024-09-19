@@ -142,7 +142,7 @@ services:
       - ../nginx/logs:/var/log/nginx/
       - ../nginx/dev/nginx.conf:/etc/nginx/nginx.conf
       # here you need to place the path of frontend static folder
-      - /Users/ivanlobanov/Programming/2024_Kayros_Frontend/dist:/var/www/dist
+      - /Users/ivanlobanov/Programming/kayros-frontend/dist:/var/www/dist
     ports:
       - ${NGINX_PORT}:${NGINX_PORT}
     # depends_on:
