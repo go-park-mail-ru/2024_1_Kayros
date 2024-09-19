@@ -17,5 +17,5 @@ func main() {
 	}()
 	config.Read(logger)
 	app.Run(logger)
-	logger.Info("The server has shut down")
+	logger.Info("the server has shut down")
 }
