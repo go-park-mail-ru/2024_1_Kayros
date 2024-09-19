@@ -15,8 +15,7 @@ func main() {
 			logger.Warn(fmt.Sprintf("failed to sync logs into storage: %v", err))
 		}
 	}()
-
-	cfg := config.NewConfig(logger)
-	app.Run(cfg)
+	config.Read(logger)
+	app.Run(logger)
 	logger.Info("The server has shut down")
 }

@@ -1,30 +1,28 @@
 package route
 
 import (
-	"database/sql"
-
-	"2024_1_kayros/config"
 	"2024_1_kayros/gen/go/session"
 	"2024_1_kayros/gen/go/user"
 	"2024_1_kayros/internal/delivery/metrics"
 	dUser "2024_1_kayros/internal/delivery/user"
 	ucSession "2024_1_kayros/internal/usecase/session"
 	ucUser "2024_1_kayros/internal/usecase/user"
+	"2024_1_kayros/microservices"
+	"2024_1_kayros/services"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 )
 
-func AddUserRouter(db *sql.DB, cfg *config.Project, userConn, sessionConn *grpc.ClientConn, mux *mux.Router, logger *zap.Logger, metrics *metrics.Metrics) {
+func AddUserRouter(mux *mux.Router, cluster *services.Cluster, clients *microservices.Clients, logger *zap.Logger, metrics *metrics.Metrics) {
 	// init user grpc client
-	grpcUserClient := user.NewUserManagerClient(userConn)
+	grpcUserClient := user.NewUserManagerClient(clients.UserConn)
 	usecaseUser := ucUser.NewUsecaseLayer(grpcUserClient, metrics)
 	// init session grpc client
-	grpcSessionClient := session.NewSessionManagerClient(sessionConn)
+	grpcSessionClient := session.NewSessionManagerClient(clients.SessionConn)
 	usecaseSession := ucSession.NewUsecaseLayer(grpcSessionClient, metrics)
 
-	deliveryUser := dUser.NewDeliveryLayer(cfg, usecaseSession, usecaseUser, logger, metrics)
+	deliveryUser := dUser.NewDeliveryLayer(usecaseSession, usecaseUser, logger, metrics)
 
 	mux.HandleFunc("/api/v1/user", deliveryUser.UserData).Methods("GET").Name("user_data")
 	mux.HandleFunc("/api/v1/user", deliveryUser.UpdateInfo).Methods("PUT").Name("update_user")

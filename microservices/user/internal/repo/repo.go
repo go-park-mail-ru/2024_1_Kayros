@@ -14,6 +14,7 @@ import (
 	metrics "2024_1_kayros/microservices/metrics"
 )
 
+//go:generate mockgen -source ./repo.go -destination=./mocks/repo.go -package=mock_repo
 type Repo interface {
 	GetByEmail(ctx context.Context, email *user.Email) (*user.User, error)
 	DeleteByEmail(ctx context.Context, email *user.Email) error
@@ -39,11 +40,11 @@ func NewLayer(db *sql.DB, metrics *metrics.MicroserviceMetrics) Repo {
 func (repo *Layer) GetByEmail(ctx context.Context, email *user.Email) (*user.User, error) {
 	timeNow := time.Now()
 	row := repo.database.QueryRowContext(ctx,
-		`SELECT id, name, email, COALESCE(phone, ''), password, COALESCE(address, ''), img_url, COALESCE(card_number, '')  FROM "user" WHERE email = $1`, email.GetEmail())
+		`SELECT id, name, email, COALESCE(phone, ''), password, COALESCE(address, ''), img_url, COALESCE(card_number, ''), is_vk_user FROM "user" WHERE email = $1`, email.GetEmail())
 	timeEnd := time.Since(timeNow)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	u := entity.User{}
-	err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Phone, &u.Password, &u.Address, &u.ImgUrl, &u.CardNumber)
+	err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Phone, &u.Password, &u.Address, &u.ImgUrl, &u.CardNumber, &u.IsVkUser)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, myerrors.SqlNoRowsUserRelation
@@ -75,9 +76,10 @@ func (repo *Layer) DeleteByEmail(ctx context.Context, email *user.Email) error {
 func (repo *Layer) Create(ctx context.Context, u *user.User) error {
 	timeNow := time.Now().UTC().Format(cnst.Timestamptz)
 	timeNowMetric := time.Now()
+
 	row, err := repo.database.ExecContext(ctx,
-		`INSERT INTO "user" (name, email, password, address, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
-		u.GetName(), u.GetEmail(), u.GetPassword(), functions.MaybeNullString(u.GetAddress()), timeNow, timeNow)
+		`INSERT INTO "user" (name, email, phone, password, address, img_url, is_vk_user, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		u.GetName(), u.GetEmail(), functions.MaybeNullString(u.GetPhone()), u.GetPassword(), functions.MaybeNullString(u.GetAddress()), functions.MaybeNullString(u.GetImgUrl()), u.GetIsVkUser(), timeNow, timeNow)
 	timeEnd := time.Since(timeNowMetric)
 	repo.metrics.DatabaseDuration.WithLabelValues(metrics.INSERT).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {

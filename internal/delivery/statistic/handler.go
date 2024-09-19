@@ -27,18 +27,18 @@ type Delivery struct {
 	ucUser    user.Usecase
 	ucSession session.Usecase
 	logger    *zap.Logger
-	cfg       *config.Project
+	cfg       *config.ProjectConfiguration
 	metrics   *metrics.Metrics
 }
 
-func NewDeliveryLayer(ucQuizProps statistic.Usecase, ucUserProps user.Usecase, ucSessionProps session.Usecase, loggerProps *zap.Logger, cfgProps *config.Project, metrics   *metrics.Metrics) *Delivery {
+func NewDeliveryLayer(ucQuizProps statistic.Usecase, ucUserProps user.Usecase, ucSessionProps session.Usecase, loggerProps *zap.Logger, metrics *metrics.Metrics) *Delivery {
 	return &Delivery{
 		ucQuiz:    ucQuizProps,
 		ucUser:    ucUserProps,
 		logger:    loggerProps,
 		ucSession: ucSessionProps,
-		cfg:       cfgProps,
-		metrics: metrics,
+		cfg:       &config.Config,
+		metrics:   metrics,
 	}
 }
 
@@ -58,7 +58,7 @@ func (d *Delivery) GetStatistic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statisticArray := &dto.StatisticArray{Payload: dto.NewDtoStatistic(stats)} 
+	statisticArray := &dto.StatisticArray{Payload: dto.NewDtoStatistic(stats)}
 	functions.JsonResponse(w, statisticArray)
 }
 
@@ -76,7 +76,7 @@ func (d *Delivery) GetQuestions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	questionArray := &dto.QuestionArray{Payload: dto.QuestionReturn(qs)} 
+	questionArray := &dto.QuestionArray{Payload: dto.QuestionReturn(qs)}
 	functions.JsonResponse(w, questionArray)
 }
 

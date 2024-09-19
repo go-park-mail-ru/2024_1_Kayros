@@ -1,37 +1,31 @@
 package route
 
 import (
-	"database/sql"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/minio/minio-go/v7"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
 
 	"2024_1_kayros/internal/delivery/metrics"
-
-	"2024_1_kayros/config"
+	"2024_1_kayros/microservices"
+	"2024_1_kayros/services"
 )
 
-
-func Setup(cfg *config.Project, db *sql.DB, minio *minio.Client, mux *mux.Router, logger *zap.Logger,
-	restConn, commentConn, authConn, userConn, sessionConn *grpc.ClientConn, m *metrics.Metrics, reg *prometheus.Registry) http.Handler {
-	logger.Info("The begin of handlers definition")
-	mux.StrictSlash(true)
+func Setup(mux *mux.Router, cluster *services.Cluster, clients *microservices.Clients, m *metrics.Metrics, reg *prometheus.Registry, logger *zap.Logger) http.Handler {
+	logger.Info("begin of handlers definition")
 	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 	mux.Handle("/metrics", promHandler)
-	
-	AddAuthRouter(cfg, db, authConn, sessionConn, mux, logger, m)
-	AddUserRouter(db, cfg, userConn, sessionConn, mux, logger, m)
-	AddRestRouter(db, mux, logger, restConn, userConn, commentConn, m)
-	AddOrderRouter(db, mux, userConn, restConn, logger, m)
-	AddQuizRouter(db, sessionConn, userConn, minio, mux, logger, cfg, m)
-	AddPaymentRouter(db, sessionConn, userConn, restConn, mux, logger, cfg, m)
 
-	handler := AddMiddleware(cfg, db, sessionConn, userConn, mux, logger, m)
-	logger.Info("The end of handlers definition")
+	AddAuthRouter(mux, cluster, clients, logger, m)
+	AddUserRouter(mux, cluster, clients, logger, m)
+	AddRestRouter(mux, cluster, clients, logger, m)
+	AddOrderRouter(mux, cluster, clients, logger, m)
+	AddQuizRouter(mux, cluster, clients, logger, m)
+	AddPaymentRouter(mux, cluster, clients, logger, m)
+
+	handler := AddMiddleware(mux, cluster, clients, logger, m)
+	logger.Info("end of handlers definition")
 	return handler
 }

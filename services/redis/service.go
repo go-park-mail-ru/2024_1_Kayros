@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"2024_1_kayros/config"
+
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
-func Init(cfg *config.Project, logger *zap.Logger, dbNum int) *redis.Client {
+func Init(cfg *config.ProjectConfiguration, logger *zap.Logger, dbNum int) *redis.Client {
 	cfgRedis := cfg.Redis
 	redisAddress := fmt.Sprintf("%s:%d", cfgRedis.Host, cfgRedis.Port)
 	r := redis.NewClient(&redis.Options{

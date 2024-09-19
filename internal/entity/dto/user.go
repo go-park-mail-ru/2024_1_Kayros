@@ -9,6 +9,7 @@ import (
 	"2024_1_kayros/internal/entity"
 	cnst "2024_1_kayros/internal/utils/constants"
 	"2024_1_kayros/internal/utils/myerrors"
+
 	"github.com/asaskevich/govalidator"
 )
 
@@ -69,6 +70,7 @@ func NewUserFromSignUpForm(data *UserSignUp) *entity.User {
 		Name:     data.Name,
 		Email:    data.Email,
 		Password: data.Password,
+		IsVkUser: false,
 	}
 	return uDTO
 }
@@ -90,6 +92,7 @@ type UserGet struct {
 	Email   string `json:"email" valid:"user_email_domain"`
 	Address string `json:"address" valid:"user_address_domain"`
 	ImgUrl  string `json:"img_url" valid:"img_url_domain"`
+	IsVkUser bool  `json:"is_vk_user" valid:"-"`
 }
 
 // NewUserData - function used to form response for receiving detailed information about user
@@ -101,6 +104,7 @@ func NewUserData(u *entity.User) *UserGet {
 		Email:   u.Email,
 		Address: u.Address,
 		ImgUrl:  u.ImgUrl,
+		IsVkUser: u.IsVkUser,
 	}
 }
 

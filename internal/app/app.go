@@ -3,128 +3,73 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"time"
 
-	"2024_1_kayros/config"
+	cfg "2024_1_kayros/config"
 	"2024_1_kayros/internal/delivery/metrics"
 	"2024_1_kayros/internal/delivery/route"
-	grpcClientMiddleware "2024_1_kayros/internal/middleware/grpc/client"
 	"2024_1_kayros/internal/utils/functions"
-	"2024_1_kayros/services/minio"
-	"2024_1_kayros/services/postgres"
+	"2024_1_kayros/microservices"
+	"2024_1_kayros/services"
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Run creates all services and run the handler goroutines
-func Run(cfg *config.Project) {
-	logger := zap.Must(zap.NewProduction())
+func Run(logger *zap.Logger) {
+	// add custom struct tags for dto validation
 	functions.InitDtoValidator(logger)
-
-	postgreDB := postgres.Init(cfg, logger)
-	minioDB := minio.Init(cfg, logger)
+	projectCfg := cfg.Config
+	// initialization of cluster services
+	serviceCluster := services.Init(logger)
+	// initialization of metrics client
 	reg := prometheus.NewRegistry()
 	m := metrics.NewMetrics(reg, "gateway")
-
-	middleware := grpcClientMiddleware.NewGrpcClientUnaryMiddlewares(m)
-
-	//restaurant microservice
-	restConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.RestGrpcServer.Host, cfg.RestGrpcServer.Port),
-	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
-	if err != nil {
-		errMsg := fmt.Sprintf("The microservice restaurant is not available.\n%v", err)
-		logger.Error(errMsg)
-	}
-	defer func(restConn *grpc.ClientConn) {
-		err := restConn.Close()
+	// initialization of grpc clients
+	grpcClients := microservices.Init(logger, m)
+	defer func(clients *microservices.Clients) {
+		err := clients.RestConn.Close()
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Error(fmt.Sprintf("error while closing connection with microservice 'restaurant': %v", err))
 		}
-	}(restConn)
-
-	//comment microservice
-	commentConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.CommentGrpcServer.Host, cfg.CommentGrpcServer.Port), 
-	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
-	if err != nil {
-		errMsg := fmt.Sprintf("The microservice comment is not available.\n%v", err)
-		logger.Error(errMsg)
-	}
-	defer func(restConn *grpc.ClientConn) {
-		err := restConn.Close()
+		err = clients.CommentConn.Close()
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Error(fmt.Sprintf("error while closing connection with microservice 'comment': %v", err))
 		}
-	}(commentConn)
-
-	//auth microservice
-	authConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.AuthGrpcServer.Host, cfg.AuthGrpcServer.Port), 
-	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
-	if err != nil {
-		errMsg := fmt.Sprintf("The auth microservice is not available.\n%v", err)
-		logger.Error(errMsg)
-	}
-	defer func(authConn *grpc.ClientConn) {
-		err := authConn.Close()
+		err = clients.AuthConn.Close()
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Error(fmt.Sprintf("error while closing connection with microservice 'authorization': %v", err))
 		}
-	}(authConn)
-
-	// user microservice
-	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), 
-	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
-	if err != nil {
-		errMsg := fmt.Sprintf("The microservice user is not available.\n%v", err)
-		logger.Error(errMsg)
-	}
-	defer func(userConn *grpc.ClientConn) {
-		err := userConn.Close()
+		err = clients.UserConn.Close()
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Error(fmt.Sprintf("error while closing connection with microservice 'user': %v", err))
 		}
-	}(userConn)
-
-	// session microservice
-	sessionConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.SessionGrpcServer.Host, cfg.SessionGrpcServer.Port), 
-	grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(middleware.AccessMiddleware))
-	if err != nil {
-		errMsg := fmt.Sprintf("The microservice session is not available.\n%v", err)
-		logger.Error(errMsg)
-	}
-	defer func(sessionConn *grpc.ClientConn) {
-		err := userConn.Close()
+		err = clients.SessionConn.Close()
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Error(fmt.Sprintf("error while closing connection with microservice 'session': %v", err))
 		}
-	}(sessionConn)
+	}(grpcClients)
 
 	r := mux.NewRouter()
-	handler := route.Setup(cfg, postgreDB, minioDB, r, logger, restConn, commentConn, authConn, userConn, sessionConn, m, reg)
+	handler := route.Setup(r, serviceCluster, grpcClients, m, reg, logger)
 
-	serverConfig := cfg.Server
-	serverAddress := fmt.Sprintf(":%d", cfg.Server.Port)
+	serverConfig := projectCfg.Server
+	serverAddress := fmt.Sprintf(":%d", serverConfig.Port)
 	srv := &http.Server{
 		Handler:      handler,
 		Addr:         serverAddress,
-		WriteTimeout: time.Duration(serverConfig.WriteTimeout) * time.Second, // timeout for writing data in response to a request
-		ReadTimeout:  time.Duration(serverConfig.ReadTimeout) * time.Second,  // timeout for reading data from request
-		IdleTimeout:  time.Duration(serverConfig.IdleTimeout) * time.Second,  // time of communication between client and server
+		WriteTimeout: serverConfig.WriteTimeout, // timeout for writing data in response to a request
+		ReadTimeout:  serverConfig.ReadTimeout,  // timeout for reading data from request
+		IdleTimeout:  serverConfig.IdleTimeout,  // time of communication between client and server
 	}
 
-	srvConfig := cfg.Server
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Printf("The main service cannot be started.\n%v", err)
-		} else {
-			log.Printf("The main service has started at the address %s:%d", srvConfig.Host, srvConfig.Port)
+			logger.Error(fmt.Sprintf("the main service has finished with error: %v", err))
 		}
 	}()
 
@@ -132,15 +77,11 @@ func Run(cfg *config.Project) {
 	signal.Notify(c, os.Interrupt)
 	<-c
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(srvConfig.ShutdownDuration))
+	ctx, cancel := context.WithTimeout(context.Background(), serverConfig.ShutdownDuration)
 	defer cancel()
 
-	err = srv.Shutdown(ctx)
-	if err != nil {
-		log.Printf("The main service urgently shut down with an error.\n%v", err)
-		os.Exit(1) //
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Fatal(fmt.Sprintf("the main service urgently shut down with an error: %v", err))
 	}
-
-	log.Println("The main service has shut down")
-	os.Exit(0)
+	logger.Info("the main service has shut down")
 }

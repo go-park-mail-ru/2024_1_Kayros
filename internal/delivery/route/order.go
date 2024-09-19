@@ -1,11 +1,8 @@
 package route
 
 import (
-	"database/sql"
-
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 
 	restproto "2024_1_kayros/gen/go/rest"
 	userproto "2024_1_kayros/gen/go/user"
@@ -14,15 +11,17 @@ import (
 	rFood "2024_1_kayros/internal/repository/food"
 	rOrder "2024_1_kayros/internal/repository/order"
 	ucOrder "2024_1_kayros/internal/usecase/order"
+	"2024_1_kayros/microservices"
+	"2024_1_kayros/services"
 )
 
-func AddOrderRouter(db *sql.DB, mux *mux.Router, userConn, restConn *grpc.ClientConn, logger *zap.Logger, metrics *metrics.Metrics) {
-	repoOrder := rOrder.NewRepoLayer(db, metrics)
-	repoFood := rFood.NewRepoLayer(db, metrics)
+func AddOrderRouter(mux *mux.Router, cluster *services.Cluster, clients *microservices.Clients, logger *zap.Logger, metrics *metrics.Metrics) {
+	repoOrder := rOrder.NewRepoLayer(cluster.PsqlClient, metrics)
+	repoFood := rFood.NewRepoLayer(cluster.PsqlClient, metrics)
 	//init user grpc client
-	grpcUserClient := userproto.NewUserManagerClient(userConn)
+	grpcUserClient := userproto.NewUserManagerClient(clients.UserConn)
 	//init rest grpc client
-	grpcRestClient := restproto.NewRestWorkerClient(restConn)
+	grpcRestClient := restproto.NewRestWorkerClient(clients.RestConn)
 
 	usecaseOrder := ucOrder.NewUsecaseLayer(repoOrder, repoFood, grpcUserClient, grpcRestClient, metrics)
 	handler := delivery.NewOrderHandler(usecaseOrder, logger)

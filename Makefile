@@ -28,3 +28,8 @@ easyjs:
 
 cap:
 	find . -name "*.go" -exec wc -l {} + | awk '{total += $1} END {print total}'
+
+
+# go test -coverprofile=cover.out
+# go tool cover -html=cover.out -o cover.html
+# //go:generate mockgen -source ./service.go -destination=./mocks/service.go -package=mock_service

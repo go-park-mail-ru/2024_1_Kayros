@@ -35,6 +35,7 @@ message User {
   string img_url = 6;
   string card_number = 7;
   string password = 8;
+  bool   is_vk_user = 9;
 }
 
 message UnauthId {

@@ -100,8 +100,12 @@ func (uc *Layer) UpdateData(ctx context.Context, data *user.UpdateUserData) (*us
 		u.ImgUrl = fmt.Sprintf("/minio-api/%s/%s", cnst.BucketUser, filename)
 	}
 
+	uc.logger.Info(fmt.Sprintf("%v", u))
+
 	newEmail := &user.Email{Email: data.GetUpdateInfo().GetEmail()}
 	uDB, err := uc.repoUser.GetByEmail(ctx, newEmail)
+	fmt.Println(uDB==nil)
+	uc.logger.Info(fmt.Sprintf("%v", uDB))
 	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
@@ -209,7 +213,13 @@ func (uc *Layer) UpdateAddressByUnauthId(ctx context.Context, unauth *user.Addre
 	err := uc.repoUser.UpdateAddressByUnauthId(ctx, unauth)
 	if err != nil {
 		uc.logger.Error(err.Error())
-		return nil, grpcerr.NewError(codes.Internal, err.Error())
+		if !errors.Is(err, myerrors.SqlNoRowsUnauthAddressRelation) {
+			return nil, grpcerr.NewError(codes.Internal, err.Error())
+		}
+		err = uc.repoUser.CreateAddressByUnauthId(ctx, unauth)
+		if err != nil {
+			return nil, grpcerr.NewError(codes.Internal, err.Error())
+		}
 	}
 	return nil, nil
 }
@@ -235,18 +245,21 @@ func (uc *Layer) Create(ctx context.Context, data *user.User) (*user.User, error
 		uc.logger.Error(myerrors.UserAlreadyExist.Error())
 		return &user.User{}, grpcerr.NewError(codes.AlreadyExists, myerrors.UserAlreadyExist.Error())
 	}
-
+	if uCopy.ImgUrl == "" {
+		uCopy.ImgUrl = "/minio-api/users/default.jpg"
+	}	
 	err = uc.repoUser.Create(ctx, uCopy)
 	if err != nil {
 		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
-
+	
 	u, err := uc.repoUser.GetByEmail(ctx, &user.Email{Email: uCopy.GetEmail()})
 	if err != nil {
 		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
+
 	return deleteCredentials(u), nil
 }
 

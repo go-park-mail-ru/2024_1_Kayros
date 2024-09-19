@@ -25,17 +25,17 @@ type Payment struct {
 	logger    *zap.Logger
 	ucOrder   order.Usecase
 	ucSession session.Usecase
-	cfg       *config.Project
+	cfg       *config.ProjectConfiguration
 	metrics   *metrics.Metrics
 }
 
-func NewPaymentDelivery(loggerProps *zap.Logger, ucOrderProps order.Usecase, ucSessionProps session.Usecase, cfgProps *config.Project, metrics   *metrics.Metrics) *Payment {
+func NewPaymentDelivery(ucOrderProps order.Usecase, ucSessionProps session.Usecase, loggerProps *zap.Logger, metrics *metrics.Metrics) *Payment {
 	return &Payment{
 		logger:    loggerProps,
 		ucOrder:   ucOrderProps,
 		ucSession: ucSessionProps,
-		cfg:       cfgProps,
-		metrics: metrics,
+		cfg:       &config.Config,
+		metrics:   metrics,
 	}
 }
 

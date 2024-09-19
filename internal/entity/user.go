@@ -11,6 +11,7 @@ type User struct {
 	ImgUrl     string
 	CardNumber string
 	Password   string
+	IsVkUser   bool
 }
 
 func CopyUser(u *User) *User {
@@ -23,6 +24,7 @@ func CopyUser(u *User) *User {
 		ImgUrl:     u.ImgUrl,
 		CardNumber: u.CardNumber,
 		Password:   u.Password,
+		IsVkUser:   u.IsVkUser,
 	}
 }
 
@@ -36,6 +38,7 @@ func Copy(u *protouser.User) *protouser.User {
 		ImgUrl:     u.ImgUrl,
 		CardNumber: u.CardNumber,
 		Password:   u.Password,
+		IsVkUser:   u.IsVkUser,
 	}
 }
 
@@ -49,6 +52,7 @@ func ConvertEntityUserIntoProtoUser(u *User) *protouser.User {
 		ImgUrl:     u.ImgUrl,
 		CardNumber: u.CardNumber,
 		Password:   u.Password,
+		IsVkUser:   u.IsVkUser,
 	}
 }
 
@@ -62,6 +66,7 @@ func ConvertProtoUserIntoEntityUser(u *protouser.User) *User {
 		ImgUrl:     u.GetImgUrl(),
 		CardNumber: u.GetCardNumber(),
 		Password:   u.GetPassword(),
+		IsVkUser:   u.GetIsVkUser(),
 	}
 }
 
