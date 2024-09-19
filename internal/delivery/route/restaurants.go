@@ -1,10 +1,7 @@
 package route
 
 import (
-	"database/sql"
-
 	"github.com/gorilla/mux"
-	"google.golang.org/grpc"
 
 	"go.uber.org/zap"
 
@@ -22,23 +19,25 @@ import (
 	ucRest "2024_1_kayros/internal/usecase/restaurants"
 	ucSearch "2024_1_kayros/internal/usecase/search"
 	ucUser "2024_1_kayros/internal/usecase/user"
+	"2024_1_kayros/microservices"
+	"2024_1_kayros/services"
 )
 
-func AddRestRouter(db *sql.DB, mux *mux.Router, logger *zap.Logger, restConn, userConn, commentConn *grpc.ClientConn, metrics *metrics.Metrics) {
-	repoSearch := rSearch.NewRepoLayer(db, metrics)
-	repoFood := rFood.NewRepoLayer(db, metrics)
+func AddRestRouter(mux *mux.Router, cluster *services.Cluster, clients *microservices.Clients, logger *zap.Logger, metrics *metrics.Metrics) {
+	repoSearch := rSearch.NewRepoLayer(cluster.PsqlClient, metrics)
+	repoFood := rFood.NewRepoLayer(cluster.PsqlClient, metrics)
 	usecaseFood := ucFood.NewUsecaseLayer(repoFood)
 	usecaseSearch := ucSearch.NewUsecaseLayer(repoSearch)
 	// init user grpc client
-	grpcUser := user.NewUserManagerClient(userConn)
+	grpcUser := user.NewUserManagerClient(clients.UserConn)
 	usecaseUser := ucUser.NewUsecaseLayer(grpcUser, metrics)
 
 	//init rest grpc client
-	grpcRest := rest.NewRestWorkerClient(restConn)
+	grpcRest := rest.NewRestWorkerClient(clients.RestConn)
 	usecaseRest := ucRest.NewUsecaseLayer(grpcRest, metrics)
 
 	// init comment grpc client
-	grpcComment := comment.NewCommentWorkerClient(commentConn)
+	grpcComment := comment.NewCommentWorkerClient(clients.CommentConn)
 	usecaseComment := ucComment.NewUseCaseLayer(grpcComment, grpcUser, metrics)
 
 	deliveryRest := dRest.NewRestaurantHandler(usecaseRest, usecaseFood, usecaseUser, logger)

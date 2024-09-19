@@ -1,5 +1,5 @@
 # Builder
-FROM golang:1.22-alpine AS builder
+FROM mirror.gcr.io/library/golang:1.22-alpine AS builder
 RUN apk add --update make git curl
 
 ARG MODULE_NAME=backend
@@ -14,7 +14,7 @@ COPY . /home/${MODULE_NAME}
 RUN go build /home/${MODULE_NAME}/cmd/main/main.go
 
 # Service
-FROM alpine:latest as production
+FROM mirror.gcr.io/library/alpine:latest as production
 ARG MODULE_NAME=backend
 WORKDIR /root/
 

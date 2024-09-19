@@ -1,0 +1,84 @@
+server:
+  host: localhost
+  port: 8000
+  write-timeout: 5s
+  read-timeout: 5s
+  idle-timeout: 20s
+  shutdown-duration: 5s
+  csrf-secret-key: bcff1861-3fbb-4a5e-925f-8bc392b26592
+
+postgres:
+  host: localhost
+  port: 5432
+  user: kayrosteam
+  password: resto123
+  database: main
+  sslmode: disable
+  max-open-connections: 10
+  conn-max-lifetime: 30s
+  max-idle-conns: 50
+  conn-max-idle-time: 15s
+
+# In production mode is needed to set sslmode to `true` and endpoint to `resto-go.ru`
+minio:
+  port-server: 9000
+  port-console: 9001
+  secret-key: resto123
+  access-key: kayrosteam
+  sslmode: false
+  endpoint: localhost:9000
+
+redis:
+  host: localhost
+  port: 6379
+  database-session: 0
+  database-csrf: 1
+  user: kayrosteam
+  password: resto123
+
+rest-grpc-server:
+  host: localhost
+  port: 8001
+
+rest-grpc-server-exporter:
+  host: localhost
+  port: 8011
+
+auth-grpc-server:
+  host: localhost
+  port: 8002
+
+auth-grpc-server-exporter:
+  host: localhost
+  port: 8012
+
+comment-grpc-server:
+  host: localhost
+  port: 8003
+
+comment-grpc-server-exporter:
+  host: localhost
+  port: 8013
+
+user-grpc-server:
+  host: localhost
+  port: 8004
+
+user-grpc-server-exporter:
+  host: localhost
+  port: 8014
+
+session-grpc-server:
+  host: localhost
+  port: 8005
+
+session-grpc-server-exporter:
+  host: localhost
+  port: 8015
+
+payment:
+  secret-key: test_RdAeYZ_9aTCcrSIkbbG1GsmgC2oKKpsbwTuhT7Xu900
+  store-id: 379694
+
+oauth:
+  access-token: 43ab9f8b43ab9f8b43ab9f8bd340b3b4e4443ab43ab9f8b259a8b25328287013ece3d21

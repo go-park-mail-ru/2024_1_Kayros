@@ -24,7 +24,7 @@ func TestIsPasswordEquals(t *testing.T) {
 		passCheck := &user.PasswordCheck{
 			Email:    "aaa@aa.aa",
 			Password: "aaaaaaaa",
-		} ..
+		}
 
 		s.userRepo.EXPECT().GetByEmail(ctx, &user.Email{Email: passCheck.Email}).Return(nil, fmt.Errorf("error"))
 		bVal, err := s.layer.IsPassswordEquals(ctx, passCheck)

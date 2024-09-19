@@ -99,7 +99,10 @@ func convAuthUserIntoUser(u *auth.SignUpCredentials) *user.User {
 	return &user.User{
 		Name:     u.GetName(),
 		Email:    u.GetEmail(),
-		Password: u.Password,
+		Password: u.GetPassword(),
+		ImgUrl:   u.GetImgUrl(),
+		IsVkUser: u.GetIsVkUser(),
+		Phone:    u.GetPhone(),
 	}
 }
 
@@ -112,5 +115,6 @@ func convUserIntoAuthUser(u *user.User) *auth.User {
 		Address:    u.GetAddress(),
 		ImgUrl:     u.GetImgUrl(),
 		CardNumber: u.GetCardNumber(),
+		IsVkUser:   u.GetIsVkUser(),
 	}
 }

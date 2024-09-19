@@ -21,7 +21,7 @@ import (
 )
 
 // Csrf checks for csrf_token availability in the request | Method `Signed Double-Submit Cookie`
-func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.Project, logger *zap.Logger, metrics *metrics.Metrics) http.Handler {
+func Csrf(handler http.Handler, ucSession session.Usecase, cfg *config.ProjectConfiguration, logger *zap.Logger, metrics *metrics.Metrics) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := functions.GetCtxRequestId(r)
 		csrfToken, err := functions.GetCookieCsrfValue(r)

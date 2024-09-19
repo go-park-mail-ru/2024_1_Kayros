@@ -18,7 +18,7 @@ import (
 )
 
 // SessionAuthentication needed for authentication (check session cookie and if it exists, return associated user email)
-func SessionAuthentication(handler http.Handler, ucUser user.Usecase, ucSession session.Usecase, logger *zap.Logger, cfg *config.Redis) http.Handler {
+func SessionAuthentication(handler http.Handler, ucUser user.Usecase, ucSession session.Usecase, cfg *config.Redis, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := functions.GetCtxRequestId(r)
 		sessionId, err := functions.GetCookieSessionValue(r)

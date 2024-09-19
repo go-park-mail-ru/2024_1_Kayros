@@ -25,16 +25,16 @@ import (
 type Delivery struct {
 	ucSession session.Usecase
 	ucUser    user.Usecase
-	cfg       *config.Project
+	cfg       *config.ProjectConfiguration
 	logger    *zap.Logger
 	metrics   *metrics.Metrics
 }
 
-func NewDeliveryLayer(cfgProps *config.Project, ucSessionProps session.Usecase, ucUserProps user.Usecase, loggerProps *zap.Logger, metrics *metrics.Metrics) *Delivery {
+func NewDeliveryLayer(ucSessionProps session.Usecase, ucUserProps user.Usecase, loggerProps *zap.Logger, metrics *metrics.Metrics) *Delivery {
 	return &Delivery{
 		ucUser:    ucUserProps,
 		ucSession: ucSessionProps,
-		cfg:       cfgProps,
+		cfg:       &config.Config,
 		logger:    loggerProps,
 		metrics:   metrics,
 	}
@@ -49,8 +49,8 @@ func (d *Delivery) UserAddress(w http.ResponseWriter, r *http.Request) {
 	isUserAddress = strings.TrimSpace(isUserAddress)
 
 	if isUserAddress == "true" && email == "" {
-		d.logger.Error("unauthorized user can't get authorized user's email", zap.String(cnst.RequestId, requestId))
-		functions.ErrorResponse(w, myerrors.BadRequestGetEmail, http.StatusBadRequest)
+		d.logger.Error("unauthorized user can't get authorized user's address", zap.String(cnst.RequestId, requestId))
+		functions.ErrorResponse(w, myerrors.BadRequestGetAddress, http.StatusBadRequest)
 		return
 	}
 
@@ -204,7 +204,7 @@ func (d *Delivery) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 
 	if isUserAddress == "true" && email == "" {
 		d.logger.Error("unauthorized user can't update authorized user's email", zap.String(cnst.RequestId, requestId))
-		functions.ErrorResponse(w, myerrors.BadRequestUpdateEmail, http.StatusBadRequest)
+		functions.ErrorResponse(w, myerrors.BadRequestUpdateAddress, http.StatusBadRequest)
 		return
 	}
 

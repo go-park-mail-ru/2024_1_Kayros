@@ -15,8 +15,11 @@ message SignInCredentials {
 
 message SignUpCredentials {
   string email = 1;
-  string name = 3;
-  string password =4;
+  string name = 2;
+  string password = 3;
+  string img_url = 4;
+  bool   is_vk_user = 5;
+  string phone = 6;
 }
 
 message User {
@@ -28,4 +31,5 @@ message User {
   string img_url = 6;
   string card_number = 7;
   string password = 8;
+  bool   is_vk_user = 9;
 }

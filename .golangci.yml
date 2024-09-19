@@ -23,21 +23,48 @@ linters:
   disable-all: true
   enable:
     - bodyclose
+<<<<<<< Updated upstream
     - dogsled
     - exportloopref
     - exhaustive
     - goconst
     - gocyclo
     - gosimple
+=======
+    - deadcode
+    - dogsled
+    - dupl
+    - errcheck
+    - exportloopref
+    - exhaustive
+    - goconst
+    - gocritic
+    - gomnd
+    - gocyclo
+    - gosec
+    - gosimple
+    - misspell
+>>>>>>> Stashed changes
     - nolintlint
     - nilerr
     - nakedret
     - prealloc
     - predeclared
+<<<<<<< Updated upstream
+=======
+    - staticcheck
+    - structcheck
+>>>>>>> Stashed changes
     - thelper
     - tparallel
     - typecheck
     - unconvert
+<<<<<<< Updated upstream
+=======
+    - unparam
+    - varcheck
+    - whitespace
+>>>>>>> Stashed changes
 
 run:
   issues-exit-code: 1

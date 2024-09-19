@@ -3,19 +3,19 @@ package main
 import (
 	"2024_1_kayros/config"
 	"2024_1_kayros/internal/app"
+	"fmt"
+
 	"go.uber.org/zap"
 )
 
 func main() {
 	logger := zap.Must(zap.NewProduction())
-	defer func(logger *zap.Logger) {
-		err := logger.Sync()
-		if err != nil {
-			logger.Info("Failed to sync logs into storage")
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			logger.Warn(fmt.Sprintf("failed to sync logs into storage: %v", err))
 		}
-	}(logger)
-
-	cfg := config.NewConfig(logger)
-	app.Run(cfg)
+	}()
+	config.Read(logger)
+	app.Run(logger)
 	logger.Info("The server has shut down")
 }

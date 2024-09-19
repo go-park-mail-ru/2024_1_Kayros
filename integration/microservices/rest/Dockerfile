@@ -1,5 +1,5 @@
 # Builder state
-FROM golang:1.22-alpine AS builder
+FROM mirror.gcr.io/library/golang:1.22-alpine AS builder
 RUN apk add --update make git curl
 
 ARG MODULE_NAME=2024_1_kayros
@@ -31,7 +31,7 @@ COPY internal/utils/constants internal/utils/constants
 RUN go build microservices/restaurants/cmd/main.go
 
 # Production state
-FROM alpine:latest as production
+FROM mirror.gcr.io/library/alpine:latest as production
 WORKDIR /root/
 ARG MODULE_NAME_BUILDER=2024_1_kayros
 

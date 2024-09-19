@@ -19,19 +19,20 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"2024_1_kayros/config"
+	cfg "2024_1_kayros/config"
 )
 
 func main() {
 	logger := zap.Must(zap.NewProduction())
-	cfg := config.NewConfig(logger)
+	cfg.Read(logger)
+	projConfig := cfg.Config
 
-	port := fmt.Sprintf(":%d", cfg.AuthGrpcServer.Port)
+	port := fmt.Sprintf(":%d", projConfig.AuthGrpcServer.Port)
 	conn, err := net.Listen("tcp", port)
 	if err != nil {
 		logger.Fatal("The microservice authorization doesn't respond", zap.String("error", err.Error()))
 	}
-	logger.Info(fmt.Sprintf("The microservice authorization responds on port %d", cfg.AuthGrpcServer.Port))
+	logger.Info(fmt.Sprintf("The microservice authorization responds on port %d", projConfig.AuthGrpcServer.Port))
 	reg := prometheus.NewRegistry()
 	metrics := metrics.NewMetrics(reg, "auth")
 	middleware := grpcServerMiddleware.NewMiddlewareChain(logger, metrics)
@@ -39,15 +40,15 @@ func main() {
 	// Start metrics server
 	go func() {
 		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-		address := fmt.Sprintf("%s:%d", cfg.AuthGrpcServerExporter.Host, cfg.AuthGrpcServerExporter.Port)
-		logger.Info(fmt.Sprintf("Serving metrics responds on port %d", cfg.AuthGrpcServerExporter.Port))
+		address := fmt.Sprintf("%s:%d", projConfig.AuthGrpcServerExporter.Host, projConfig.AuthGrpcServerExporter.Port)
+		logger.Info(fmt.Sprintf("Serving metrics responds on port %d", projConfig.AuthGrpcServerExporter.Port))
 		if err := http.ListenAndServe(address, nil); err != nil {
 			logger.Fatal("Error starting metrics server", zap.String("error", err.Error()))
 		}
 	}()
 
 	// connecting to user microservice
-	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.UserGrpcServer.Host, cfg.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	userConn, err := grpc.Dial(fmt.Sprintf("%s:%d", projConfig.UserGrpcServer.Host, projConfig.UserGrpcServer.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error("The microservice authorization is not available", zap.String("error", err.Error()))
 	}
@@ -65,7 +66,7 @@ func main() {
 	auth.RegisterAuthManagerServer(server, usecase.NewLayer(client, logger))
 	err = server.Serve(conn)
 	if err != nil {
-		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", cfg.AuthGrpcServer.Host, cfg.AuthGrpcServer.Port), zap.String("error", err.Error()))
+		logger.Fatal(fmt.Sprintf("Error serving on %s:%d", projConfig.AuthGrpcServer.Host, projConfig.AuthGrpcServer.Port), zap.String("error", err.Error()))
 	}
 
 	// graceful shutdown

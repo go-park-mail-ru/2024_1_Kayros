@@ -11,17 +11,18 @@ CREATE TABLE IF NOT EXISTS "user"
     phone       TEXT
         CONSTRAINT user_phone_domain CHECK (LENGTH(phone) = 18 OR phone IS NULL)                       NULL, -- формат |+7 (989) 232 12 12|
     password    BYTEA
-        CONSTRAINT user_password_length CHECK (LENGTH(password) = 64)                                  NOT NULL,
+        CONSTRAINT user_password_length CHECK (LENGTH(password) = 64),
     address     TEXT
         CONSTRAINT user_address_length CHECK ((LENGTH(address) BETWEEN 14 AND 100) OR address IS NULL) NULL, -- |ул. Мира, д. 4| (самое короткое название улицы в Москве 4 символа)
     img_url     TEXT
-        CONSTRAINT user_img_url CHECK (LENGTH(img_url) <= 60) DEFAULT '/minio-api/users/default.jpg'   NOT NULL,
+        CONSTRAINT user_img_url DEFAULT '/minio-api/users/default.jpg'   NOT NULL,
     card_number BYTEA
         CONSTRAINT user_card_number CHECK (LENGTH(password) = 64)                                      NULL,
     created_at  TIMESTAMPTZ
         CONSTRAINT user_time_create NOT NULL,
     updated_at  TIMESTAMPTZ
-        CONSTRAINT user_time_last_updated NOT NULL
+        CONSTRAINT user_time_last_updated NOT NULL,
+    is_vk_user  BOOLEAN DEFAULT FALSE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS unauth_address
@@ -126,7 +127,7 @@ CREATE TABLE IF NOT EXISTS food
 (
     id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name          TEXT
-        CONSTRAINT food_name_length CHECK (LENGTH(name) BETWEEN 2 AND 60)                                  NOT NULL,
+        CONSTRAINT food_name_length CHECK (LENGTH(name) BETWEEN 2 AND 150)                                  NOT NULL,
     description   TEXT
         CONSTRAINT food_description_length CHECK (LENGTH(description) BETWEEN 10 AND 100)                  NULL,
     restaurant_id INTEGER
