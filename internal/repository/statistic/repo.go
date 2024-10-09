@@ -22,13 +22,13 @@ type Repo interface {
 }
 
 type RepoLayer struct {
-	db *sql.DB
+	db      *sql.DB
 	metrics *metrics.Metrics
 }
 
 func NewRepoLayer(dbProps *sql.DB, metrics *metrics.Metrics) Repo {
 	return &RepoLayer{
-		db: dbProps,
+		db:      dbProps,
 		metrics: metrics,
 	}
 }

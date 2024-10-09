@@ -24,7 +24,6 @@ func setUp(t *testing.T) testFixtures {
 	mockUcFood := food.NewMockUsecase(ctrl)
 	logger := zap.NewNop()
 
-
 	return testFixtures{
 		ctrl:       ctrl,
 		handler:    NewRestaurantHandler(mockUcRest, mockUcFood, &user.UsecaseLayer{}, logger),

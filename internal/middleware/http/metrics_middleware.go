@@ -12,11 +12,11 @@ import (
 
 func Metrics(handler http.Handler, m *metrics.Metrics) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// start metrics work 
+		// start metrics work
 		start := time.Now()
 		// init custom http.ResponseWriter
 		rec := recorder.NewResponseWriter(w)
-		// call handler 
+		// call handler
 		handler.ServeHTTP(rec, r)
 		// collect metrics data
 		method := r.Method
@@ -31,7 +31,7 @@ func Metrics(handler http.Handler, m *metrics.Metrics) http.Handler {
 	})
 }
 
-func classificateUrlForMetrics (url string) string {
+func classificateUrlForMetrics(url string) string {
 	urlSplit := strings.Split(url, "/")
 	var numIndexInURL []int
 	for index, part := range urlSplit {
@@ -41,11 +41,11 @@ func classificateUrlForMetrics (url string) string {
 		}
 	}
 
-	needToClassificate := false 
+	needToClassificate := false
 	indexChangle := 0
 	if len(numIndexInURL) != 0 {
 		needToClassificate = true
-		indexChangle = numIndexInURL[len(numIndexInURL) - 1] 
+		indexChangle = numIndexInURL[len(numIndexInURL)-1]
 	}
 	newUrl := ""
 	for index, part := range urlSplit {

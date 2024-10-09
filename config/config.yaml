@@ -1,35 +1,35 @@
 server:
-  host: localhost
+  host: gateway
   port: 8000
   write-timeout: 5s
   read-timeout: 5s
   idle-timeout: 20s
   shutdown-duration: 5s
-  csrf-secret-key: bcff1861-3fbb-4a5e-925f-8bc392b26592
+  csrf_secret_key: bcff1861-3fbb-4a5e-925f-8bc392b26592
 
-postgres:
-  host: localhost
+postgresql:
+  host: postgres
   port: 5432
   user: kayrosteam
   password: resto123
-  database: main
+  database: main_db
   sslmode: disable
   max-open-connections: 10
   conn-max-lifetime: 30s
   max-idle-conns: 50
   conn-max-idle-time: 15s
 
-# In production mode is needed to set sslmode to `true` and endpoint to `resto-go.ru`
+# В Production нужно будет sslmode:true endpoint:resto-go.ru
 minio:
-  port-server: 9000
-  port-console: 9001
+  port-server: 9001
+  console-server: 9000
   secret-key: resto123
   access-key: kayrosteam
-  sslmode: false
-  endpoint: localhost:9000
+  sslmode: true
+  endpoint: resto-go.site:9000
 
 redis:
-  host: localhost
+  host: redis
   port: 6379
   database-session: 0
   database-csrf: 1
@@ -37,48 +37,47 @@ redis:
   password: resto123
 
 rest-grpc-server:
-  host: localhost
+  host: rest-grpc
   port: 8001
 
 rest-grpc-server-exporter:
-  host: localhost
-  port: 8011
+  host: rest-grpc
+  port: 8081
 
 auth-grpc-server:
-  host: localhost
+  host: auth-grpc
   port: 8002
 
 auth-grpc-server-exporter:
-  host: localhost
-  port: 8012
+  host: auth-grpc
+  port: 8082
 
 comment-grpc-server:
-  host: localhost
+  host: comment-grpc
   port: 8003
 
 comment-grpc-server-exporter:
-  host: localhost
-  port: 8013
+  host: comment-grpc
+  port: 8083
 
+# user-grpc-server
 user-grpc-server:
-  host: localhost
+  host: user-grpc
   port: 8004
 
 user-grpc-server-exporter:
-  host: localhost
-  port: 8014
+  host: user-grpc
+  port: 8084
 
+# session-grpc-server
 session-grpc-server:
-  host: localhost
+  host: session-grpc
   port: 8005
 
 session-grpc-server-exporter:
-  host: localhost
-  port: 8015
+  host: session-grpc
+  port: 8085
 
 payment:
   secret-key: test_RdAeYZ_9aTCcrSIkbbG1GsmgC2oKKpsbwTuhT7Xu900
   store-id: 379694
-
-oauth:
-  access-token: 43ab9f8b43ab9f8b43ab9f8bd340b3b4e4443ab43ab9f8b259a8b25328287013ece3d21

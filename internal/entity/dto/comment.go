@@ -13,7 +13,7 @@ type Comment struct {
 }
 
 type CommentArray struct {
-	Payload  []*Comment `json:"payload" valid:"-"`
+	Payload []*Comment `json:"payload" valid:"-"`
 }
 
 func NewComment(com *entity.Comment) *Comment {
@@ -47,7 +47,6 @@ func NewCommentArray(commentArray []*entity.Comment) []*Comment {
 	}
 	return commentArrayDTO
 }
-
 
 type InputId struct {
 	Id uint64 `json:"id"`

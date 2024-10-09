@@ -3,3 +3,4 @@ go.sum
 **/dto_easyjson.go
 **/**/data
 **.log
+vendor/

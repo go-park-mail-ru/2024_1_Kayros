@@ -9,8 +9,8 @@ var (
 	BadCredentialsRu              = errors.New("Предоставлены некорректные данные")
 	UserAlreadyExistRu            = errors.New("Пользователь с таким логином уже зарегистрирован")
 	NotFoundRu                    = errors.New("Данные не найдены")
-	BadRequestGetAddress            = errors.New("Необходимо авторизоваться для получения адреса")
-	BadRequestUpdateAddress         = errors.New("Необходимо авторизоваться для изменения адреса")
+	BadRequestGetAddress          = errors.New("Необходимо авторизоваться для получения адреса")
+	BadRequestUpdateAddress       = errors.New("Необходимо авторизоваться для изменения адреса")
 	BadRequestUpdateUnauthAddress = errors.New("Невозможно изменить адрес")
 
 	UnauthorizedRu   = errors.New("Вы не авторизованы")
@@ -87,8 +87,8 @@ var (
 	NoSetPromocode    = errors.New("promocode could not be applied")
 
 	// Database
-	SqlNoRowsUserRelation          = errors.New("no such record exists for \"user\"")
-	SqlNoRowsUserRelationAffected          = errors.New("no rowы affected for \"user\"")
+	SqlNoRowsUserRelation         = errors.New("no such record exists for \"user\"")
+	SqlNoRowsUserRelationAffected = errors.New("no rowы affected for \"user\"")
 
 	SqlNoRowsUnauthAddressRelation = errors.New("no such record exists for unauth_address")
 	SqlNoRowsRestaurantRelation    = errors.New("no such record exists for restaurant")

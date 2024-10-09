@@ -31,15 +31,15 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - /etc/nginx/sslcert/server.crt:/root/.minio/certs/public.crt:ro
-      - /etc/nginx/sslcert/server.key:/root/.minio/certs/private.key:ro
+      - /etc/letsencrypt/live/resto-go.site/fullchain.pem:/root/.minio/certs/public.crt:ro
+      - /etc/letsencrypt/live/resto-go.site/privkey.pem:/root/.minio/certs/private.key:ro
       - ../minio/data:/data
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - MINIO_SERVER_URL=https://resto-go.online:9000
-      - MINIO_BROWSER_REDIRECT_URL=https://resto-go.online/minio-admin
-    hostname: resto-go.online
+      - MINIO_ROOT_USER=kayrosteam
+      - MINIO_ROOT_PASSWORD=resto123
+      - MINIO_SERVER_URL=https://resto-go.site:9000
+      - MINIO_BROWSER_REDIRECT_URL=https://resto-go.site/minio-admin
+    hostname: resto-go.site
     command: server --console-address :9001 /data
     tty: true
   # metrics
@@ -74,7 +74,7 @@ services:
     image: mirror.gcr.io/grafana/grafana
     container_name: grafana
     environment:
-      - GF_SERVER_ROOT_URL=https://resto-go.online/grafana
+      - GF_SERVER_ROOT_URL=https://resto-go.site/grafana
     ports:
       - "3000:3000"
     volumes:
@@ -151,8 +151,8 @@ services:
     image: mirror.gcr.io/library/nginx:latest
     container_name: nginx
     volumes:
-      - /etc/letsencrypt/live/resto-go.online/privkey.pem:/root/ssl/key.pem
-      - /etc/letsencrypt/live/resto-go.online/fullchain.pem:/root/ssl/cert.pem
+      - /etc/letsencrypt/live/resto-go.site/privkey.pem:/root/ssl/key.pem
+      - /etc/letsencrypt/live/resto-go.site/fullchain.pem:/root/ssl/cert.pem
       - ../nginx/logs:/var/log/nginx/
       - ../nginx/prod/nginx.conf:/etc/nginx/nginx.conf
       # here you need to place the path of frontend static folder

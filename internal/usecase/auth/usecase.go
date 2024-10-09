@@ -22,13 +22,13 @@ type Usecase interface {
 
 type UsecaseLayer struct {
 	grpcClient auth.AuthManagerClient
-	metrics *metrics.Metrics
+	metrics    *metrics.Metrics
 }
 
 func NewUsecaseLayer(restClientProps auth.AuthManagerClient, m *metrics.Metrics) Usecase {
 	return &UsecaseLayer{
 		grpcClient: restClientProps,
-		metrics: m,
+		metrics:    m,
 	}
 }
 
@@ -40,7 +40,7 @@ func (uc *UsecaseLayer) SignUp(ctx context.Context, u *entity.User) (*entity.Use
 		ImgUrl:   u.ImgUrl,
 		IsVkUser: u.IsVkUser,
 		Phone:    u.Phone,
- 	}
+	}
 	timeNow := time.Now()
 	uSignedUp, err := uc.grpcClient.SignUp(ctx, data)
 	msRequestTimeout := time.Since(timeNow)

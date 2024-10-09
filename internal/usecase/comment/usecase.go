@@ -26,14 +26,14 @@ type Usecase interface {
 type UsecaseLayer struct {
 	grpcCommentClient comment.CommentWorkerClient
 	grpcUserClient    user.UserManagerClient
-	metrics 		  *metrics.Metrics
+	metrics           *metrics.Metrics
 }
 
 func NewUseCaseLayer(commentClient comment.CommentWorkerClient, userClient user.UserManagerClient, m *metrics.Metrics) Usecase {
 	return &UsecaseLayer{
 		grpcCommentClient: commentClient,
 		grpcUserClient:    userClient,
-		metrics: m,
+		metrics:           m,
 	}
 }
 
@@ -83,7 +83,7 @@ func (uc *UsecaseLayer) CreateComment(ctx context.Context, com entity.Comment, e
 	return FromGrpcStructToComment(res), nil
 }
 
-/// !!!!!!!
+// / !!!!!!!
 func (uc *UsecaseLayer) GetCommentsByRest(ctx context.Context, restId alias.RestId) ([]*entity.Comment, error) {
 	timeNow := time.Now()
 	comments, err := uc.grpcCommentClient.GetCommentsByRest(ctx, &comment.RestId{Id: uint64(restId)})
@@ -102,7 +102,7 @@ func (uc *UsecaseLayer) GetCommentsByRest(ctx context.Context, restId alias.Rest
 	return FromGrpcStructToCommentArray(comments), nil
 }
 
-/// !!!!!!!!
+// / !!!!!!!!
 func (uc *UsecaseLayer) DeleteComment(ctx context.Context, id uint64) error {
 	timeNow := time.Now()
 	_, err := uc.grpcCommentClient.DeleteComment(ctx, &comment.CommentId{Id: id})

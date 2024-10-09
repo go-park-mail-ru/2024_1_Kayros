@@ -17,8 +17,7 @@ func TestGetAll(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	s := setUp(t)
-		defer s.db.Close()
-
+	defer s.db.Close()
 
 	t.Run("db error", func(t *testing.T) {
 
@@ -32,7 +31,7 @@ func TestGetAll(t *testing.T) {
 	})
 
 	t.Run("ok", func(t *testing.T) {
-	
+
 		rows := sqlmock.NewRows([]string{"id", "name", "short_description", "address", "img_url"})
 		restExpected := &rest.RestList{
 			Rest: []*rest.Rest{
@@ -64,11 +63,10 @@ func TestGetById(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	s := setUp(t)
-		defer s.db.Close()
-
+	defer s.db.Close()
 
 	t.Run("db error", func(t *testing.T) {
-	
+
 		rId := &rest.RestId{
 			Id: 1,
 		}
@@ -84,7 +82,7 @@ func TestGetById(t *testing.T) {
 	})
 
 	t.Run("no rows", func(t *testing.T) {
-		
+
 		rId := &rest.RestId{
 			Id: 1,
 		}

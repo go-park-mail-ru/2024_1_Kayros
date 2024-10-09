@@ -45,7 +45,6 @@ func ChangingStatus(ctx context.Context, h *OrderHandler, id uint64, arr []strin
 	}
 }
 
-
 func (h *OrderHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 	requestId := functions.GetCtxRequestId(r)
 	email := functions.GetCtxEmail(r)

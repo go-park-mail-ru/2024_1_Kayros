@@ -112,7 +112,7 @@ func (h *Delivery) GetComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	commentArrayDTO := &dto.CommentArray{Payload: dto.NewCommentArray(comments)} 
+	commentArrayDTO := &dto.CommentArray{Payload: dto.NewCommentArray(comments)}
 	functions.JsonResponse(w, commentArrayDTO)
 }
 

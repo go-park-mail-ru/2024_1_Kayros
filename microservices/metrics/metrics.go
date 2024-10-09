@@ -7,38 +7,38 @@ import (
 )
 
 type MicroserviceMetrics struct {
-	TotalNumberOfRequests     prometheus.Counter
-	RequestTime 			  *prometheus.HistogramVec
-	DatabaseDuration          *prometheus.HistogramVec
+	TotalNumberOfRequests prometheus.Counter
+	RequestTime           *prometheus.HistogramVec
+	DatabaseDuration      *prometheus.HistogramVec
 }
 
 func NewMetrics(reg prometheus.Registerer, namespace string) *MicroserviceMetrics {
 	m := &MicroserviceMetrics{
-		// business metrics 
+		// business metrics
 		// total number of hits
 		TotalNumberOfRequests: promauto.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: namespace,
-				Name: "number_of_requests",
-				Help: "number of requests",
+				Name:      "number_of_requests",
+				Help:      "number of requests",
 			},
 		),
 		// request time can be filtered by request method, url path and response status
 		RequestTime: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: namespace,
-				Name:    "time_of_request",
-				Help:    "HTTP request duration in milliseconds",
-				Buckets: []float64{10, 25, 50, 100, 250, 500, 1000},
+				Name:      "time_of_request",
+				Help:      "HTTP request duration in milliseconds",
+				Buckets:   []float64{10, 25, 50, 100, 250, 500, 1000},
 			},
 			[]string{"status"},
 		),
 		DatabaseDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: namespace,
-				Name:    "database_duration_ms",
-				Help:    "Database request duration in milliseconds",
-				Buckets: []float64{10, 25, 50, 100, 250, 500, 1000},
+				Name:      "database_duration_ms",
+				Help:      "Database request duration in milliseconds",
+				Buckets:   []float64{10, 25, 50, 100, 250, 500, 1000},
 			},
 			[]string{"operation"},
 		),
@@ -50,11 +50,10 @@ func NewMetrics(reg prometheus.Registerer, namespace string) *MicroserviceMetric
 	return m
 }
 
-
 const (
 	SELECT = "SELECT"
 	UPDATE = "UPDATE"
 	DELETE = "DELETE"
 	INSERT = "INSERT"
-	REDIS = "REDIS"
+	REDIS  = "REDIS"
 )

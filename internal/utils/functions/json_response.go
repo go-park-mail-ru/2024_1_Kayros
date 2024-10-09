@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-
 func JsonResponse(w http.ResponseWriter, data interface{}) {
 	logger := zap.Logger{}
 	var err error

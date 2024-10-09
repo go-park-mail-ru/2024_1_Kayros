@@ -22,13 +22,13 @@ type Usecase interface {
 }
 
 type UsecaseLayer struct {
-	client session.SessionManagerClient
+	client  session.SessionManagerClient
 	metrics *metrics.Metrics
 }
 
 func NewUsecaseLayer(clientProps session.SessionManagerClient, metrics *metrics.Metrics) Usecase {
 	return &UsecaseLayer{
-		client: clientProps,
+		client:  clientProps,
 		metrics: metrics,
 	}
 }

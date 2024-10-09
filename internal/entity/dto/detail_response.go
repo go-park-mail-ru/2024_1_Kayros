@@ -14,4 +14,3 @@ type PayedOrderInfo struct {
 	Id     alias.OrderId `json:"id"`
 	Status string        `json:"status"`
 }
-

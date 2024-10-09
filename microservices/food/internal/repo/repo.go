@@ -19,13 +19,13 @@ type Repo interface {
 }
 
 type Layer struct {
-	db     *sql.DB
+	db      *sql.DB
 	metrics *metrics.MicroserviceMetrics
 }
 
 func NewLayer(dbProps *sql.DB, metrics *metrics.MicroserviceMetrics) Repo {
 	return &Layer{
-		db: dbProps,
+		db:      dbProps,
 		metrics: metrics,
 	}
 }
@@ -35,8 +35,8 @@ func (repo *Layer) GetByRestId(ctx context.Context, restId alias.RestId) ([]*ent
 	rows, err := repo.db.QueryContext(ctx,
 		`SELECT c.name, f.id, f.name, restaurant_id, weight, price, img_url FROM food as f
    JOIN category as c ON f.category_id=c.id WHERE restaurant_id = $1 ORDER BY category_id`, uint64(restId))
-   timeEnd := time.Since(timeNow)
-   repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
+	timeEnd := time.Since(timeNow)
+	repo.metrics.DatabaseDuration.WithLabelValues(metrics.SELECT).Observe(float64(timeEnd.Milliseconds()))
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ import (
 	"2024_1_kayros/internal/utils/constants"
 	"context"
 
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -15,7 +14,7 @@ type GrpcClientUnaryMiddlewares struct {
 }
 
 func NewGrpcClientUnaryMiddlewares(metrics *metrics.Metrics) *GrpcClientUnaryMiddlewares {
-	return &GrpcClientUnaryMiddlewares {
+	return &GrpcClientUnaryMiddlewares{
 		metrics: metrics,
 	}
 }
@@ -25,7 +24,7 @@ func (mdlwr *GrpcClientUnaryMiddlewares) AccessMiddleware(ctx context.Context, m
 	value := ctx.Value(constants.RequestId)
 	if value != nil {
 		requestId = value.(string)
-	}	
+	}
 	ctx = metadata.AppendToOutgoingContext(ctx, constants.RequestId, requestId)
 
 	return invoker(ctx, method, req, reply, cc, opts...)

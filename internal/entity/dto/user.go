@@ -86,24 +86,24 @@ func (d *UserSignIn) Validate() (bool, error) {
 
 // UserGet - DTO used for handler 'UserData' method GET
 type UserGet struct {
-	Id      uint64 `json:"id" valid:"-"`
-	Name    string `json:"name" valid:"user_name_domain"`
-	Phone   string `json:"phone" valid:"user_phone_domain"`
-	Email   string `json:"email" valid:"user_email_domain"`
-	Address string `json:"address" valid:"user_address_domain"`
-	ImgUrl  string `json:"img_url" valid:"img_url_domain"`
-	IsVkUser bool  `json:"is_vk_user" valid:"-"`
+	Id       uint64 `json:"id" valid:"-"`
+	Name     string `json:"name" valid:"user_name_domain"`
+	Phone    string `json:"phone" valid:"user_phone_domain"`
+	Email    string `json:"email" valid:"user_email_domain"`
+	Address  string `json:"address" valid:"user_address_domain"`
+	ImgUrl   string `json:"img_url" valid:"img_url_domain"`
+	IsVkUser bool   `json:"is_vk_user" valid:"-"`
 }
 
 // NewUserData - function used to form response for receiving detailed information about user
 func NewUserData(u *entity.User) *UserGet {
 	return &UserGet{
-		Id:      u.Id,
-		Name:    u.Name,
-		Phone:   u.Phone,
-		Email:   u.Email,
-		Address: u.Address,
-		ImgUrl:  u.ImgUrl,
+		Id:       u.Id,
+		Name:     u.Name,
+		Phone:    u.Phone,
+		Email:    u.Email,
+		Address:  u.Address,
+		ImgUrl:   u.ImgUrl,
 		IsVkUser: u.IsVkUser,
 	}
 }

@@ -27,11 +27,11 @@ type AccessLogStart struct {
 }
 
 type AccessLogEnd struct {
-	LatencyHuman string
-	LatencyMs    string
-	EndTime      string
-	RequestId    string
-	ResponseStatus  int
+	LatencyHuman   string
+	LatencyMs      string
+	EndTime        string
+	RequestId      string
+	ResponseStatus int
 }
 
 func Access(handler http.Handler, logger *zap.Logger) http.Handler {
@@ -86,10 +86,10 @@ func LogInitRequest(r *http.Request, logger *zap.Logger, timeNow time.Time, requ
 func LogEndRequest(logger *zap.Logger, timeNow time.Time, requestId string, responseStatus int) {
 	msg := fmt.Sprintf("request done %s", requestId)
 	endLog := &AccessLogEnd{
-		EndTime:      timeNow.Format(cnst.Timestamptz),
-		LatencyHuman: time.Since(timeNow).String(),
-		LatencyMs:    time.Since(timeNow).String(),
-		ResponseStatus:   responseStatus,
+		EndTime:        timeNow.Format(cnst.Timestamptz),
+		LatencyHuman:   time.Since(timeNow).String(),
+		LatencyMs:      time.Since(timeNow).String(),
+		ResponseStatus: responseStatus,
 	}
 	logger.Info(msg,
 		zap.String("end_time", endLog.EndTime),

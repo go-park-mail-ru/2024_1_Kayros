@@ -7,7 +7,6 @@ import (
 	"2024_1_kayros/internal/utils/alias"
 )
 
-
 type Food struct {
 	Id          uint64 `json:"id" valid:"-"`
 	Name        string `json:"name" valid:"-"`
@@ -97,8 +96,6 @@ func NewFoodArrayFromDTO(orderFood []*FoodInOrder) []*entity.FoodInOrder {
 	}
 	return foodList
 }
-
-
 
 type FoodCount struct {
 	FoodId alias.FoodId `json:"food_id" valid:"positive"`

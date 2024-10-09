@@ -20,13 +20,13 @@ type Repo interface {
 }
 
 type Layer struct {
-	redis *redis.Client
+	redis   *redis.Client
 	metrics *metrics.MicroserviceMetrics
 }
 
 func NewLayer(client *redis.Client, metrics *metrics.MicroserviceMetrics) Repo {
 	return &Layer{
-		redis: client,
+		redis:   client,
 		metrics: metrics,
 	}
 }

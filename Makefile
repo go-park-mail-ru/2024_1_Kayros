@@ -21,7 +21,7 @@ generate:
 	go generate 
 
 pb:
-	protoc -I proto proto/**/*.proto --go_out=gen/go --go-grpc_out=gen/go
+	protoc -I  proto/**/*.proto --go_out=gen/go --go-grpc_out=gen/go
 
 easyjs:
 	easyjson -no_std_marshalers -all internal/entity/dto

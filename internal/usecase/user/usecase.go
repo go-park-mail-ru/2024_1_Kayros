@@ -35,7 +35,7 @@ type UsecaseLayer struct {
 func NewUsecaseLayer(userClientProps protouser.UserManagerClient, metrics *metrics.Metrics) Usecase {
 	return &UsecaseLayer{
 		userClient: userClientProps,
-		metrics: metrics,
+		metrics:    metrics,
 	}
 }
 
@@ -93,7 +93,7 @@ func (uc *UsecaseLayer) UpdateUnauthAddress(ctx context.Context, address string,
 	}
 	return nil
 }
- 
+
 // GetData - method calls repo method to receive user data.
 func (uc *UsecaseLayer) GetData(ctx context.Context, email string) (*entity.User, error) {
 	timeNow := time.Now()
@@ -110,7 +110,7 @@ func (uc *UsecaseLayer) GetData(ctx context.Context, email string) (*entity.User
 		}
 		return &entity.User{}, err
 	}
- 	return entity.ConvertProtoUserIntoEntityUser(u), nil
+	return entity.ConvertProtoUserIntoEntityUser(u), nil
 }
 
 // UpdateData - method used to update user info. It accepts non-password fields.

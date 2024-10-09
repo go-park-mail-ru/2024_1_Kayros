@@ -16,24 +16,24 @@ import (
 
 const (
 	responseGrpcStatus = "response_grpc_status"
-	latencyHumanMs = "latency_human_ms"
+	latencyHumanMs     = "latency_human_ms"
 	databaseDurationMs = "database_duration_ms"
-	repoMethod = "repo_method"
+	repoMethod         = "repo_method"
 )
 
 type MiddlewareChain struct {
-	logger *zap.Logger
+	logger  *zap.Logger
 	metrics *metrics.MicroserviceMetrics
 }
 
-func NewMiddlewareChain (logger *zap.Logger, metrics *metrics.MicroserviceMetrics) MiddlewareChain {
+func NewMiddlewareChain(logger *zap.Logger, metrics *metrics.MicroserviceMetrics) MiddlewareChain {
 	return MiddlewareChain{
-		logger: logger,
+		logger:  logger,
 		metrics: metrics,
 	}
 }
 
-func (mdlwr *MiddlewareChain) AccessMiddleware (ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+func (mdlwr *MiddlewareChain) AccessMiddleware(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 	requestId := ""
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok && len(md[constants.RequestId]) > 0 {
@@ -53,15 +53,14 @@ func (mdlwr *MiddlewareChain) AccessMiddleware (ctx context.Context, req any, in
 			mdlwr.logger.Error("Code status is unavaliable. Status code --> " + grpcStatus.String())
 		}
 	}
-	
-	mdlwr.logger.Info(fmt.Sprintf("request done %s", requestId), 
-									zap.String(latencyHumanMs, timeEnd),
-									zap.String(responseGrpcStatus, grpcCode.String()))
+
+	mdlwr.logger.Info(fmt.Sprintf("request done %s", requestId),
+		zap.String(latencyHumanMs, timeEnd),
+		zap.String(responseGrpcStatus, grpcCode.String()))
 	return resp, err
 }
 
-
-func (mdlwr *MiddlewareChain) MetricsMiddleware (ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+func (mdlwr *MiddlewareChain) MetricsMiddleware(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 	timeNow := time.Now()
 	resp, err := handler(ctx, req)
 	timeEnd := time.Since(timeNow)

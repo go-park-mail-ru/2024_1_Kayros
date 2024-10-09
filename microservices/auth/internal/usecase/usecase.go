@@ -19,7 +19,7 @@ type Usecase interface {
 }
 
 type Layer struct {
-	auth.UnsafeAuthManagerServer
+		auth.UnsafeAuthManagerServer
 	client user.UserManagerClient
 	logger *zap.Logger
 }

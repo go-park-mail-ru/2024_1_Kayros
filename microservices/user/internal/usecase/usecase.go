@@ -104,7 +104,7 @@ func (uc *Layer) UpdateData(ctx context.Context, data *user.UpdateUserData) (*us
 
 	newEmail := &user.Email{Email: data.GetUpdateInfo().GetEmail()}
 	uDB, err := uc.repoUser.GetByEmail(ctx, newEmail)
-	fmt.Println(uDB==nil)
+	fmt.Println(uDB == nil)
 	uc.logger.Info(fmt.Sprintf("%v", uDB))
 	if err != nil && !errors.Is(err, myerrors.SqlNoRowsUserRelation) {
 		uc.logger.Error(err.Error())
@@ -247,13 +247,13 @@ func (uc *Layer) Create(ctx context.Context, data *user.User) (*user.User, error
 	}
 	if uCopy.ImgUrl == "" {
 		uCopy.ImgUrl = "/minio-api/users/default.jpg"
-	}	
+	}
 	err = uc.repoUser.Create(ctx, uCopy)
 	if err != nil {
 		uc.logger.Error(err.Error())
 		return &user.User{}, grpcerr.NewError(codes.Internal, err.Error())
 	}
-	
+
 	u, err := uc.repoUser.GetByEmail(ctx, &user.Email{Email: uCopy.GetEmail()})
 	if err != nil {
 		uc.logger.Error(err.Error())
